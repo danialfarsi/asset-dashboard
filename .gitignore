@@ -19,14 +19,23 @@ venv/
 node_modules/
 .next/
 out/
+*.tsbuildinfo       
 
 # Docker
 *.log
+docker-compose.override.yml  
 
 # OS
 .DS_Store
 Thumbs.db
+Thumbs.db:encryptable  
 
 # IDE
 .vscode/
+!.vscode/extensions.json  
 .idea/
+
+# Coverage / Test
+.coverage
+htmlcov/
+.pytest_cache/
