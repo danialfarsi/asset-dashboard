@@ -1,4 +1,3 @@
-// src/types/asset.ts
 export type AssetStatus = 'active' | 'inactive' | 'maintenance' | 'disposed';
 
 export interface AssetCategory {
@@ -14,10 +13,10 @@ export interface AssetLocation {
 export interface Asset {
   id: number;
   name: string;
-  asset_code: string;      // بجای code
+  asset_code: string;
   status: AssetStatus;
-  category: AssetCategory; // بجای string
-  location?: AssetLocation; // بجای string
+  category: AssetCategory;
+  location?: AssetLocation;
   purchase_date?: string;
   purchase_price?: number;
   current_value?: number;
@@ -25,16 +24,27 @@ export interface Asset {
   updated_at: string;
 }
 
+export interface AssetWritePayload {
+  name?: string;
+  asset_code?: string;
+  status?: AssetStatus;
+  category_id?: number;
+  location_id?: number;
+  purchase_date?: string;
+  purchase_price?: number;
+  current_value?: number;
+}
+
 export interface AssetListResponse {
-  results: Asset[]
-  count: number
-  next?: string | null
-  previous?: string | null
+  results: Asset[];
+  count: number;
+  next?: string | null;
+  previous?: string | null;
 }
 
 export interface AssetFilters {
   status?: AssetStatus;
-  category?: number;  // ID برای فیلتر
+  category?: number;
   search?: string;
   page?: number;
 }

@@ -7,24 +7,52 @@ from rest_framework import status
 
 
 class LoginView(TokenObtainPairView):
-    pass
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            access = response.data.get('access')
+            refresh = response.data.get('refresh')
+            response.set_cookie(
+                'access_token',
+                access,
+                httponly=False,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 5,
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh,
+                httponly=True,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 60 * 24,
+            )
+        return response
 
 
 class RefreshTokenView(TokenRefreshView):
-    pass
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            access = response.data.get('access')
+            response.set_cookie(
+                'access_token',
+                access,
+                httponly=False,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 5,
+            )
+        return response
 
 
 class LogoutView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request):
-        try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response({"detail": "Logged out."}, status=status.HTTP_205_RESET_CONTENT)
-        except Exception:
-            return Response({"detail": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+        response = Response({"detail": "Logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
 
 
 class MeView(APIView):
