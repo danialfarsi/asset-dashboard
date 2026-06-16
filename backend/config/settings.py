@@ -23,6 +23,7 @@ THIRD_PARTY_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'drf_spectacular',
 ]
 
 LOCAL_APPS = [
@@ -121,6 +122,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # JWT
@@ -134,6 +136,14 @@ SIMPLE_JWT = {
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
+    'http://localhost:3000',
 ]
 CORS_ALLOW_CREDENTIALS = True
+
+# Spectacular (Swagger)
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'API مدیریت دارایی‌های نامشهود',
+    'DESCRIPTION': 'سیستم مدیریت چرخه حیات دارایی‌های نامشهود',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}

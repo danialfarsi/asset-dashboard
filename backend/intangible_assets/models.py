@@ -148,3 +148,93 @@ class PreliminaryEvaluation(models.Model):
     confidence_level = models.IntegerField(default=50, validators=[MinValueValidator(0), MaxValueValidator(100)])
     evaluator = models.CharField(max_length=255)
     evaluation_date = models.DateField(auto_now_add=True)
+
+# ==================== هویت‌سنجی دارایی‌های نامشهود ====================
+
+class IdentityAssessment(models.Model):
+    """IA-F-00-01: فرم هویت‌سنجی دارایی‌های نامشهود"""
+    
+    STATUS_CHOICES = [
+        ('verified', 'تأیید شده'),
+        ('pending', 'در انتظار'),
+        ('rejected', 'رد شده'),
+    ]
+    
+    # اطلاعات دارایی
+    asset_name = models.CharField(max_length=255, verbose_name='نام دارایی')
+    asset_type = models.CharField(max_length=100, blank=True, verbose_name='نوع دارایی')
+    description = models.TextField(blank=True, verbose_name='توضیحات')
+    
+    # ارتباط با دارایی کشف شده (اختیاری)
+    discovery_form = models.ForeignKey(
+        'DiscoveryForm', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='identity_assessments',
+        verbose_name='فرم کشف مرتبط'
+    )
+    
+    # ۲۰ سوال پرسشنامه (امتیاز ۱ تا ۵)
+    q1 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q2 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q3 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q4 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q5 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q6 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q7 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q8 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q9 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q10 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q11 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q12 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q13 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q14 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q15 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q16 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q17 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q18 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q19 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    q20 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    
+    # نتیجه
+    total_score = models.FloatField(default=0, verbose_name='امتیاز نهایی')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='وضعیت')
+    
+    # متادیتا
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def calculate_score(self):
+        """محاسبه امتیاز نهایی از ۲۰ سوال"""
+        questions = [self.q1, self.q2, self.q3, self.q4, self.q5,
+                     self.q6, self.q7, self.q8, self.q9, self.q10,
+                     self.q11, self.q12, self.q13, self.q14, self.q15,
+                     self.q16, self.q17, self.q18, self.q19, self.q20]
+        total = sum(questions)
+        self.total_score = (total / 100) * 100
+        return self.total_score
+    
+    def determine_status(self):
+        """تعیین وضعیت بر اساس امتیاز"""
+        if self.total_score >= 80:
+            return 'verified'
+        elif self.total_score >= 60:
+            return 'pending'
+        else:
+            return 'rejected'
+    
+    def save(self, *args, **kwargs):
+        """قبل از ذخیره، امتیاز و وضعیت را محاسبه کن"""
+        self.calculate_score()
+        self.status = self.determine_status()
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return f"{self.asset_name} - {self.get_status_display()} ({self.total_score:.1f}%)"
+    
+    class Meta:
+        verbose_name = 'هویت‌سنجی دارایی'
+        verbose_name_plural = 'هویت‌سنجی دارایی‌ها'
+        ordering = ['-created_at']

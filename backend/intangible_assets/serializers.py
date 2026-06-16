@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from .models import DiscoveryForm, ExpertInterview, TacitKnowledgeForm, AssetListForm, ClassificationForm, HiddenAssetChecklist, PreliminaryEvaluation
+from .models import (
+    DiscoveryForm, ExpertInterview, TacitKnowledgeForm,
+    AssetListForm, ClassificationForm, HiddenAssetChecklist,
+    PreliminaryEvaluation, IdentityAssessment
+)
 
 class DiscoveryFormSerializer(serializers.ModelSerializer):
     class Meta:
         model = DiscoveryForm
         fields = '__all__'
-        read_only_fields = ['created_at', 'created_by']  # ← created_by را اضافه کنید
+        read_only_fields = ['created_at', 'updated_at', 'created_by']
 
 
 class ExpertInterviewSerializer(serializers.ModelSerializer):
@@ -47,3 +51,15 @@ class PreliminaryEvaluationSerializer(serializers.ModelSerializer):
         model = PreliminaryEvaluation
         fields = '__all__'
         read_only_fields = ['evaluation_date']
+
+
+# ==================== سریالایزر هویت‌سنجی ====================
+
+class IdentityAssessmentSerializer(serializers.ModelSerializer):
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+    created_by_name = serializers.CharField(source='created_by.email', read_only=True)
+    
+    class Meta:
+        model = IdentityAssessment
+        fields = '__all__'
+        read_only_fields = ['total_score', 'status', 'created_at', 'updated_at', 'created_by']
