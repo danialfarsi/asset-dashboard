@@ -1,22 +1,16 @@
+// frontend/src/types/auth.ts - جایگزینی کامل
+export type UserRole = "super_admin" | "org_admin" | "org_user";
+
 export interface User {
   id: number;
-  username: string;
   email: string;
+  username: string;
   first_name: string;
   last_name: string;
   role: UserRole;
+  organization_id?: number;
   is_active: boolean;
 }
-
-export type UserRole =
-  | "super_admin"
-  | "system_admin"
-  | "asset_manager"
-  | "asset_analyst"
-  | "legal_ip_manager"
-  | "business_development"
-  | "executive"
-  | "contributor";
 
 export interface LoginCredentials {
   email: string;
@@ -30,7 +24,6 @@ export interface AuthTokens {
 
 export interface AuthResponse {
   user: User;
-  // backend may return tokens nested or flat
   tokens?: AuthTokens;
   access?: string;
   refresh?: string;
