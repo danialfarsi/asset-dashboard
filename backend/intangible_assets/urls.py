@@ -2,7 +2,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     DiscoveryFormViewSet, ExpertInterviewViewSet, TacitKnowledgeFormViewSet,
     AssetListFormViewSet, ClassificationFormViewSet, HiddenAssetChecklistViewSet,
-    PreliminaryEvaluationViewSet, IdentityAssessmentViewSet
+    PreliminaryEvaluationViewSet, IdentityAssessmentViewSet,
+    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet
 )
 
 router = DefaultRouter()
@@ -14,5 +15,9 @@ router.register('classifications', ClassificationFormViewSet, basename='classifi
 router.register('hidden-checklists', HiddenAssetChecklistViewSet, basename='hidden-checklist')
 router.register('preliminary-evaluations', PreliminaryEvaluationViewSet, basename='preliminary-evaluation')
 router.register('identity-assessments', IdentityAssessmentViewSet, basename='identity-assessment')
+# ==================== هویت‌سنجی ====================
+router.register('organization-types', OrganizationTypeViewSet, basename='organization-type')
+router.register('screening-templates', ScreeningTemplateViewSet, basename='screening-template')
+router.register('screened-assets', ScreenedAssetViewSet, basename='screened-asset')
 
 urlpatterns = router.urls

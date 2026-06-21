@@ -88,3 +88,49 @@ class IdentityAssessmentViewSet(viewsets.ModelViewSet):
             'pending': pending,
             'rejected': rejected,
         })
+
+# ==================== ویوهای هویت‌سنجی ====================
+
+from .models import OrganizationType, ScreeningTemplate, ScreenedAsset
+from .serializers import (
+    OrganizationTypeSerializer, ScreeningTemplateSerializer, ScreenedAssetSerializer
+)
+
+class OrganizationTypeViewSet(viewsets.ModelViewSet):
+    queryset = OrganizationType.objects.all()
+    serializer_class = OrganizationTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ScreeningTemplateViewSet(viewsets.ModelViewSet):
+    queryset = ScreeningTemplate.objects.filter(is_active=True)
+    serializer_class = ScreeningTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        org_type = self.request.query_params.get('organization_type')
+        if org_type:
+            queryset = queryset.filter(organization_type__name=org_type)
+        return queryset
+
+
+class ScreenedAssetViewSet(viewsets.ModelViewSet):
+    queryset = ScreenedAsset.objects.all()
+    serializer_class = ScreenedAssetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        # تولید Asset_UID خودکار
+        last_asset = ScreenedAsset.objects.order_by('-id').first()
+        if last_asset:
+            try:
+                last_num = int(last_asset.asset_uid.split('-')[-1])
+                new_num = last_num + 1
+            except:
+                new_num = 1
+        else:
+            new_num = 1
+        
+        asset_uid = f"IA-2026-{str(new_num).zfill(3)}"
+        serializer.save(created_by=self.request.user, asset_uid=asset_uid)

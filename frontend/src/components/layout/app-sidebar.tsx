@@ -22,7 +22,6 @@ import {
   ChevronLeft,
   ClipboardCheck,
   CheckCircle,
-  FileCheck,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -42,17 +41,20 @@ const mainNavItems = [
   { label: 'دارایی‌های کشف شده', href: '/dashboard/intangible/assets', icon: Package },
 ]
 
-// منوی هویت سنجی
-const identityNavItems = [
-  { label: 'دارایی‌های هویت‌سنجی شده', href: '/dashboard/intangible/verified', icon: CheckCircle },
-  { label: 'فرم هویت‌سنجی', href: '/dashboard/intangible/identity-form', icon: FileCheck },
-]
-
 // منوی مراحل ۱۰ گانه
 const stageNavItems = [
   { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
-  { label: 'مرحله ۲: کشف و شناسایی', href: '/dashboard/intangible/stage2', icon: Search },
-  { label: 'مرحله ۳: ارزیابی و ارزش‌گذاری', href: '/dashboard/intangible/stage3', icon: DollarSign },
+  { 
+    label: 'مرحله ۲: کشف و شناسایی', 
+    href: '/dashboard/intangible/stage2', 
+    icon: Search,
+    children: [
+      { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new', icon: Search },
+      { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
+      { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
+    ]
+  },
+  { label: 'مرحله ۳: ارزیابی', href: '/dashboard/intangible/stage3', icon: DollarSign },
   { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
   { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
   { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
@@ -71,14 +73,14 @@ const settingsNavItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const [isIdentityOpen, setIsIdentityOpen] = useState(true)
   const [isStagesOpen, setIsStagesOpen] = useState(true)
+  const [isStage2Open, setIsStage2Open] = useState(true)
   
   const role = user?.role || 'org_user'
   const canSeeAllStages = role === 'super_admin' || role === 'org_admin'
 
   return (
-    <Sidebar side="right" dir="rtl">
+    <Sidebar side="right" dir="rtl" className="w-72">
       <SidebarHeader className="p-4 border-b">
         <span className="text-base font-bold text-primary">مدیریت دارایی‌ها</span>
       </SidebarHeader>
@@ -94,9 +96,9 @@ export function AppSidebar() {
               return (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href} className="flex items-center gap-3">
+                    <Link href={item.href} className="flex items-center gap-3 w-full">
                       <Icon className="w-4 h-4 shrink-0" />
-                      <span className="text-sm">{item.label}</span>
+                      <span className="text-sm truncate">{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -104,43 +106,6 @@ export function AppSidebar() {
             })}
           </SidebarMenu>
         </SidebarGroup>
-
-        {/* منوی هویت سنجی */}
-        {canSeeAllStages && (
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              <button
-                onClick={() => setIsIdentityOpen(!isIdentityOpen)}
-                className="flex items-center justify-between w-full text-right text-xs font-medium"
-              >
-                <span>هویت‌سنجی دارایی‌های نامشهود</span>
-                {isIdentityOpen ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronLeft className="w-4 h-4" />
-                )}
-              </button>
-            </SidebarGroupLabel>
-            {isIdentityOpen && (
-              <SidebarMenu>
-                {identityNavItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive} className="pr-8">
-                        <Link href={item.href} className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span className="text-xs">{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            )}
-          </SidebarGroup>
-        )}
 
         {/* منوی مراحل ۱۰ گانه */}
         {canSeeAllStages && (
@@ -163,12 +128,56 @@ export function AppSidebar() {
                 {stageNavItems.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                  
+                  if (item.children) {
+                    return (
+                      <div key={item.href} className="space-y-0">
+                        <SidebarMenuItem>
+                          <button
+                            onClick={() => setIsStage2Open(!isStage2Open)}
+                            className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg hover:bg-gray-100 ${
+                              isActive ? 'bg-gray-100 font-medium' : ''
+                            }`}
+                          >
+                            <span className="flex items-center gap-3 text-sm">
+                              <Icon className="w-4 h-4 shrink-0 ml-1" />
+                              <span className="truncate">{item.label}</span>
+                            </span>
+                            {isStage2Open ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronLeft className="w-4 h-4" />
+                            )}
+                          </button>
+                        </SidebarMenuItem>
+                        {isStage2Open && (
+                          <div className="mr-6">
+                            {item.children.map((child) => {
+                              const ChildIcon = child.icon
+                              const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/')
+                              return (
+                                <SidebarMenuItem key={child.href}>
+                                  <SidebarMenuButton asChild isActive={isChildActive} className="pr-8">
+                                    <Link href={child.href} className="flex items-center gap-3 w-full">
+                                      <ChildIcon className="w-4 h-4 shrink-0" />
+                                      <span className="text-sm truncate">{child.label}</span>
+                                    </Link>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  }
+                  
                   return (
                     <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={isActive} className="pr-8">
-                        <Link href={item.href} className="flex items-center gap-3">
+                        <Link href={item.href} className="flex items-center gap-3 w-full">
                           <Icon className="w-4 h-4 shrink-0" />
-                          <span className="text-xs">{item.label}</span>
+                          <span className="text-sm truncate">{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -189,9 +198,9 @@ export function AppSidebar() {
               return (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href} className="flex items-center gap-3">
+                    <Link href={item.href} className="flex items-center gap-3 w-full">
                       <Icon className="w-4 h-4 shrink-0" />
-                      <span className="text-sm">{item.label}</span>
+                      <span className="text-sm truncate">{item.label}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
