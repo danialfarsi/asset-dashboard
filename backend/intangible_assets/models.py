@@ -1,97 +1,21 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+
+# ==================== مدل‌های مرحله ۲: کشف و شناسایی ====================
 
 class DiscoveryForm(models.Model):
-    """IA-F-02-01: فرم کشف دارایی‌های نامشهود"""
-    
-    # ========== اطلاعات کلی ==========
-    company = models.CharField(max_length=255, null=True, blank=True, verbose_name='شرکت')
-    date = models.DateField(null=True, blank=True, verbose_name='تاریخ')  # auto_now_add حذف شد
-    department = models.CharField(max_length=255, null=True, blank=True, verbose_name='واحد/بخش')
-    responsible_person = models.CharField(max_length=255, null=True, blank=True, verbose_name='مسئول تکمیل')
-    
-    # ========== بخش ۱ ==========
-    project_name = models.CharField(max_length=255, null=True, blank=True, verbose_name='نام پروژه کشف')
-    project_goal = models.TextField(null=True, blank=True, verbose_name='هدف کشف')
-    search_scope = models.TextField(null=True, blank=True, verbose_name='محدوده جستجو')
-    duration = models.CharField(max_length=100, null=True, blank=True, verbose_name='مدت زمان کشف')
-    allocated_resources = models.TextField(null=True, blank=True, verbose_name='منابع اختصاص یافته')
-    
-    # ========== بخش ۲ ==========
-    discovery_methods_documentation = models.BooleanField(default=False)
-    discovery_methods_reports = models.BooleanField(default=False)
-    discovery_methods_processes = models.BooleanField(default=False)
-    discovery_methods_contracts = models.BooleanField(default=False)
-    discovery_methods_instructions = models.BooleanField(default=False)
-    discovery_methods_projects = models.BooleanField(default=False)
-    discovery_methods_interviews = models.BooleanField(default=False)
-    discovery_methods_databases = models.BooleanField(default=False)
-    discovery_methods_knowledge = models.BooleanField(default=False)
-    discovery_methods_social = models.BooleanField(default=False)
-    
-    # ========== بخش ۳ ==========
-    strategic_assets = models.JSONField(default=list, null=True, blank=True)
-    operational_assets = models.JSONField(default=list, null=True, blank=True)
-    support_assets = models.JSONField(default=list, null=True, blank=True)
-    
-    # ========== بخش ۴ ==========
-    economic_patents = models.TextField(null=True, blank=True)
-    economic_trademarks = models.TextField(null=True, blank=True)
-    economic_copyrights = models.TextField(null=True, blank=True)
-    economic_business_models = models.TextField(null=True, blank=True)
-    economic_customer_data = models.TextField(null=True, blank=True)
-    economic_market_data = models.TextField(null=True, blank=True)
-    
-    social_csr = models.TextField(null=True, blank=True)
-    social_charity = models.TextField(null=True, blank=True)
-    social_stakeholders = models.TextField(null=True, blank=True)
-    social_business_networks = models.TextField(null=True, blank=True)
-    
-    knowledge_technical = models.TextField(null=True, blank=True)
-    knowledge_experiences = models.TextField(null=True, blank=True)
-    knowledge_rd_results = models.TextField(null=True, blank=True)
-    knowledge_new_tech = models.TextField(null=True, blank=True)
-    
-    cultural_values = models.TextField(null=True, blank=True)
-    cultural_innovation = models.TextField(null=True, blank=True)
-    cultural_brand = models.TextField(null=True, blank=True)
-    cultural_image = models.TextField(null=True, blank=True)
-    
-    environmental_green_tech = models.TextField(null=True, blank=True)
-    environmental_sustainable = models.TextField(null=True, blank=True)
-    environmental_carbon = models.TextField(null=True, blank=True)
-    environmental_resource = models.TextField(null=True, blank=True)
-    
-    # ========== بخش ۵ ==========
-    challenges = models.TextField(null=True, blank=True)
-    limitations = models.TextField(null=True, blank=True)
-    
-    # ========== بخش ۶ ==========
-    actions_immediate = models.TextField(null=True, blank=True)
-    actions_medium = models.TextField(null=True, blank=True)
-    actions_long = models.TextField(null=True, blank=True)
-    
-    # ========== امضاءها ==========
-    prepared_by = models.CharField(max_length=255, null=True, blank=True)
-    prepared_signature = models.CharField(max_length=100, null=True, blank=True)
-    prepared_date = models.DateField(null=True, blank=True)
-    
-    reviewed_by = models.CharField(max_length=255, null=True, blank=True)
-    reviewed_signature = models.CharField(max_length=100, null=True, blank=True)
-    reviewed_date = models.DateField(null=True, blank=True)
-    
-    approved_by = models.CharField(max_length=255, null=True, blank=True)
-    approved_signature = models.CharField(max_length=100, null=True, blank=True)
-    approved_date = models.DateField(null=True, blank=True)
-    
-    # ========== متادیتا ==========
+    asset_name = models.CharField(max_length=255)
+    asset_code = models.CharField(max_length=50, unique=True)
+    asset_type = models.CharField(max_length=20)
+    description = models.TextField()
+    discovered_by = models.CharField(max_length=255)
+    department = models.CharField(max_length=255)
+    potential_value = models.TextField()
+    attachment = models.FileField(upload_to='discovery/', null=True, blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"{self.project_name or 'بدون نام'} - {self.company or 'بدون شرکت'}"
 
 
 class ExpertInterview(models.Model):
@@ -149,65 +73,48 @@ class PreliminaryEvaluation(models.Model):
     evaluator = models.CharField(max_length=255)
     evaluation_date = models.DateField(auto_now_add=True)
 
-# ==================== هویت‌سنجی دارایی‌های نامشهود ====================
 
 class IdentityAssessment(models.Model):
     """IA-F-00-01: فرم هویت‌سنجی دارایی‌های نامشهود"""
-    
     STATUS_CHOICES = [
         ('verified', 'تأیید شده'),
         ('pending', 'در انتظار'),
         ('rejected', 'رد شده'),
     ]
     
-    # اطلاعات دارایی
-    asset_name = models.CharField(max_length=255, verbose_name='نام دارایی')
-    asset_type = models.CharField(max_length=100, blank=True, verbose_name='نوع دارایی')
-    description = models.TextField(blank=True, verbose_name='توضیحات')
+    asset_name = models.CharField(max_length=255)
+    asset_type = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
     
-    # ارتباط با دارایی کشف شده (اختیاری)
-    discovery_form = models.ForeignKey(
-        'DiscoveryForm', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='identity_assessments',
-        verbose_name='فرم کشف مرتبط'
-    )
+    q1 = models.IntegerField(default=3)
+    q2 = models.IntegerField(default=3)
+    q3 = models.IntegerField(default=3)
+    q4 = models.IntegerField(default=3)
+    q5 = models.IntegerField(default=3)
+    q6 = models.IntegerField(default=3)
+    q7 = models.IntegerField(default=3)
+    q8 = models.IntegerField(default=3)
+    q9 = models.IntegerField(default=3)
+    q10 = models.IntegerField(default=3)
+    q11 = models.IntegerField(default=3)
+    q12 = models.IntegerField(default=3)
+    q13 = models.IntegerField(default=3)
+    q14 = models.IntegerField(default=3)
+    q15 = models.IntegerField(default=3)
+    q16 = models.IntegerField(default=3)
+    q17 = models.IntegerField(default=3)
+    q18 = models.IntegerField(default=3)
+    q19 = models.IntegerField(default=3)
+    q20 = models.IntegerField(default=3)
     
-    # ۲۰ سوال پرسشنامه (امتیاز ۱ تا ۵)
-    q1 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q2 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q3 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q4 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q5 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q6 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q7 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q8 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q9 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q10 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q11 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q12 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q13 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q14 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q15 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q16 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q17 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q18 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q19 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    q20 = models.IntegerField(default=3, validators=[MinValueValidator(1), MaxValueValidator(5)])
+    total_score = models.FloatField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
-    # نتیجه
-    total_score = models.FloatField(default=0, verbose_name='امتیاز نهایی')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='وضعیت')
-    
-    # متادیتا
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     def calculate_score(self):
-        """محاسبه امتیاز نهایی از ۲۰ سوال"""
         questions = [self.q1, self.q2, self.q3, self.q4, self.q5,
                      self.q6, self.q7, self.q8, self.q9, self.q10,
                      self.q11, self.q12, self.q13, self.q14, self.q15,
@@ -217,7 +124,6 @@ class IdentityAssessment(models.Model):
         return self.total_score
     
     def determine_status(self):
-        """تعیین وضعیت بر اساس امتیاز"""
         if self.total_score >= 80:
             return 'verified'
         elif self.total_score >= 60:
@@ -226,44 +132,31 @@ class IdentityAssessment(models.Model):
             return 'rejected'
     
     def save(self, *args, **kwargs):
-        """قبل از ذخیره، امتیاز و وضعیت را محاسبه کن"""
         self.calculate_score()
         self.status = self.determine_status()
         super().save(*args, **kwargs)
     
-    def __str__(self):
-        return f"{self.asset_name} - {self.get_status_display()} ({self.total_score:.1f}%)"
-    
     class Meta:
-        verbose_name = 'هویت‌سنجی دارایی'
-        verbose_name_plural = 'هویت‌سنجی دارایی‌ها'
         ordering = ['-created_at']
 
-# ==================== مدل‌های هویت‌سنجی / غربالگری ====================
+
+# ==================== مدل‌های غربالگری ====================
 
 class OrganizationType(models.Model):
-    """نوع سازمان"""
     TYPE_CHOICES = [
         ('manufacturing', 'تولیدی'),
         ('service', 'خدماتی'),
-        ('rd', 'R&D'),
+        ('rto', 'RTO'),
         ('holding', 'هلدینگ'),
     ]
-    
     name = models.CharField(max_length=50, choices=TYPE_CHOICES, unique=True)
     display_name = models.CharField(max_length=100)
     
     def __str__(self):
         return self.display_name
-    
-    class Meta:
-        verbose_name = 'نوع سازمان'
-        verbose_name_plural = 'انواع سازمان'
 
 
 class ScreeningTemplate(models.Model):
-    """قالب غربالگری برای هر نوع سازمان"""
-    
     CATEGORY_CHOICES = [
         ('strategic_economic', 'استراتژیک - اقتصادی'),
         ('strategic_social', 'استراتژیک - اجتماعی'),
@@ -281,7 +174,6 @@ class ScreeningTemplate(models.Model):
         ('support_cultural', 'پشتیبان - فرهنگی'),
         ('support_environmental', 'پشتیبان - زیست‌محیطی'),
     ]
-    
     RESULT_CHOICES = [
         ('confirmed', 'دارایی قطعی'),
         ('conditional', 'مشروط'),
@@ -289,74 +181,66 @@ class ScreeningTemplate(models.Model):
     ]
     
     organization_type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE, related_name='templates')
-    item_name = models.CharField(max_length=255, verbose_name='نام مورد غربالگری')
-    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی')
-    default_result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed', verbose_name='نتیجه پیش‌فرض')
-    is_active = models.BooleanField(default=True, verbose_name='فعال')
-    order = models.IntegerField(default=0, verbose_name='ترتیب نمایش')
-    description = models.TextField(blank=True, verbose_name='توضیحات')
-    
-    # چهار شرط اصلی
-    condition_1_non_physical = models.BooleanField(default=True, verbose_name='غیرفیزیکی بودن ✓')
-    condition_2_identifiable = models.BooleanField(default=True, verbose_name='شناسایی‌پذیری ✓')
-    condition_3_controllable = models.BooleanField(default=True, verbose_name='قابلیت کنترل ✓')
-    condition_4_value_creating = models.BooleanField(default=True, verbose_name='ارزش‌آفرینی ✓')
+    item_name = models.CharField(max_length=255)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    default_result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    description = models.TextField(blank=True)
+    condition_1_non_physical = models.BooleanField(default=True)
+    condition_2_identifiable = models.BooleanField(default=True)
+    condition_3_controllable = models.BooleanField(default=True)
+    condition_4_value_creating = models.BooleanField(default=True)
     
     def __str__(self):
         return f"{self.organization_type.display_name} - {self.item_name}"
-    
-    class Meta:
-        verbose_name = 'قالب غربالگری'
-        verbose_name_plural = 'قالب‌های غربالگری'
-        ordering = ['organization_type', 'order']
 
 
 class ScreenedAsset(models.Model):
-    """دارایی غربالگری شده"""
-    
     RESULT_CHOICES = [
         ('confirmed', 'دارایی قطعی'),
         ('conditional', 'مشروط'),
         ('rejected', 'رد شده'),
     ]
     
-    asset_uid = models.CharField(max_length=50, unique=True, verbose_name='شناسه دارایی')
-    asset_name = models.CharField(max_length=255, verbose_name='نام دارایی')
-    organization_type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE, verbose_name='نوع سازمان')
-    screening_template = models.ForeignKey(ScreeningTemplate, on_delete=models.CASCADE, verbose_name='قالب غربالگری')
-    
-    category = models.CharField(max_length=50, verbose_name='دسته‌بندی')
-    result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed', verbose_name='نتیجه غربالگری')
-    
-    discovery_date = models.DateField(auto_now_add=True, verbose_name='تاریخ کشف')
-    last_update = models.DateField(auto_now=True, verbose_name='آخرین بازنگری')
-    version = models.CharField(max_length=20, default='1.0.0', verbose_name='نسخه')
-    
-    condition_1_non_physical = models.BooleanField(default=True, verbose_name='غیرفیزیکی بودن')
-    condition_2_identifiable = models.BooleanField(default=True, verbose_name='شناسایی‌پذیری')
-    condition_3_controllable = models.BooleanField(default=True, verbose_name='قابلیت کنترل')
-    condition_4_value_creating = models.BooleanField(default=True, verbose_name='ارزش‌آفرینی')
-    
-    description = models.TextField(blank=True, verbose_name='توضیحات')
-    notes = models.TextField(blank=True, verbose_name='یادداشت‌ها')
-    
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    asset_name = models.CharField(max_length=255, default='دارایی بدون نام')
+    asset_uid = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    category = models.CharField(max_length=50, default='unknown')
+    result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')
+    discovery_date = models.DateField(null=True, blank=True)
+    version = models.CharField(max_length=20, default='1.0.0')
+    description = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
-    discovery_form = models.ForeignKey(
-        'DiscoveryForm',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='screened_assets',
-        verbose_name='فرم کشف مرتبط'
-    )
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
     def __str__(self):
-        return f"{self.asset_uid} - {self.asset_name}"
+        return f"{self.asset_uid or 'بدون کد'} - {self.asset_name}"
+
+
+# ==================== مدل فایل‌های پیوست ====================
+
+class AssetFile(models.Model):
+    FILE_TYPES = [
+        ('interview', 'مصاحبه'),
+        ('document', 'سند'),
+        ('process', 'فرآیند'),
+        ('database', 'پایگاه داده'),
+        ('rd_project', 'پروژه R&D'),
+    ]
+    
+    asset = models.ForeignKey(ScreenedAsset, on_delete=models.CASCADE, related_name='files')
+    file_type = models.CharField(max_length=20, choices=FILE_TYPES)
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='asset_files/%Y/%m/%d/')
+    description = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.get_file_type_display()} - {self.title}"
     
     class Meta:
-        verbose_name = 'دارایی غربالگری شده'
-        verbose_name_plural = 'دارایی‌های غربالگری شده'
-        ordering = ['-created_at']
+        ordering = ['-uploaded_at']

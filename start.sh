@@ -24,14 +24,28 @@ echo "⏳ Waiting for backend to be ready..."
 sleep 5
 
 # ============================================
-# 3. استارت فرانت‌اند (Next.js)
+# 3. بستن پورت 3000 اگر اشغال است
 # ============================================
-echo "🎨 Starting Frontend (Next.js)..."
-cd frontend && npm run dev &
+echo "🧹 Cleaning port 3000..."
+lsof -ti:3000 | xargs kill -9 2>/dev/null || echo "✅ Port 3000 is free"
 
 # ============================================
-# 4. نمایش اطلاعات
+# 4. پاک کردن کش فرانت‌اند
 # ============================================
+echo "🧹 Cleaning frontend cache..."
+cd frontend
+rm -rf .next .turbo node_modules/.cache 2>/dev/null || true
+
+# ============================================
+# 5. استارت فرانت‌اند (Next.js) روی پورت 3000
+# ============================================
+echo "🎨 Starting Frontend (Next.js) on port 3000..."
+npm run dev &
+
+# ============================================
+# 6. نمایش اطلاعات
+# ============================================
+cd ..
 echo ""
 echo "✅ Done! 🎉"
 echo "📍 Backend:   http://localhost:8000"

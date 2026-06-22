@@ -55,7 +55,6 @@ class LogoutView(APIView):
         return response
 
 
-
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -69,5 +68,8 @@ class MeView(APIView):
             "last_name": user.last_name,
             "role": user.role,
             "organization_id": user.organization_id if hasattr(user, 'organization_id') else None,
+            "organization_name": user.organization.name if user.organization else None,
+            "department_id": user.department_id if hasattr(user, 'department_id') else None,
+            "department_name": user.department.name if user.department else None,
             "is_active": user.is_active,
         })

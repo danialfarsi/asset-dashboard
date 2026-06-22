@@ -2,13 +2,11 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from .models import (
     DiscoveryForm, ExpertInterview, TacitKnowledgeForm,
     AssetListForm, ClassificationForm, HiddenAssetChecklist,
     PreliminaryEvaluation, IdentityAssessment,
-    OrganizationType, ScreeningTemplate, ScreenedAsset,
-    AssetFile
+    OrganizationType, ScreeningTemplate, ScreenedAsset
 )
 from .serializers import (
     DiscoveryFormSerializer, ExpertInterviewSerializer,
@@ -16,7 +14,7 @@ from .serializers import (
     ClassificationFormSerializer, HiddenAssetChecklistSerializer,
     PreliminaryEvaluationSerializer, IdentityAssessmentSerializer,
     OrganizationTypeSerializer, ScreeningTemplateSerializer,
-    ScreenedAssetSerializer, AssetFileSerializer
+    ScreenedAssetSerializer
 )
 
 User = get_user_model()
@@ -29,17 +27,6 @@ class DiscoveryFormViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
-    
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        if user.role == 'super_admin':
-            return queryset
-        elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
-        else:  # org_user
-            return queryset.filter(created_by=user)
     
     @action(detail=False, methods=['get'])
     def raw_bank(self, request):
@@ -92,24 +79,12 @@ class IdentityAssessmentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
     
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        if user.role == 'super_admin':
-            return queryset
-        elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
-        else:  # org_user
-            return queryset.filter(created_by=user)
-    
     @action(detail=False, methods=['get'])
     def stats(self, request):
-        queryset = self.get_queryset()
-        total = queryset.count()
-        verified = queryset.filter(status='verified').count()
-        pending = queryset.filter(status='pending').count()
-        rejected = queryset.filter(status='rejected').count()
+        total = self.get_queryset().count()
+        verified = self.get_queryset().filter(status='verified').count()
+        pending = self.get_queryset().filter(status='pending').count()
+        rejected = self.get_queryset().filter(status='rejected').count()
         return Response({
             'total': total,
             'verified': verified,
@@ -142,17 +117,6 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
     serializer_class = ScreenedAssetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        if user.role == 'super_admin':
-            return queryset
-        elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
-        else:  # org_user
-            return queryset.filter(created_by=user)
-
     def perform_create(self, serializer):
         user = self.request.user
         last_asset = ScreenedAsset.objects.order_by('-id').first()
@@ -169,29 +133,7 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         asset_uid = 'IA-2026-' + str(new_num).zfill(3)
         serializer.save(
             created_by=user,
-            asset_uid=asset_uid
+            asset_uid=asset_uid,
+            organization=user.organization if user.organization else None,
+            department=user.department if user.department else None
         )
-
-
-class AssetFileViewSet(viewsets.ModelViewSet):
-    queryset = AssetFile.objects.all()
-    serializer_class = AssetFileSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        asset_id = self.request.query_params.get('asset_id')
-        
-        if asset_id:
-            queryset = queryset.filter(asset_id=asset_id)
-        
-        if user.role == 'super_admin':
-            return queryset
-        elif user.role == 'org_admin':
-            return queryset.filter(asset__created_by__organization=user.organization)
-        else:  # org_user
-            return queryset.filter(uploaded_by=user)
-    
-    def perform_create(self, serializer):
-        serializer.save(uploaded_by=self.request.user)

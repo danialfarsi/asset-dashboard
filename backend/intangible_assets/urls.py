@@ -3,7 +3,8 @@ from .views import (
     DiscoveryFormViewSet, ExpertInterviewViewSet, TacitKnowledgeFormViewSet,
     AssetListFormViewSet, ClassificationFormViewSet, HiddenAssetChecklistViewSet,
     PreliminaryEvaluationViewSet, IdentityAssessmentViewSet,
-    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet
+    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet,
+    AssetFileViewSet
 )
 
 router = DefaultRouter()
@@ -15,9 +16,9 @@ router.register('classifications', ClassificationFormViewSet, basename='classifi
 router.register('hidden-checklists', HiddenAssetChecklistViewSet, basename='hidden-checklist')
 router.register('preliminary-evaluations', PreliminaryEvaluationViewSet, basename='preliminary-evaluation')
 router.register('identity-assessments', IdentityAssessmentViewSet, basename='identity-assessment')
-# ==================== هویت‌سنجی ====================
 router.register('organization-types', OrganizationTypeViewSet, basename='organization-type')
 router.register('screening-templates', ScreeningTemplateViewSet, basename='screening-template')
 router.register('screened-assets', ScreenedAssetViewSet, basename='screened-asset')
+router.register('asset-files', AssetFileViewSet, basename='asset-file')
 
 urlpatterns = router.urls

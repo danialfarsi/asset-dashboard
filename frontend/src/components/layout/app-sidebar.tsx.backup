@@ -79,9 +79,9 @@ const departmentNavItems = [
 
 // ============ منوهای شرکت‌ها (فقط super_admin) ============
 const companyNavItems = [
-  { label: 'فولاد مبارکه', href: '/dashboard/companies/FOLAD-MOBARKEH', icon: Building2 },
-  { label: 'فولاد خوزستان', href: '/dashboard/companies/FOLAD-KHUZESTAN', icon: Building2 },
-  { label: 'شرکت رازی', href: '/dashboard/companies/RAZI', icon: Building2 },
+  { label: 'فولاد مبارکه', href: '/dashboard/companies/folad-mobarekeh', icon: Building2 },
+  { label: 'فولاد خوزستان', href: '/dashboard/companies/folad-khuzestan', icon: Building2 },
+  { label: 'شرکت رازی', href: '/dashboard/companies/razi', icon: Building2 },
 ]
 
 // ============ منوی تنظیمات (مشترک) ============

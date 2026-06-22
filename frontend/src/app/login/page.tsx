@@ -10,7 +10,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const { login, isLoading, error, clearError } = useAuthStore();
 
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
@@ -18,7 +18,7 @@ export default function LoginPage() {
     e.preventDefault();
     clearError();
     try {
-      await login({ email: form.username, password: form.password });
+      await login({ email: form.email, password: form.password });
       const next = searchParams.get('next') || '/dashboard';
       router.push(next);
     } catch {
@@ -57,14 +57,14 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                نام کاربری
+                ایمیل
               </label>
               <input
-                type="text"
-                value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                placeholder="نام کاربری خود را وارد کنید"
+                placeholder="ایمیل خود را وارد کنید"
                 required
                 autoFocus
               />

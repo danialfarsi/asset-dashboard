@@ -1,0 +1,2 @@
+./node_modules/.pnpm/flatted@3.4.2/node_modules/flatted/python/flatted.py
+./node_modules/flatted/python/flatted.py

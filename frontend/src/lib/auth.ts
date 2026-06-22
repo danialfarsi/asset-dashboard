@@ -5,7 +5,10 @@ import type { LoginCredentials, AuthResponse, User } from "@/types/auth";
 const COOKIE_OPTS = { secure: true, sameSite: "strict" as const };
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>("/auth/login/", credentials);
+  const { data } = await api.post<AuthResponse>("/auth/login/", {
+    email: credentials.email,
+    password: credentials.password,
+  });
 
   const access = data.access ?? data.tokens?.access ?? "";
   const refresh = data.refresh ?? data.tokens?.refresh ?? "";

@@ -1,9 +1,15 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from .models import (
     DiscoveryForm, ExpertInterview, TacitKnowledgeForm,
     AssetListForm, ClassificationForm, HiddenAssetChecklist,
-    PreliminaryEvaluation, IdentityAssessment
+    PreliminaryEvaluation, IdentityAssessment,
+    OrganizationType, ScreeningTemplate, ScreenedAsset,
+    AssetFile
 )
+
+User = get_user_model()
+
 
 class DiscoveryFormSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,8 +59,6 @@ class PreliminaryEvaluationSerializer(serializers.ModelSerializer):
         read_only_fields = ['evaluation_date']
 
 
-# ==================== سریالایزر هویت‌سنجی ====================
-
 class IdentityAssessmentSerializer(serializers.ModelSerializer):
     status_label = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.email', read_only=True)
@@ -64,9 +68,6 @@ class IdentityAssessmentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['total_score', 'status', 'created_at', 'updated_at', 'created_by']
 
-# ==================== سریالایزرهای هویت‌سنجی ====================
-
-from .models import OrganizationType, ScreeningTemplate, ScreenedAsset
 
 class OrganizationTypeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,22 +78,47 @@ class OrganizationTypeSerializer(serializers.ModelSerializer):
 class ScreeningTemplateSerializer(serializers.ModelSerializer):
     category_label = serializers.CharField(source='get_category_display', read_only=True)
     result_label = serializers.CharField(source='get_default_result_display', read_only=True)
-    
+
     class Meta:
         model = ScreeningTemplate
-        fields = ['id', 'item_name', 'category', 'category_label', 
+        fields = ['id', 'item_name', 'category', 'category_label',
                   'default_result', 'result_label', 'order', 'is_active',
                   'condition_1_non_physical', 'condition_2_identifiable',
                   'condition_3_controllable', 'condition_4_value_creating']
 
 
 class ScreenedAssetSerializer(serializers.ModelSerializer):
-    organization_type_name = serializers.CharField(source='organization_type.display_name', read_only=True)
-    template_item = serializers.CharField(source='screening_template.item_name', read_only=True)
     result_label = serializers.CharField(source='get_result_display', read_only=True)
     created_by_name = serializers.CharField(source='created_by.email', read_only=True)
+    organization_name = serializers.CharField(source='created_by.organization.name', read_only=True, default='')
+    department_name = serializers.CharField(source='created_by.department.name', read_only=True, default='')
     
+    # اطلاعات کامل کاربر ایجاد کننده
+    created_by = serializers.SerializerMethodField()
+
     class Meta:
         model = ScreenedAsset
         fields = '__all__'
         read_only_fields = ['asset_uid', 'created_at', 'updated_at', 'created_by', 'version']
+
+    def get_created_by(self, obj):
+        if obj.created_by:
+            return {
+                'id': obj.created_by.id,
+                'email': obj.created_by.email,
+                'first_name': obj.created_by.first_name,
+                'last_name': obj.created_by.last_name,
+                'role': obj.created_by.role,
+                'department_name': obj.created_by.department.name if obj.created_by.department else None,
+            }
+        return None
+
+
+class AssetFileSerializer(serializers.ModelSerializer):
+    file_type_label = serializers.CharField(source='get_file_type_display', read_only=True)
+    uploaded_by_name = serializers.CharField(source='uploaded_by.email', read_only=True)
+    
+    class Meta:
+        model = AssetFile
+        fields = '__all__'
+        read_only_fields = ['uploaded_by', 'uploaded_at', 'updated_at']
