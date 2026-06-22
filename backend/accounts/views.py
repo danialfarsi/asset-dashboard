@@ -4,9 +4,30 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate
+
+User = get_user_model()
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                attrs['username'] = user.username
+            except User.DoesNotExist:
+                pass
+        
+        return super().validate(attrs)
 
 
 class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
@@ -18,7 +39,7 @@ class LoginView(TokenObtainPairView):
                 httponly=False,
                 samesite='Lax',
                 secure=False,
-                max_age=60 * 5,
+                max_age=60 * 60,
             )
             response.set_cookie(
                 'refresh_token',
@@ -26,7 +47,7 @@ class LoginView(TokenObtainPairView):
                 httponly=True,
                 samesite='Lax',
                 secure=False,
-                max_age=60 * 60 * 24,
+                max_age=60 * 60 * 24 * 7,
             )
         return response
 
@@ -42,7 +63,7 @@ class RefreshTokenView(TokenRefreshView):
                 httponly=False,
                 samesite='Lax',
                 secure=False,
-                max_age=60 * 5,
+                max_age=60 * 60,
             )
         return response
 
@@ -71,5 +92,6 @@ class MeView(APIView):
             "organization_name": user.organization.name if user.organization else None,
             "department_id": user.department_id if hasattr(user, 'department_id') else None,
             "department_name": user.department.name if user.department else None,
+            "organization_type": user.organization_type if hasattr(user, 'organization_type') else None,
             "is_active": user.is_active,
         })

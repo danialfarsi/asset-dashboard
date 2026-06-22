@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Building2, Factory, Server, Layers } from 'lucide-react';
+import { Building2, Factory, Server, Layers, Loader2 } from 'lucide-react';
 
 interface OrganizationType {
   id: number;
@@ -15,25 +16,45 @@ interface OrganizationType {
 const orgIcons = {
   manufacturing: Factory,
   service: Building2,
-  rd: Server,
+  rto: Server,
   holding: Layers,
 };
 
 export default function ScreeningPage() {
   const router = useRouter();
+  const { user, isLoading } = useAuthStore();
   const [orgTypes, setOrgTypes] = useState<OrganizationType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchOrgTypes = async () => {
+    const fetchData = async () => {
       try {
+        // 1. دریافت انواع سازمان از بک‌اند
         const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
         const response = await fetch('http://localhost:8000/api/intangible/organization-types/', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
+        
         if (response.ok) {
           const data = await response.json();
-          setOrgTypes(data.results || []);
+          const types = data.results || [];
+          setOrgTypes(types);
+          
+          // 2. اگر کاربر دارای organization_type است، مستقیم به صفحه جدید برو
+          if (user?.organization_type && user.organization_type !== 'all') {
+            const matchedType = types.find((t: any) => t.name === user.organization_type);
+            if (matchedType) {
+              router.push(`/dashboard/intangible/screening/new?type=${matchedType.name}`);
+              return;
+            }
+          }
+          
+          // 3. اگر کاربر super_admin است و organization_type='all'، همه انواع را نشان بده
+          if (user?.role === 'super_admin' && user?.organization_type === 'all') {
+            // نمایش همه انواع برای انتخاب
+            setLoading(false);
+            return;
+          }
         }
       } catch (error) {
         console.error(error);
@@ -41,17 +62,36 @@ export default function ScreeningPage() {
         setLoading(false);
       }
     };
-    fetchOrgTypes();
-  }, []);
+    
+    if (user) {
+      fetchData();
+    }
+  }, [user, router]);
 
   const handleSelect = (orgType: OrganizationType) => {
     router.push(`/dashboard/intangible/screening/new?type=${orgType.name}`);
   };
 
-  if (loading) {
-    return <div className="text-center py-10">در حال بارگذاری...</div>;
+  // اگر کاربر organization_type دارد و در حال ریدایرکت است
+  if (user?.organization_type && user.organization_type !== 'all') {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="mr-3">در حال انتقال به فرم غربالگری...</span>
+      </div>
+    );
   }
 
+  if (loading || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="mr-3">در حال بارگذاری...</span>
+      </div>
+    );
+  }
+
+  // فقط super_admin با organization_type='all' این صفحه را می‌بیند
   return (
     <div dir="rtl" className="space-y-6">
       <div>

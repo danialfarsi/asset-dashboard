@@ -3,9 +3,10 @@ from .views import (
     DiscoveryFormViewSet, ExpertInterviewViewSet, TacitKnowledgeFormViewSet,
     AssetListFormViewSet, ClassificationFormViewSet, HiddenAssetChecklistViewSet,
     PreliminaryEvaluationViewSet, IdentityAssessmentViewSet,
-    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet,
+    OrganizationTypeViewSet, ScreenedAssetViewSet,
     AssetFileViewSet
 )
+from .views_screening import ScreeningTemplateViewSet
 
 router = DefaultRouter()
 router.register('discovery-forms', DiscoveryFormViewSet, basename='discovery-form')

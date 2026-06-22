@@ -3,7 +3,8 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '@/lib/api'
 import {
   LayoutDashboard,
   Package,
@@ -70,21 +71,7 @@ const stageNavItems = [
   { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/intangible/stage10', icon: FileText },
 ]
 
-// ============ منوهای واحدها (فقط org_admin) ============
-const departmentNavItems = [
-  { label: 'نورد سرد', href: '/dashboard/departments/nard-sard', icon: Building },
-  { label: 'نورد گرم', href: '/dashboard/departments/nard-garm', icon: Building },
-  { label: 'گندله‌سازی', href: '/dashboard/departments/gandaleh', icon: Building },
-]
-
-// ============ منوهای شرکت‌ها (فقط super_admin) ============
-const companyNavItems = [
-  { label: 'فولاد مبارکه', href: '/dashboard/companies/FOLAD-MOBARKEH', icon: Building2 },
-  { label: 'فولاد خوزستان', href: '/dashboard/companies/FOLAD-KHUZESTAN', icon: Building2 },
-  { label: 'شرکت رازی', href: '/dashboard/companies/RAZI', icon: Building2 },
-]
-
-// ============ منوی تنظیمات (مشترک) ============
+// ============ منوهای تنظیمات (مشترک) ============
 const settingsNavItems = [
   { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings },
   { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
@@ -93,6 +80,8 @@ const settingsNavItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuthStore()
+  const [departments, setDepartments] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
   const [isStagesOpen, setIsStagesOpen] = useState(true)
   const [isStage2Open, setIsStage2Open] = useState(true)
   const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(true)
@@ -102,6 +91,28 @@ export function AppSidebar() {
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
+
+  // دریافت داده‌ها از API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data } = await api.get('/auth/departments/')
+        const depts = data.results || data || []
+        setDepartments(depts)
+        
+        if (isSuperAdmin) {
+          const { data: orgsData } = await api.get('/auth/organizations/')
+          const orgs = orgsData.results || orgsData || []
+          setCompanies(orgs)
+        }
+      } catch (error) {
+        console.error('Error fetching sidebar data:', error)
+      }
+    }
+    if (user) {
+      fetchData()
+    }
+  }, [user, isSuperAdmin])
 
   // ============ رندر آیتم‌های منو ============
   const renderMenuItem = (item: any, isChild: boolean = false) => {
@@ -122,7 +133,6 @@ export function AppSidebar() {
 
   // ============ رندر منوهای اصلی ============
   const renderMainNav = () => {
-    // برای super_admin فقط داشبورد رو نشون بده
     const items = isSuperAdmin 
       ? mainNavItems.filter(item => item.label === 'داشبورد')
       : mainNavItems
@@ -200,9 +210,28 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی واحدها (فقط org_admin) ============
+  // ============ رندر منوی واحدها (فقط org_admin) - با دیباگ ============
   const renderDepartmentsNav = () => {
     if (!isOrgAdmin) return null
+    
+    console.log('👤 User role:', user?.role)
+    console.log('🏢 User organization_id:', user?.organization_id)
+    console.log('📦 All departments:', departments.map(d => ({ id: d.id, name: d.name, org_id: d.organization?.id })))
+    
+    // فیلتر واحدها بر اساس organization_id کاربر
+    const userDepts = departments.filter(
+      (dept: any) => dept.organization?.id === user?.organization_id
+    )
+    
+    console.log('✅ Filtered departments:', userDepts.length, userDepts.map(d => d.name))
+    
+    if (userDepts.length === 0) return null
+    
+    const deptNavItems = userDepts.map((dept: any) => ({
+      label: dept.name,
+      href: `/dashboard/departments/${dept.code}`,
+      icon: Building,
+    }))
     
     return (
       <SidebarGroup>
@@ -221,7 +250,7 @@ export function AppSidebar() {
         </SidebarGroupLabel>
         {isDepartmentsOpen && (
           <SidebarMenu>
-            {departmentNavItems.map(item => renderMenuItem(item))}
+            {deptNavItems.map((item: any) => renderMenuItem(item))}
           </SidebarMenu>
         )}
       </SidebarGroup>
@@ -231,6 +260,14 @@ export function AppSidebar() {
   // ============ رندر منوی شرکت‌ها (فقط super_admin) ============
   const renderCompaniesNav = () => {
     if (!isSuperAdmin) return null
+    
+    const companyNavItems = companies.map((org: any) => ({
+      label: org.name,
+      href: `/dashboard/companies/${org.code}`,
+      icon: Building2,
+    }))
+    
+    if (companyNavItems.length === 0) return null
     
     return (
       <SidebarGroup>
@@ -249,7 +286,7 @@ export function AppSidebar() {
         </SidebarGroupLabel>
         {isCompaniesOpen && (
           <SidebarMenu>
-            {companyNavItems.map(item => renderMenuItem(item))}
+            {companyNavItems.map((item: any) => renderMenuItem(item))}
           </SidebarMenu>
         )}
       </SidebarGroup>
@@ -268,7 +305,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر نهایی ============
   return (
     <Sidebar side="right" dir="rtl" className="w-72">
       <SidebarHeader className="p-4 border-b">

@@ -2,18 +2,18 @@ from rest_framework import serializers
 from .models import User, Organization, Department
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
+class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Organization
+        model = Department
         fields = ['id', 'name', 'code', 'created_at']
 
 
-class DepartmentSerializer(serializers.ModelSerializer):
-    organization = OrganizationSerializer(read_only=True)
+class OrganizationSerializer(serializers.ModelSerializer):
+    departments = DepartmentSerializer(many=True, read_only=True)
     
     class Meta:
-        model = Department
-        fields = ['id', 'name', 'code', 'organization', 'created_at']
+        model = Organization
+        fields = ['id', 'name', 'code', 'created_at', 'departments']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -21,13 +21,16 @@ class UserSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='department.name', read_only=True)
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     
+    department_id = serializers.IntegerField(source='department.id', read_only=True, allow_null=True)
+    organization_id = serializers.IntegerField(source='organization.id', read_only=True, allow_null=True)
+    
     class Meta:
         model = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name',
             'role', 'role_display',
-            'organization', 'organization_name',
-            'department', 'department_name',
+            'organization', 'organization_id', 'organization_name',
+            'department', 'department_id', 'department_name',
             'is_active', 'date_joined', 'last_login'
         ]
         read_only_fields = ['id', 'date_joined', 'last_login']

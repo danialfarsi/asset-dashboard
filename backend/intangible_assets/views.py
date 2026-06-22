@@ -125,15 +125,27 @@ class OrganizationTypeViewSet(viewsets.ModelViewSet):
 
 
 class ScreeningTemplateViewSet(viewsets.ModelViewSet):
-    queryset = ScreeningTemplate.objects.filter(is_active=True)
     serializer_class = ScreeningTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        org_type = self.request.query_params.get('organization_type')
-        if org_type:
-            queryset = queryset.filter(organization_type__name=org_type)
+        # حذف queryset از کلاس و استفاده از all()
+        queryset = ScreeningTemplate.objects.all()
+        org_type_param = self.request.query_params.get('organization_type')
+        
+        # فیلتر بر اساس is_active
+        queryset = queryset.filter(is_active=True)
+        
+        if org_type_param:
+            try:
+                if org_type_param.isdigit():
+                    org_type = OrganizationType.objects.get(id=int(org_type_param))
+                else:
+                    org_type = OrganizationType.objects.get(name=org_type_param)
+                queryset = queryset.filter(organization_type=org_type)
+            except OrganizationType.DoesNotExist:
+                queryset = queryset.none()
+        
         return queryset
 
 

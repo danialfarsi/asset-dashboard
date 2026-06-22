@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
+import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowRight, Save, Plus, X } from 'lucide-react';
+import { ArrowRight, Save, Plus, X, Building2, Factory, Server, Layers } from 'lucide-react';
 
 interface ScreeningItem {
   id: number;
@@ -22,49 +24,84 @@ interface AssetEntry {
   name: string;
 }
 
+interface OrganizationType {
+  id: number;
+  name: string;
+  display_name: string;
+}
+
+const orgIcons = {
+  manufacturing: Factory,
+  service: Building2,
+  rto: Server,
+  holding: Layers,
+};
+
+const orgTypeLabels: Record<string, string> = {
+  manufacturing: 'تولیدی',
+  service: 'خدماتی',
+  rto: 'پژوهش و فناوری (RTO)',
+  holding: 'هلدینگ',
+};
+
 export default function NewScreeningPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const orgType = searchParams.get('type') || 'manufacturing';
+  const { user } = useAuthStore();
+  const orgType = searchParams.get('type') || '';
   
   const [items, setItems] = useState<ScreeningItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [assetEntries, setAssetEntries] = useState<Record<number, AssetEntry[]>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [orgDisplayName, setOrgDisplayName] = useState('');
 
   useEffect(() => {
-    const fetchItems = async () => {
-      try {
-        const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
-        const response = await fetch(
-          `http://localhost:8000/api/intangible/screening-templates/?organization_type=${orgType}`,
-          { headers: { 'Authorization': `Bearer ${token}` } }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setItems(data.results || []);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchItems();
+    if (orgType) {
+      fetchOrgType();
+      fetchItems();
+    }
   }, [orgType]);
+
+  const fetchOrgType = async () => {
+    try {
+      const { data } = await api.get('/intangible/organization-types/');
+      const types = data.results || data || [];
+      const found = types.find((t: any) => t.name === orgType);
+      if (found) {
+        setOrgDisplayName(found.display_name);
+      } else {
+        setOrgDisplayName(orgTypeLabels[orgType] || orgType);
+      }
+    } catch (error) {
+      console.error('Error fetching org type:', error);
+      setOrgDisplayName(orgTypeLabels[orgType] || orgType);
+    }
+  };
+
+  const fetchItems = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get(`/intangible/screening-templates/?organization_type=${orgType}`);
+      const itemsData = data.results || data || [];
+      setItems(itemsData);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const toggleSelect = (id: number) => {
     const newSet = new Set(selectedItems);
     if (newSet.has(id)) {
       newSet.delete(id);
-      // پاک کردن entries
       const newEntries = { ...assetEntries };
       delete newEntries[id];
       setAssetEntries(newEntries);
     } else {
       newSet.add(id);
-      // اضافه کردن یک entry خالی
       setAssetEntries({
         ...assetEntries,
         [id]: [{ id: `asset-${id}-${Date.now()}`, name: '' }]
@@ -86,7 +123,6 @@ export default function NewScreeningPage() {
   const removeAssetEntry = (templateId: number, entryId: string) => {
     const entries = assetEntries[templateId] || [];
     if (entries.length <= 1) {
-      // اگر فقط یک entry هست، حذف نکن
       alert('حداقل یک دارایی باید وارد شود');
       return;
     }
@@ -143,9 +179,6 @@ export default function NewScreeningPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
-      
-      // بررسی اینکه همه entries پر شده باشند
       const missingNames = [];
       for (const [templateId, entries] of Object.entries(assetEntries)) {
         for (const entry of entries) {
@@ -163,26 +196,16 @@ export default function NewScreeningPage() {
         return;
       }
       
-      // ثبت همه دارایی‌ها
       for (const [templateId, entries] of Object.entries(assetEntries)) {
         const item = items.find(i => i.id === Number(templateId));
         if (!item) continue;
         
         for (const entry of entries) {
-          await fetch('http://localhost:8000/api/intangible/screened-assets/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              asset_name: entry.name,
-              organization_type: 1,
-              screening_template: Number(templateId),
-              category: item.category,
-              result: item.default_result,
-              description: `غربالگری شده از مورد: ${item.item_name}`,
-            }),
+          await api.post('/intangible/screened-assets/', {
+            asset_name: entry.name,
+            category: item.category,
+            result: item.default_result,
+            description: `غربالگری شده از مورد: ${item.item_name}`,
           });
         }
       }
@@ -197,7 +220,12 @@ export default function NewScreeningPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-10">در حال بارگذاری...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <span className="mr-3">در حال بارگذاری...</span>
+      </div>
+    );
   }
 
   const groupedItems = items.reduce((acc, item) => {
@@ -207,6 +235,9 @@ export default function NewScreeningPage() {
   }, {} as Record<string, ScreeningItem[]>);
 
   const totalAssets = Object.values(assetEntries).reduce((sum, entries) => sum + entries.length, 0);
+
+  // آیکون مناسب برای نوع سازمان
+  const OrgIcon = orgIcons[orgType as keyof typeof orgIcons] || Building2;
 
   return (
     <div dir="rtl" className="space-y-6 pb-20">
@@ -225,78 +256,112 @@ export default function NewScreeningPage() {
         </div>
       </div>
 
-      {Object.entries(groupedItems).map(([category, categoryItems]) => (
-        <Card key={category}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{getCategoryLabel(category)}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {categoryItems.map((item) => {
-              const isSelected = selectedItems.has(item.id);
-              const entries = assetEntries[item.id] || [];
-              
-              return (
-                <div key={item.id} className="border rounded-lg p-3 hover:bg-gray-50">
-                  <div className="flex items-start gap-4">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelect(item.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{item.item_name}</span>
-                        {getResultBadge(item.default_result)}
-                      </div>
-                      <div className="text-xs text-gray-400 mt-1">
-                        <span className="ml-2">✓ غیرفیزیکی</span>
-                        <span className="ml-2">✓ شناسایی‌پذیر</span>
-                        <span className="ml-2">✓ قابل کنترل</span>
-                        <span>✓ ارزش‌آفرین</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* بخش ورودی دارایی‌ها */}
-                  {isSelected && (
-                    <div className="mt-3 mr-8 space-y-2">
-                      {entries.map((entry) => (
-                        <div key={entry.id} className="flex items-center gap-2">
-                          <Input
-                            placeholder="نام دارایی را وارد کنید..."
-                            value={entry.name}
-                            onChange={(e) => updateAssetName(item.id, entry.id, e.target.value)}
-                            className="text-sm flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeAssetEntry(item.id, entry.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addAssetEntry(item.id)}
-                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                      >
-                        <Plus className="w-4 h-4 ml-1" />
-                        افزودن دارایی دیگر
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+      {/* نمایش نوع سازمان */}
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <OrgIcon className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500">نوع سازمان شما</p>
+              <p className="text-lg font-bold text-blue-700">
+                {orgDisplayName || orgTypeLabels[orgType] || orgType}
+              </p>
+            </div>
+            {user?.organization_name && (
+              <div className="mr-auto text-sm text-gray-500 flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                {user.organization_name}
+                {user?.department_name && (
+                  <span className="text-gray-400">• {user.department_name}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {items.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-gray-500">
+            <p>هیچ موردی برای این نوع سازمان یافت نشد</p>
+            <p className="text-sm mt-2">لطفاً نوع سازمان دیگری را انتخاب کنید</p>
           </CardContent>
         </Card>
-      ))}
+      ) : (
+        Object.entries(groupedItems).map(([category, categoryItems]) => (
+          <Card key={category}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{getCategoryLabel(category)}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {categoryItems.map((item) => {
+                const isSelected = selectedItems.has(item.id);
+                const entries = assetEntries[item.id] || [];
+                
+                return (
+                  <div key={item.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                    <div className="flex items-start gap-4">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelect(item.id)}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{item.item_name}</span>
+                          {getResultBadge(item.default_result)}
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          <span className="ml-2">✓ غیرفیزیکی</span>
+                          <span className="ml-2">✓ شناسایی‌پذیر</span>
+                          <span className="ml-2">✓ قابل کنترل</span>
+                          <span>✓ ارزش‌آفرین</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {isSelected && (
+                      <div className="mt-3 mr-8 space-y-2">
+                        {entries.map((entry) => (
+                          <div key={entry.id} className="flex items-center gap-2">
+                            <Input
+                              placeholder="نام دارایی را وارد کنید..."
+                              value={entry.name}
+                              onChange={(e) => updateAssetName(item.id, entry.id, e.target.value)}
+                              className="text-sm flex-1"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAssetEntry(item.id, entry.id)}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => addAssetEntry(item.id)}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          <Plus className="w-4 h-4 ml-1" />
+                          افزودن دارایی دیگر
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        ))
+      )}
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
         <div className="max-w-4xl mx-auto flex gap-3">

@@ -9,6 +9,7 @@ export interface User {
   organization_name: string | null;
   department_id: number | null;
   department_name: string | null;
+  organization_type: string | null;  // اضافه شده
   is_active: boolean;
 }
 
