@@ -18,6 +18,7 @@ from .serializers import (
     OrganizationTypeSerializer, ScreeningTemplateSerializer,
     ScreenedAssetSerializer, AssetFileSerializer
 )
+from .asset_codes import generate_asset_uid
 
 User = get_user_model()
 
@@ -129,11 +130,9 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # حذف queryset از کلاس و استفاده از all()
         queryset = ScreeningTemplate.objects.all()
         org_type_param = self.request.query_params.get('organization_type')
         
-        # فیلتر بر اساس is_active
         queryset = queryset.filter(is_active=True)
         
         if org_type_param:
@@ -167,18 +166,31 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        last_asset = ScreenedAsset.objects.order_by('-id').first()
-        if last_asset and last_asset.asset_uid:
-            try:
-                parts = last_asset.asset_uid.split('-')
-                last_num = int(parts[-1])
-                new_num = last_num + 1
-            except:
-                new_num = 1
-        else:
-            new_num = 1
-
-        asset_uid = 'IA-2026-' + str(new_num).zfill(3)
+        
+        # دریافت category و item_name از داده‌های ورودی
+        category = serializer.validated_data.get('category', 'unknown')
+        description = serializer.validated_data.get('description', '')
+        
+        # استخراج item_name از description
+        # مثال: "غربالگری شده از مورد: دانش فنی غیرقابل تقلید (Trade Secrets)"
+        item_name = 'سایر'
+        if 'غربالگری شده از مورد:' in description:
+            parts = description.split('غربالگری شده از مورد:')
+            if len(parts) > 1:
+                item_name = parts[1].strip()
+        
+        # شمارش تعداد دارایی‌های موجود با همین ترکیب
+        # برای پیدا کردن شماره سریال بعدی
+        type_code = CATEGORY_CODES.get(category, 'UNK')
+        sub_code = SUB_CODES.get(item_name, 'GEN')
+        prefix = f"IA-{type_code}-{sub_code}"
+        
+        existing = ScreenedAsset.objects.filter(asset_uid__startswith=prefix)
+        existing_count = existing.count()
+        
+        # تولید کد یکتا
+        asset_uid = generate_asset_uid(category, item_name, existing_count)
+        
         serializer.save(
             created_by=user,
             asset_uid=asset_uid
@@ -207,3 +219,7 @@ class AssetFileViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
+
+
+# برای دسترسی به کدها در ویو
+from .asset_codes import CATEGORY_CODES, SUB_CODES

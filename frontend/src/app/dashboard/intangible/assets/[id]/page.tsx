@@ -6,19 +6,21 @@ import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-  ArrowLeft, 
-  Package, 
-  User, 
-  Building2, 
+import { DeleteConfirmModal } from '@/components/ui/delete-confirm-modal';
+import { SkeletonLoader } from '@/components/ui/skeleton-loader';
+import { PageTransition } from '@/components/ui/page-transition';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import {
+  ArrowLeft,
+  Package,
+  User,
+  Building2,
   Building,
   Calendar,
   FileText,
-  Tag,
   CheckCircle,
   Clock,
   XCircle,
-  Edit,
   Trash2,
   Upload,
   File,
@@ -42,6 +44,13 @@ interface AssetDetail {
   created_by_name: string;
   organization_name: string;
   department_name: string;
+  created_by: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    role: string;
+  };
 }
 
 interface AssetFile {
@@ -74,6 +83,8 @@ export default function AssetDetailPage() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadForm, setUploadForm] = useState({
@@ -86,9 +97,20 @@ export default function AssetDetailPage() {
   const assetId = params.id as string;
   const isOrgUser = user?.role === 'org_user';
 
+  const canDelete = () => {
+    if (!asset || !user) return false;
+    if (user.role === 'super_admin') return true;
+    if (user.role === 'org_admin') {
+      return asset.organization_name === user.organization_name;
+    }
+    if (user.role === 'org_user') {
+      return asset.created_by?.id === user.id;
+    }
+    return false;
+  };
+
   useEffect(() => {
     if (assetId) {
-      console.log('🔍 Fetching asset details for ID:', assetId);
       fetchAssetDetail();
       fetchAssetFiles();
     }
@@ -98,12 +120,10 @@ export default function AssetDetailPage() {
     try {
       setLoading(true);
       setError(null);
-      console.log('📥 Fetching asset:', `/intangible/screened-assets/${assetId}/`);
       const { data } = await api.get(`/intangible/screened-assets/${assetId}/`);
-      console.log('✅ Asset data:', data);
       setAsset(data);
     } catch (error: any) {
-      console.error('❌ Error fetching asset:', error);
+      console.error('Error fetching asset:', error);
       setError(error.response?.data?.detail || 'خطا در دریافت اطلاعات دارایی');
     } finally {
       setLoading(false);
@@ -113,14 +133,11 @@ export default function AssetDetailPage() {
   const fetchAssetFiles = async () => {
     try {
       setLoadingFiles(true);
-      console.log('📥 Fetching files for asset:', assetId);
       const { data } = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
-      console.log('✅ Files data:', data);
       const filesData = data.results || data || [];
       setFiles(filesData);
-      console.log(`📁 ${filesData.length} files loaded`);
     } catch (error) {
-      console.error('❌ Error fetching files:', error);
+      console.error('Error fetching files:', error);
     } finally {
       setLoadingFiles(false);
     }
@@ -144,16 +161,14 @@ export default function AssetDetailPage() {
     }
 
     try {
-      console.log('📤 Uploading file...');
       await api.post('/intangible/asset-files/', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      console.log('✅ File uploaded successfully');
       await fetchAssetFiles();
       setShowUploadForm(false);
       setUploadForm({ file_type: 'interview', title: '', description: '', file: null });
     } catch (error) {
-      console.error('❌ Error uploading file:', error);
+      console.error('Error uploading file:', error);
       alert('خطا در آپلود فایل');
     } finally {
       setUploading(false);
@@ -163,13 +178,33 @@ export default function AssetDetailPage() {
   const handleDeleteFile = async (fileId: number) => {
     if (!confirm('آیا از حذف این فایل مطمئن هستید؟')) return;
     try {
-      console.log('🗑️ Deleting file:', fileId);
       await api.delete(`/intangible/asset-files/${fileId}/`);
-      console.log('✅ File deleted');
       await fetchAssetFiles();
     } catch (error) {
-      console.error('❌ Error deleting file:', error);
+      console.error('Error deleting file:', error);
       alert('خطا در حذف فایل');
+    }
+  };
+
+  const handleDeleteClick = () => {
+    if (!canDelete()) {
+      alert('شما اجازه حذف این دارایی را ندارید');
+      return;
+    }
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await api.delete(`/intangible/screened-assets/${assetId}/`);
+      router.push('/dashboard/intangible/assets');
+    } catch (error: any) {
+      console.error('Error deleting asset:', error);
+      alert(error.response?.data?.detail || 'خطا در حذف دارایی');
+    } finally {
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -220,9 +255,7 @@ export default function AssetDetailPage() {
         hour: '2-digit',
         minute: '2-digit'
       });
-    } catch {
-      return dateString;
-    }
+    } catch { return dateString; }
   };
 
   const getFileIcon = (fileType: string) => {
@@ -236,10 +269,12 @@ export default function AssetDetailPage() {
     return icons[fileType] || '📎';
   };
 
+  const canDeleteResult = canDelete();
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div className="p-6">
+        <SkeletonLoader variant="detail" />
       </div>
     );
   }
@@ -254,8 +289,7 @@ export default function AssetDetailPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
+    <PageTransition className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -271,7 +305,6 @@ export default function AssetDetailPage() {
         </div>
       </div>
 
-      {/* Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -301,7 +334,6 @@ export default function AssetDetailPage() {
         </Card>
       </div>
 
-      {/* Description */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-gray-500 flex items-center gap-2">
@@ -313,7 +345,6 @@ export default function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      {/* ============ بخش فایل‌ها ============ */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -332,7 +363,6 @@ export default function AssetDetailPage() {
           )}
         </CardHeader>
         <CardContent>
-          {/* فرم آپلود */}
           {showUploadForm && isOrgUser && (
             <form onSubmit={handleFileUpload} className="mb-6 p-4 border rounded-lg bg-gray-50 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -382,7 +412,7 @@ export default function AssetDetailPage() {
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={uploading}>
-                  {uploading ? 'در حال آپلود...' : 'آپلود'}
+                  {uploading ? <LoadingSpinner size="sm" /> : 'آپلود'}
                 </Button>
                 <Button type="button" variant="outline" onClick={() => setShowUploadForm(false)}>
                   لغو
@@ -391,7 +421,6 @@ export default function AssetDetailPage() {
             </form>
           )}
 
-          {/* لیست فایل‌ها */}
           {loadingFiles ? (
             <div className="text-center py-4 text-gray-500">در حال بارگذاری فایل‌ها...</div>
           ) : files.length === 0 ? (
@@ -429,8 +458,8 @@ export default function AssetDetailPage() {
                       </Button>
                     </a>
                     {isOrgUser && (
-                      <Button 
-                        variant="destructive" 
+                      <Button
+                        variant="destructive"
                         size="sm"
                         onClick={() => handleDeleteFile(file.id)}
                       >
@@ -445,7 +474,6 @@ export default function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Timeline */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-gray-500 flex items-center gap-2">
@@ -472,10 +500,32 @@ export default function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="flex justify-between items-center pt-4 border-t">
+        <div>
+          {canDeleteResult && (
+            <Button
+              variant="destructive"
+              onClick={handleDeleteClick}
+              disabled={deleting}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? <LoadingSpinner size="sm" /> : 'حذف دارایی'}
+            </Button>
+          )}
+        </div>
         <Button variant="outline" onClick={() => router.back()}>بازگشت</Button>
       </div>
-    </div>
+
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        title="حذف دارایی"
+        message="آیا از حذف این دارایی مطمئن هستید؟"
+        itemName={asset?.asset_name}
+        loading={deleting}
+      />
+    </PageTransition>
   );
 }

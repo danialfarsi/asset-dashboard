@@ -2,18 +2,19 @@ from rest_framework import serializers
 from .models import User, Organization, Department
 
 
-class DepartmentSerializer(serializers.ModelSerializer):
+class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Department
+        model = Organization
         fields = ['id', 'name', 'code', 'created_at']
 
 
-class OrganizationSerializer(serializers.ModelSerializer):
-    departments = DepartmentSerializer(many=True, read_only=True)
+class DepartmentSerializer(serializers.ModelSerializer):
+    organization = OrganizationSerializer(read_only=True)
+    organization_id = serializers.IntegerField(source='organization.id', read_only=True)
     
     class Meta:
-        model = Organization
-        fields = ['id', 'name', 'code', 'created_at', 'departments']
+        model = Department
+        fields = ['id', 'name', 'code', 'organization', 'organization_id', 'created_at']
 
 
 class UserSerializer(serializers.ModelSerializer):

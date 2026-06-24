@@ -6,6 +6,8 @@ import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { SkeletonLoader } from '@/components/ui/skeleton-loader';
+import { PageTransition } from '@/components/ui/page-transition';
 import {
   Building2,
   Package,
@@ -26,6 +28,9 @@ import {
   Zap,
   Crown,
   PieChart,
+  Layers,
+  ChevronLeft,
+  ChevronRight,
   Sparkles
 } from 'lucide-react';
 
@@ -34,9 +39,18 @@ import {
   PieChart as RePieChart,
   Pie,
   Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  LineChart,
+  Line
 } from 'recharts';
 
 const COLORS = ['#6366f1', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
@@ -90,7 +104,6 @@ export default function DashboardPage() {
     try {
       setLoading(true);
 
-      // دریافت دارایی‌ها
       const { data: assetsData } = await api.get('/intangible/screened-assets/');
       const assets = assetsData.results || assetsData || [];
 
@@ -122,7 +135,6 @@ export default function DashboardPage() {
         totalDepartments: totalDepartments,
       });
 
-      // داده‌های نمودار
       const categoryMap: Record<string, string> = {
         'strategic_economic': 'استراتژیک',
         'strategic_social': 'استراتژیک',
@@ -220,18 +232,18 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="p-6">
+        <SkeletonLoader variant="dashboard" />
       </div>
     );
   }
 
   // ============================================================
-  // 1. داشبورد super_admin (رضا پازن) - مدیریت کلان
+  // 1. داشبورد super_admin (رضا پازن)
   // ============================================================
   if (isSuperAdmin) {
     return (
-      <div className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
+      <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
         <div className="bg-gradient-to-r from-indigo-700 to-purple-800 rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -316,16 +328,16 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageTransition>
     );
   }
 
   // ============================================================
-  // 2. داشبورد org_admin (رضا تنهایی، محمد رضا سعیدی) - مدیریت مجموعه
+  // 2. داشبورد org_admin (رضا تنهایی، محمد رضا سعیدی)
   // ============================================================
   if (isOrgAdmin) {
     return (
-      <div className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
+      <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
         <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -411,15 +423,15 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </PageTransition>
     );
   }
 
   // ============================================================
-  // 3. داشبورد org_user (دانیال فارسی، رعنا رحمانی) - مدیریت واحد
+  // 3. داشبورد org_user (دانیال فارسی، رعنا رحمانی)
   // ============================================================
   return (
-    <div className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
+    <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-2xl p-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
@@ -509,6 +521,6 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageTransition>
   );
 }

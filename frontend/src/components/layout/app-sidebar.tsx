@@ -52,7 +52,7 @@ const stage2Children = [
   { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
 ]
 
-// ============ منوی مراحل ۱۰ گانه (فقط org_user) ============
+// ============ منوی مراحل ۱۰ گانه ============
 const stageNavItems = [
   { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
   { 
@@ -82,37 +82,47 @@ export function AppSidebar() {
   const { user } = useAuthStore()
   const [departments, setDepartments] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
-  const [isStagesOpen, setIsStagesOpen] = useState(true)
-  const [isStage2Open, setIsStage2Open] = useState(true)
-  const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(true)
-  const [isCompaniesOpen, setIsCompaniesOpen] = useState(true)
+  
+  // ============ حالت دراپ‌داون‌ها - پیش‌فرض بسته ============
+  const [isStagesOpen, setIsStagesOpen] = useState(false)      // بسته
+  const [isStage2Open, setIsStage2Open] = useState(false)     // بسته
+  const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)  // بسته
+  const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)      // بسته
   
   const role = user?.role || 'org_user'
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
 
-  // دریافت داده‌ها از API
+  // دریافت واحدها از API
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchDepartments = async () => {
       try {
         const { data } = await api.get('/auth/departments/')
         const depts = data.results || data || []
         setDepartments(depts)
-        
-        if (isSuperAdmin) {
-          const { data: orgsData } = await api.get('/auth/organizations/')
-          const orgs = orgsData.results || orgsData || []
-          setCompanies(orgs)
-        }
       } catch (error) {
-        console.error('Error fetching sidebar data:', error)
+        console.error('Error fetching departments:', error)
       }
     }
-    if (user) {
-      fetchData()
+    
+    if (user && isOrgAdmin) {
+      fetchDepartments()
     }
-  }, [user, isSuperAdmin])
+    
+    if (user && isSuperAdmin) {
+      const fetchCompanies = async () => {
+        try {
+          const { data } = await api.get('/auth/organizations/')
+          const orgs = data.results || data || []
+          setCompanies(orgs)
+        } catch (error) {
+          console.error('Error fetching companies:', error)
+        }
+      }
+      fetchCompanies()
+    }
+  }, [user, isOrgAdmin, isSuperAdmin])
 
   // ============ رندر آیتم‌های منو ============
   const renderMenuItem = (item: any, isChild: boolean = false) => {
@@ -147,9 +157,9 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی مراحل ۱۰ گانه (فقط org_user) ============
+  // ============ رندر منوی مراحل ۱۰ گانه (org_user و org_admin) ============
   const renderStagesNav = () => {
-    if (!isOrgUser) return null
+    if (!isOrgUser && !isOrgAdmin) return null
     
     return (
       <SidebarGroup>
@@ -210,20 +220,13 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی واحدها (فقط org_admin) - با دیباگ ============
+  // ============ رندر منوی واحدها (فقط org_admin) ============
   const renderDepartmentsNav = () => {
     if (!isOrgAdmin) return null
     
-    console.log('👤 User role:', user?.role)
-    console.log('🏢 User organization_id:', user?.organization_id)
-    console.log('📦 All departments:', departments.map(d => ({ id: d.id, name: d.name, org_id: d.organization?.id })))
-    
-    // فیلتر واحدها بر اساس organization_id کاربر
     const userDepts = departments.filter(
       (dept: any) => dept.organization?.id === user?.organization_id
     )
-    
-    console.log('✅ Filtered departments:', userDepts.length, userDepts.map(d => d.name))
     
     if (userDepts.length === 0) return null
     
@@ -305,6 +308,7 @@ export function AppSidebar() {
     )
   }
 
+  // ============ رندر نهایی ============
   return (
     <Sidebar side="right" dir="rtl" className="w-72">
       <SidebarHeader className="p-4 border-b">
