@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +23,7 @@ import {
   Clock,
   XCircle,
   Trash2,
+  TrendingUp,
   Upload,
   File,
   Download,
@@ -302,6 +304,13 @@ export default function AssetDetailPage() {
         </div>
         <div className="flex items-center gap-3">
           {getResultBadge(asset.result)}
+          {/* دکمه ارزیابی */}
+          <Link href={`/dashboard/intangible/valuation/${assetId}`}>
+            <Button className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              ارزیابی دارایی
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -501,7 +510,7 @@ export default function AssetDetailPage() {
       </Card>
 
       <div className="flex justify-between items-center pt-4 border-t">
-        <div>
+        <div className="flex gap-2">
           {canDeleteResult && (
             <Button
               variant="destructive"

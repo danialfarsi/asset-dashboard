@@ -26,6 +26,9 @@ import {
   Building2,
   Users,
   Building,
+  BarChart3,
+  ListChecks,
+  Award,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -52,6 +55,12 @@ const stage2Children = [
   { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
 ]
 
+// ============ منوی مرحله ۳: ارزیابی ============
+const stage3Children = [
+  { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
+  { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
+]
+
 // ============ منوی مراحل ۱۰ گانه ============
 const stageNavItems = [
   { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
@@ -61,7 +70,12 @@ const stageNavItems = [
     icon: Search,
     children: stage2Children
   },
-  { label: 'مرحله ۳: ارزیابی', href: '/dashboard/intangible/stage3', icon: DollarSign },
+  { 
+    label: 'مرحله ۳: ارزیابی', 
+    href: '/dashboard/intangible/stage3', 
+    icon: BarChart3,
+    children: stage3Children
+  },
   { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
   { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
   { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
@@ -82,19 +96,17 @@ export function AppSidebar() {
   const { user } = useAuthStore()
   const [departments, setDepartments] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
-  
-  // ============ حالت دراپ‌داون‌ها - پیش‌فرض بسته ============
-  const [isStagesOpen, setIsStagesOpen] = useState(false)      // بسته
-  const [isStage2Open, setIsStage2Open] = useState(false)     // بسته
-  const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)  // بسته
-  const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)      // بسته
+  const [isStagesOpen, setIsStagesOpen] = useState(false)
+  const [isStage2Open, setIsStage2Open] = useState(false)
+  const [isStage3Open, setIsStage3Open] = useState(false)
+  const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)
+  const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)
   
   const role = user?.role || 'org_user'
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
 
-  // دریافت واحدها از API
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -124,7 +136,6 @@ export function AppSidebar() {
     }
   }, [user, isOrgAdmin, isSuperAdmin])
 
-  // ============ رندر آیتم‌های منو ============
   const renderMenuItem = (item: any, isChild: boolean = false) => {
     const Icon = item.icon
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
@@ -141,7 +152,14 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوهای اصلی ============
+  const renderChildrenItems = (children: any[]) => {
+    return (
+      <div className="mr-6">
+        {children.map((child: any) => renderMenuItem(child, true))}
+      </div>
+    )
+  }
+
   const renderMainNav = () => {
     const items = isSuperAdmin 
       ? mainNavItems.filter(item => item.label === 'داشبورد')
@@ -157,7 +175,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی مراحل ۱۰ گانه (org_user و org_admin) ============
   const renderStagesNav = () => {
     if (!isOrgUser && !isOrgAdmin) return null
     
@@ -183,11 +200,20 @@ export function AppSidebar() {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               
               if (item.children) {
+                const isStage2 = item.label === 'مرحله ۲: کشف و شناسایی'
+                const isStage3 = item.label === 'مرحله ۳: ارزیابی'
+                const isOpen = isStage2 ? isStage2Open : (isStage3 ? isStage3Open : false)
+                const toggleOpen = isStage2 
+                  ? () => setIsStage2Open(!isStage2Open)
+                  : isStage3 
+                    ? () => setIsStage3Open(!isStage3Open)
+                    : () => {}
+                
                 return (
                   <div key={item.href} className="space-y-0">
                     <SidebarMenuItem>
                       <button
-                        onClick={() => setIsStage2Open(!isStage2Open)}
+                        onClick={toggleOpen}
                         className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg hover:bg-gray-100 ${
                           isActive ? 'bg-gray-100 font-medium' : ''
                         }`}
@@ -196,18 +222,14 @@ export function AppSidebar() {
                           <Icon className="w-4 h-4 shrink-0 ml-1" />
                           <span className="truncate">{item.label}</span>
                         </span>
-                        {isStage2Open ? (
+                        {isOpen ? (
                           <ChevronDown className="w-4 h-4" />
                         ) : (
                           <ChevronLeft className="w-4 h-4" />
                         )}
                       </button>
                     </SidebarMenuItem>
-                    {isStage2Open && (
-                      <div className="mr-6">
-                        {item.children.map((child: any) => renderMenuItem(child, true))}
-                      </div>
-                    )}
+                    {isOpen && renderChildrenItems(item.children)}
                   </div>
                 )
               }
@@ -220,7 +242,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی واحدها (فقط org_admin) ============
   const renderDepartmentsNav = () => {
     if (!isOrgAdmin) return null
     
@@ -260,7 +281,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی شرکت‌ها (فقط super_admin) ============
   const renderCompaniesNav = () => {
     if (!isSuperAdmin) return null
     
@@ -296,7 +316,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر منوی تنظیمات (مشترک) ============
   const renderSettingsNav = () => {
     return (
       <SidebarGroup>
@@ -308,11 +327,10 @@ export function AppSidebar() {
     )
   }
 
-  // ============ رندر نهایی ============
   return (
     <Sidebar side="right" dir="rtl" className="w-72">
-      <SidebarHeader className="p-4 border-b">
-        <span className="text-base font-bold text-primary">مدیریت دارایی‌ها</span>
+      <SidebarHeader className="p-4 border-b bg-dark-green">
+        <span className="text-base font-bold text-white">مدیریت دارایی‌ها</span>
       </SidebarHeader>
 
       <SidebarContent>

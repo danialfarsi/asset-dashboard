@@ -244,3 +244,9 @@ class AssetFile(models.Model):
     
     class Meta:
         ordering = ['-uploaded_at']
+
+# ============ مدل‌های مرحله ۳: ارزیابی ============
+from .valuation_models import (
+    AssetType, ValuationDimension, ValuationQuestion,
+    ValuationScoreGuide, AssetValuation, ValuationAnswer
+)

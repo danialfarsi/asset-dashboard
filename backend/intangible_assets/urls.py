@@ -3,12 +3,17 @@ from .views import (
     DiscoveryFormViewSet, ExpertInterviewViewSet, TacitKnowledgeFormViewSet,
     AssetListFormViewSet, ClassificationFormViewSet, HiddenAssetChecklistViewSet,
     PreliminaryEvaluationViewSet, IdentityAssessmentViewSet,
-    OrganizationTypeViewSet, ScreenedAssetViewSet,
+    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet,
     AssetFileViewSet
 )
-from .views_screening import ScreeningTemplateViewSet
+from .valuation_views import (
+    AssetTypeViewSet, ValuationDimensionViewSet,
+    ValuationQuestionViewSet, AssetValuationViewSet
+)
 
 router = DefaultRouter()
+
+# مرحله ۲: کشف و شناسایی
 router.register('discovery-forms', DiscoveryFormViewSet, basename='discovery-form')
 router.register('expert-interviews', ExpertInterviewViewSet, basename='expert-interview')
 router.register('tacit-knowledge', TacitKnowledgeFormViewSet, basename='tacit-knowledge')
@@ -17,9 +22,19 @@ router.register('classifications', ClassificationFormViewSet, basename='classifi
 router.register('hidden-checklists', HiddenAssetChecklistViewSet, basename='hidden-checklist')
 router.register('preliminary-evaluations', PreliminaryEvaluationViewSet, basename='preliminary-evaluation')
 router.register('identity-assessments', IdentityAssessmentViewSet, basename='identity-assessment')
+
+# غربالگری
 router.register('organization-types', OrganizationTypeViewSet, basename='organization-type')
 router.register('screening-templates', ScreeningTemplateViewSet, basename='screening-template')
 router.register('screened-assets', ScreenedAssetViewSet, basename='screened-asset')
+
+# فایل‌های پیوست
 router.register('asset-files', AssetFileViewSet, basename='asset-file')
+
+# ============ مرحله ۳: ارزیابی ============
+router.register('asset-types', AssetTypeViewSet, basename='asset-type')
+router.register('valuation-dimensions', ValuationDimensionViewSet, basename='valuation-dimension')
+router.register('valuation-questions', ValuationQuestionViewSet, basename='valuation-question')
+router.register('asset-valuations', AssetValuationViewSet, basename='asset-valuation')
 
 urlpatterns = router.urls

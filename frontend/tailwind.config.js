@@ -9,6 +9,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // ============ پالت رنگ جدید ============
+        'dark-green': '#015345',
+        'aqua-green': '#8ECFAF',
+        'medium-green': '#3B7A6E',
+        'golden-amber': '#D4A547',
+        'gray-custom': '#F5F5F5',
+        
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -51,7 +58,6 @@ module.exports = {
       fontFamily: {
         sans: ["var(--font-vazir)"],
       },
-      // ============ انیمیشن‌های جدید ============
       animation: {
         'fade-in': 'fadeIn 0.2s ease-in-out',
         'zoom-in-95': 'zoomIn95 0.2s ease-out',

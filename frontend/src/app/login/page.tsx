@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import { Eye, EyeOff, Check, Building2, Sparkles } from 'lucide-react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,40 +18,46 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    
+    console.log('🔑 Login attempt with:', { email: form.email, password: '***' });
+    
     try {
       await login({ email: form.email, password: form.password });
       const next = searchParams.get('next') || '/dashboard';
       router.push(next);
-    } catch {
-      // error is set in store
+    } catch (err: any) {
+      console.error('❌ Login error:', err);
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50">
+    <div className="min-h-screen flex bg-gradient-to-br from-dark-green/10 via-aqua-green/10 to-golden-amber/5">
       {/* Right side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-          {/* Logo with Sparkles Icon */}
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border-t-4 border-dark-green">
+          {/* Logo */}
           <div className="flex justify-center mb-8">
             <div className="relative">
-              <div className="absolute -top-2 -right-2">
-                <Sparkles className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-              </div>
-              <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <Building2 className="w-10 h-10 text-white" />
+              <div className="w-24 h-24 relative">
+                <Image
+                  src="/logo.png"
+                  alt="متا پلتفرم"
+                  width={96}
+                  height={96}
+                  className="object-contain"
+                />
               </div>
             </div>
           </div>
 
-          <h1 className="text-3xl font-bold text-gray-800 text-center mb-2">خوش آمدید</h1>
+          <h1 className="text-3xl font-bold text-dark-green text-center mb-2">خوش آمدید</h1>
           <p className="text-gray-500 text-center text-sm mb-8">
             برای ادامه، لطفا وارد حساب کاربری خود شوید
           </p>
 
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error === 'Login failed' ? 'نام کاربری یا رمز عبور اشتباه است' : error}
+              {error === 'Login failed' ? 'ایمیل یا رمز عبور اشتباه است' : error}
             </div>
           )}
 
@@ -61,9 +68,10 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                name="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent transition-all"
                 placeholder="ایمیل خود را وارد کنید"
                 required
                 autoFocus
@@ -77,9 +85,10 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  name="password"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all pr-10"
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green focus:border-transparent transition-all pr-10"
                   placeholder="رمز عبور خود را وارد کنید"
                   required
                 />
@@ -102,13 +111,13 @@ export default function LoginPage() {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="sr-only"
                   />
-                  <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-purple-600 border-purple-600' : 'border-gray-300'} flex items-center justify-center transition-all`}>
+                  <div className={`w-4 h-4 rounded border ${rememberMe ? 'bg-dark-green border-dark-green' : 'border-gray-300'} flex items-center justify-center transition-all`}>
                     {rememberMe && <Check size={10} className="text-white" />}
                   </div>
                 </div>
                 <span className="text-sm text-gray-600">مرا به خاطر بسپار</span>
               </label>
-              <button type="button" className="text-sm text-purple-600 hover:text-purple-700">
+              <button type="button" className="text-sm text-dark-green hover:text-medium-green">
                 فراموشی رمز عبور؟
               </button>
             </div>
@@ -116,7 +125,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-all duration-200 mt-6 shadow-md"
+              className="w-full bg-gradient-to-r from-dark-green to-medium-green hover:from-dark-green hover:to-medium-green disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-all duration-200 mt-6 shadow-md hover:shadow-lg"
             >
               {isLoading ? 'در حال ورود...' : 'ورود به سیستم'}
             </button>
@@ -125,7 +134,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               حساب کاربری ندارید؟{' '}
-              <button type="button" className="text-purple-600 hover:text-purple-700 font-medium">
+              <button type="button" className="text-dark-green hover:text-medium-green font-medium">
                 ثبت نام کنید
               </button>
             </p>
@@ -134,18 +143,28 @@ export default function LoginPage() {
       </div>
 
       {/* Left side - Banner/Info */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 items-center justify-center p-12">
-        <div className="text-center text-white">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-dark-green to-medium-green items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full"></div>
+        
+        <div className="text-center text-white relative z-10">
           <div className="mb-6">
-            <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-              <Building2 className="w-10 h-10" />
+            <div className="w-32 h-32 mx-auto mb-4 relative">
+              <Image
+                src="/logo.png"
+                alt="متا پلتفرم"
+                width={128}
+                height={128}
+                className="object-contain brightness-0 invert"
+              />
             </div>
           </div>
           <h2 className="text-3xl font-bold mb-4">پلتفرم مدیریت دارایی‌های نامشهود</h2>
-          <p className="text-indigo-100 text-lg max-w-md mx-auto">
+          <p className="text-white/80 text-lg max-w-md mx-auto">
             بستر تبدیل دانش پراکنده به سرمایه سازمان یافته
           </p>
-          <p className="text-indigo-200 text-sm mt-6">
+          <p className="text-white/60 text-sm mt-6">
             ویژه سازمان‌ها و شرکت‌های بزرگ و متوسط
           </p>
         </div>

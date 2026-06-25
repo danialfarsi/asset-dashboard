@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
+import { NotificationBar } from '@/components/ui/notification-bar';
 import {
   Building2,
   Package,
@@ -39,21 +40,12 @@ import {
   PieChart as RePieChart,
   Pie,
   Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  LineChart,
-  Line
+  ResponsiveContainer
 } from 'recharts';
 
-const COLORS = ['#6366f1', '#06b6d4', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444'];
+const COLORS = ['#015345', '#8ECFAF', '#D4A547', '#3B7A6E', '#F5F5F5', '#EF4444'];
 
 interface DashboardStats {
   totalAssets: number;
@@ -239,24 +231,30 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 1. داشبورد super_admin (رضا پازن)
+  // 1. داشبورد super_admin
   // ============================================================
   if (isSuperAdmin) {
     return (
-      <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
-        <div className="bg-gradient-to-r from-indigo-700 to-purple-800 rounded-2xl p-6 text-white relative overflow-hidden">
+      <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
+        {/* نوتیفیکیشن بار */}
+        <NotificationBar />
+
+        <div className="bg-gradient-to-r from-dark-green to-medium-green rounded-2xl p-6 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-          <div className="relative flex items-start justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm border border-white/10"><User className="w-8 h-8" /></div>
-                <div>
-                  <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                    <span className="bg-yellow-400/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-yellow-400/20"><Award className="w-4 h-4" /> دسترسی کامل</span>
-                  </div>
+          
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+                {/* لوگو */}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30">
+                    <Award className="w-4 h-4" /> دسترسی کامل
+                  </span>
                 </div>
               </div>
             </div>
@@ -268,22 +266,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* ... بقیه محتوای super_admin ... */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAssets}</p></div><div className="bg-blue-50 p-3 rounded-xl"><Package className="w-6 h-6 text-blue-600" /></div></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-indigo-100 p-3 rounded-xl"><Building2 className="w-6 h-6 text-indigo-600" /></div><div><p className="text-sm text-gray-500">شرکت‌ها</p><p className="text-2xl font-bold">2</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-blue-100 p-3 rounded-xl"><Building className="w-6 h-6 text-blue-600" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold">{stats.totalDepartments}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-purple-100 p-3 rounded-xl"><Users className="w-6 h-6 text-purple-600" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold">{stats.totalUsers}</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Building2 className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">شرکت‌ها</p><p className="text-2xl font-bold text-dark-green">2</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-aqua-green/20 p-3 rounded-xl"><Building className="w-6 h-6 text-medium-green" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><Users className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieChart className="w-5 h-5 text-indigo-600" /> توزیع دارایی‌ها</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <RePieChart>
@@ -296,13 +295,13 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-indigo-600" /> خلاصه عملکرد</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold">{stats.totalAssets}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
                 <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">شرکت‌ها</span><span className="text-lg font-bold">2</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-gray-500">کاربران</span><span className="text-lg font-bold">{stats.totalUsers}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">شرکت‌ها</span><span className="text-lg font-bold text-dark-green">2</span></div>
+                <div className="flex justify-between items-center"><span className="text-sm text-gray-500">کاربران</span><span className="text-lg font-bold text-dark-green">{stats.totalUsers}</span></div>
               </div>
             </CardContent>
           </Card>
@@ -310,14 +309,14 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Clock className="w-5 h-5 text-indigo-600" /> آخرین فعالیت‌ها</CardTitle>
-            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-indigo-600">مشاهده همه</Button></Link>
+            <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین فعالیت‌ها</CardTitle>
+            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
-                  <div className="p-4 border rounded-xl hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer bg-white">
+                  <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
                     <div className="flex items-center justify-between"><span className="font-medium text-sm">{asset.asset_name}</span>{getResultBadge(asset.result)}</div>
                     <p className="text-xs text-gray-400 mt-1">{asset.asset_uid}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-gray-500"><Building2 className="w-3 h-3" />{asset.organization_name || 'نامشخص'}</div>
@@ -333,24 +332,25 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 2. داشبورد org_admin (رضا تنهایی، محمد رضا سعیدی)
+  // 2. داشبورد org_admin
   // ============================================================
   if (isOrgAdmin) {
     return (
-      <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
-        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-          <div className="relative flex items-start justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm border border-white/10"><User className="w-8 h-8" /></div>
-                <div>
-                  <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                    <span className="bg-emerald-400/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-emerald-400/20"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
-                  </div>
+      <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
+        <NotificationBar />
+        
+        <div className="bg-gradient-to-r from-dark-green via-medium-green to-aqua-green rounded-2xl p-6 text-white relative overflow-hidden">
+          {/* ... محتوای org_admin ... */}
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+                {/* لوگو */}
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
                 </div>
               </div>
             </div>
@@ -362,22 +362,23 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* ... بقیه محتوای org_admin ... */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAssets}</p></div><div className="bg-blue-50 p-3 rounded-xl"><Package className="w-6 h-6 text-blue-600" /></div></div></CardContent></Card>
+          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
           <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-indigo-100 p-3 rounded-xl"><Building className="w-6 h-6 text-indigo-600" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold">{stats.totalDepartments}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-purple-100 p-3 rounded-xl"><Users className="w-6 h-6 text-purple-600" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold">{stats.totalUsers}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-emerald-100 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-emerald-600" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Building className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-aqua-green/20 p-3 rounded-xl"><Users className="w-6 h-6 text-medium-green" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
+          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieChart className="w-5 h-5 text-blue-600" /> توزیع دارایی‌ها</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <RePieChart>
@@ -390,10 +391,10 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-blue-600" /> خلاصه عملکرد</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold">{stats.totalAssets}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
                 <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{stats.verifiedAssets}</span></div>
                 <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{stats.pendingAssets}</span></div>
                 <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{stats.rejectedAssets}</span></div>
@@ -405,14 +406,14 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2"><Clock className="w-5 h-5 text-blue-600" /> آخرین دارایی‌ها</CardTitle>
-            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-blue-600">مشاهده همه</Button></Link>
+            <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
+            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
-                  <div className="p-4 border rounded-xl hover:shadow-md hover:border-blue-200 transition-all cursor-pointer bg-white">
+                  <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
                     <div className="flex items-center justify-between"><span className="font-medium text-sm">{asset.asset_name}</span>{getResultBadge(asset.result)}</div>
                     <p className="text-xs text-gray-400 mt-1">{asset.asset_uid}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-gray-500"><User className="w-3 h-3" />{asset.created_by_name || 'نامشخص'}</div>
@@ -428,29 +429,26 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 3. داشبورد org_user (دانیال فارسی، رعنا رحمانی)
+  // 3. داشبورد org_user
   // ============================================================
   return (
-    <PageTransition className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
-      <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 rounded-2xl p-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-        <div className="relative flex items-start justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm border border-white/10"><User className="w-8 h-8" /></div>
-              <div>
-                <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                  <span className="bg-emerald-400/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-emerald-400/20"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
-                  <span className="bg-teal-400/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-teal-400/20"><Building className="w-4 h-4" />{user?.department_name}</span>
-                </div>
-              </div>
+    <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
+      <NotificationBar />
+      
+      <div className="bg-gradient-to-r from-dark-green via-aqua-green to-medium-green rounded-2xl p-6 text-white relative overflow-hidden">
+        {/* ... محتوای org_user ... */}
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+              {/* لوگو */}
             </div>
-            <div className="flex items-center gap-2 text-sm bg-white/10 px-3 py-1.5 rounded-lg backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-yellow-300" />
-              <span>مدیریت دارایی‌های واحد {user?.department_name || ''}</span>
+            <div>
+              <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
+                <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-white/20"><Building className="w-4 h-4" />{user?.department_name}</span>
+              </div>
             </div>
           </div>
           <Link href="/dashboard/intangible/screening/new">
@@ -461,21 +459,22 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* ... بقیه محتوای org_user ... */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-gray-900 mt-1">{stats.totalAssets}</p></div><div className="bg-blue-50 p-3 rounded-xl"><Package className="w-6 h-6 text-blue-600" /></div></div></CardContent></Card>
+        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
         <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
         <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
         <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-purple-100 p-3 rounded-xl"><Users className="w-6 h-6 text-purple-600" /></div><div><p className="text-sm text-gray-500">همکاران</p><p className="text-2xl font-bold">{stats.totalUsers}</p></div></CardContent></Card>
-        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-indigo-100 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-indigo-600" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
+        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Users className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">همکاران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
+        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><PieChart className="w-5 h-5 text-emerald-600" /> توزیع دارایی‌ها</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <RePieChart>
@@ -488,10 +487,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-emerald-600" /> خلاصه عملکرد</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold">{stats.totalAssets}</span></div>
+              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
               <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{stats.verifiedAssets}</span></div>
               <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{stats.pendingAssets}</span></div>
               <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{stats.rejectedAssets}</span></div>
@@ -503,14 +502,14 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2"><Clock className="w-5 h-5 text-emerald-600" /> آخرین دارایی‌ها</CardTitle>
-          <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-emerald-600">مشاهده همه</Button></Link>
+          <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
+          <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {recentAssets.map((asset) => (
               <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
-                <div className="p-4 border rounded-xl hover:shadow-md hover:border-emerald-200 transition-all cursor-pointer bg-white">
+                <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
                   <div className="flex items-center justify-between"><span className="font-medium text-sm">{asset.asset_name}</span>{getResultBadge(asset.result)}</div>
                   <p className="text-xs text-gray-400 mt-1">{asset.asset_uid}</p>
                   <div className="flex items-center gap-2 mt-2 text-xs text-gray-500"><User className="w-3 h-3" />{asset.created_by_name || 'نامشخص'}</div>

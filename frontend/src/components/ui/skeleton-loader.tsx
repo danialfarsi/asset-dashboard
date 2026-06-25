@@ -1,7 +1,5 @@
 'use client';
 
-import { cn } from '@/lib/utils';
-
 interface SkeletonLoaderProps {
   className?: string;
   variant?: 'card' | 'list' | 'detail' | 'table' | 'dashboard';
@@ -130,5 +128,5 @@ export function SkeletonLoader({ className, variant = 'card', count = 1 }: Skele
     }
   };
 
-  return <div className={cn("space-y-4", className)}>{renderSkeleton()}</div>;
+  return <div className={className || ''}>{renderSkeleton()}</div>;
 }
