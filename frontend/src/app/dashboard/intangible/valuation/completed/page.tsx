@@ -77,7 +77,12 @@ export default function CompletedValuationsPage() {
         })
       );
       
-      setValuations(summaries.filter(s => s !== null));
+      // مرتب‌سازی بر اساس امتیاز (بیشترین به کمترین)
+      const sorted = summaries
+        .filter(s => s !== null)
+        .sort((a, b) => (b?.final_score || 0) - (a?.final_score || 0));
+      
+      setValuations(sorted);
     } catch (error) {
       console.error('Error fetching completed valuations:', error);
     } finally {

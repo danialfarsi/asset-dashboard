@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
-import { ArrowLeft, Save, Award, Eye, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ScoreGuide {
   id: number;
@@ -31,6 +31,11 @@ interface AssetDetail {
   asset_name: string;
   asset_uid: string;
   category: string;
+  asset_type?: {
+    id: number;
+    code: string;
+    name: string;
+  };
 }
 
 export default function ValuationPage() {
@@ -50,6 +55,32 @@ export default function ValuationPage() {
   const [finalScore, setFinalScore] = useState<number | null>(null);
   const [isViewMode, setIsViewMode] = useState(false);
   const [expandedGuide, setExpandedGuide] = useState<{ questionId: number; score: number } | null>(null);
+  
+  // تشخیص asset_type از روی asset_uid
+  const getAssetTypeFromUid = (uid: string): number => {
+    // IA-STR-BRD-000001 → BRD = BRAND
+    // IA-STR-CON-000001 → CON = CONTRACT
+    // IA-STR-BMC-000001 → BMC = BMC
+    // IA-STR-FRM-000001 → FRM = FORMULA
+    // IA-STR-GWD-000001 → GWD = GOODWILL
+    // IA-STR-PRT-000001 → PRT = PORTFOLIO
+    
+    const codeMap: Record<string, number> = {
+      'BRD': 1,   // BRAND
+      'CON': 2,   // CONTRACT
+      'FRM': 3,   // FORMULA
+      'BMC': 4,   // BMC
+      'GWD': 5,   // GOODWILL
+      'PRT': 6,   // PORTFOLIO
+    };
+    
+    const parts = uid.split('-');
+    if (parts.length >= 3) {
+      const code = parts[2];
+      return codeMap[code] || 1; // پیش‌فرض: BRAND
+    }
+    return 1; // پیش‌فرض: BRAND
+  };
 
   useEffect(() => {
     if (assetId) {
@@ -74,8 +105,12 @@ export default function ValuationPage() {
       const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
       setAsset(assetData);
 
-      console.log('📥 2. دریافت سوالات...');
-      const { data: questionsData } = await api.get('/intangible/valuation-questions/?asset_type=1');
+      // 🔥 تشخیص asset_type از روی asset_uid
+      const assetTypeId = getAssetTypeFromUid(assetData.asset_uid);
+      console.log(`🔍 asset_type تشخیص داده شده: ${assetTypeId} برای ${assetData.asset_uid}`);
+
+      console.log('📥 2. دریافت سوالات با asset_type:', assetTypeId);
+      const { data: questionsData } = await api.get(`/intangible/valuation-questions/?asset_type=${assetTypeId}`);
       const items = questionsData.results || questionsData || [];
       setQuestions(items);
 
@@ -93,7 +128,6 @@ export default function ValuationPage() {
       let existingScore = 0;
 
       if (assetValuations.length > 0) {
-        // پیدا کردن بهترین ارزیابی (اولویت با completed، سپس بیشترین پاسخ)
         let bestValuation = null;
         let maxAnswers = -1;
 
@@ -102,13 +136,11 @@ export default function ValuationPage() {
           const answers = valData.answers || [];
           console.log(`  - ارزیابی ${v.id}: ${answers.length} پاسخ, status: ${v.status}`);
           
-          // اولویت با completed
           if (v.status === 'completed' && answers.length > 0) {
             bestValuation = { ...v, answers };
             break;
           }
           
-          // اگر completed نبود، بیشترین پاسخ را انتخاب کن
           if (answers.length > maxAnswers) {
             maxAnswers = answers.length;
             bestValuation = { ...v, answers };
@@ -132,7 +164,7 @@ export default function ValuationPage() {
         try {
           const response = await api.post('/intangible/asset-valuations/', {
             asset: parseInt(assetId),
-            asset_type: 1,
+            asset_type: assetTypeId,
             status: 'draft'
           });
           
@@ -161,7 +193,6 @@ export default function ValuationPage() {
       }
 
       if (valId) {
-        // دریافت کامل ارزیابی با پاسخ‌ها
         const { data: valData } = await api.get(`/intangible/asset-valuations/${valId}/`);
         existingAnswers = valData.answers || [];
         existingStatus = valData.status;
@@ -178,20 +209,16 @@ export default function ValuationPage() {
         setSelectedScores(scores);
         setValuationId(valId);
         
-        // تعیین حالت صفحه
         if (existingStatus === 'completed') {
-          // ارزیابی کامل شده → حالت مشاهده
           setIsViewMode(true);
           setIsComplete(true);
           setFinalScore(existingScore);
-          console.log(`✅ ارزیابی تکمیل شده با ${Object.keys(scores).length} پاسخ - حالت مشاهده`);
+          console.log(`✅ ارزیابی تکمیل شده - حالت مشاهده`);
         } else if (Object.keys(scores).length > 0) {
-          // ارزیابی ناقص با پاسخ‌های قبلی → حالت ادامه
           setIsViewMode(false);
           setIsComplete(false);
           console.log(`📝 ارزیابی ناقص با ${Object.keys(scores).length} پاسخ - قابل ادامه`);
         } else {
-          // ارزیابی جدید بدون پاسخ
           setIsViewMode(false);
           setIsComplete(false);
           console.log('📝 ارزیابی جدید - بدون پاسخ');
@@ -210,9 +237,8 @@ export default function ValuationPage() {
   };
 
   const handleScoreSelect = (questionId: number, score: number) => {
-    if (isViewMode) return; // در حالت مشاهده غیرفعال است
+    if (isViewMode) return;
     setSelectedScores(prev => ({ ...prev, [questionId]: score }));
-    // وقتی گزینه‌ای انتخاب می‌شود، راهنمای آن را باز کن
     setExpandedGuide({ questionId, score });
   };
 
@@ -420,7 +446,6 @@ export default function ValuationPage() {
                             isSelected ? 'border-dark-green bg-dark-green/5 shadow-sm' : 'border-gray-200'
                           } ${showViewMode && !isSelected ? 'opacity-60' : ''}`}
                         >
-                          {/* گزینه */}
                           <button
                             onClick={() => handleScoreSelect(question.id, guide.score)}
                             disabled={submitting || showViewMode}
@@ -443,7 +468,6 @@ export default function ValuationPage() {
                             )}
                           </button>
 
-                          {/* دکمه نمایش راهنما */}
                           <button
                             onClick={() => toggleGuide(question.id, guide.score)}
                             className={`
@@ -458,7 +482,6 @@ export default function ValuationPage() {
                             {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                           </button>
 
-                          {/* شواهد لازم */}
                           {isExpanded && guide.evidence_required && (
                             <div className={`px-4 py-3 ${isSelected ? 'bg-dark-green/5' : 'bg-blue-50'} border-t border-blue-100`}>
                               <p className="text-xs font-medium text-gray-700 mb-2">📎 شواهد لازم:</p>

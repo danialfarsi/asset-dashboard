@@ -197,3 +197,39 @@ class AssetValuationViewSet(viewsets.ModelViewSet):
             'message': 'ارزیابی تکمیل شد',
             'final_score': valuation.final_score
         })
+
+
+    def perform_create(self, serializer):
+        asset = serializer.validated_data.get("asset")
+        asset_type = serializer.validated_data.get("asset_type")
+        if not asset_type and asset:
+            asset_type = asset.asset_type
+        if not asset_type and asset and asset.asset_uid:
+            asset_type = self._detect_asset_type_from_uid(asset.asset_uid)
+        serializer.save(
+            evaluated_by=self.request.user,
+            asset_type=asset_type
+        )
+
+    def _detect_asset_type_from_uid(self, asset_uid):
+        from .models import ScreenedAsset
+        from .valuation_models import AssetType
+        code_map = {
+            "BRD": "BRAND",
+            "CON": "CONTRACT",
+            "BMC": "BMC",
+            "FRM": "FORMULA",
+            "GWD": "GOODWILL",
+            "PRT": "PORTFOLIO",
+        }
+        parts = asset_uid.split("-")
+        if len(parts) >= 3:
+            sub_code = parts[2]
+            asset_code = code_map.get(sub_code)
+            if asset_code:
+                try:
+                    return AssetType.objects.get(code=asset_code)
+                except AssetType.DoesNotExist:
+                    pass
+        return None
+

@@ -5,7 +5,6 @@ from .serializers import ScreeningTemplateSerializer
 
 class ScreeningTemplateViewSet(viewsets.ModelViewSet):
     serializer_class = ScreeningTemplateSerializer
-    pagination_class = None
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):

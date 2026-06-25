@@ -1,0 +1,1823 @@
+=== backend/config/settings.py ===
+from pathlib import Path
+from datetime import timedelta
+from decouple import config
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = config('SECRET_KEY')
+DEBUG = config('DEBUG', default=False, cast=bool)
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
+
+DJANGO_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+THIRD_PARTY_APPS = [
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+]
+
+LOCAL_APPS = [
+    'accounts',
+    'assets',
+    'intangible_assets',
+]
+
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
+
+MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST', default='localhost'),
+        'PORT': config('DB_PORT', default='5432'),
+    }
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+AUTH_USER_MODEL = 'accounts.User'
+
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+LANGUAGE_CODE = 'en-us'
+TIME_ZONE = 'Asia/Tehran'
+USE_I18N = True
+USE_TZ = True
+
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+=== backend/accounts/models.py ===
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class Organization(models.Model):
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
+
+
+class Department(models.Model):
+    name = models.CharField(max_length=255)
+    code = models.CharField(max_length=50, unique=True)
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='departments')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f'{self.organization.name} - {self.name}'
+
+
+class User(AbstractUser):
+    ROLE_CHOICES = [
+        ('super_admin', 'ادمین کل سیستم'),
+        ('org_admin', 'ادمین مجموعه'),
+        ('org_user', 'کاربر مجموعه'),
+    ]
+    
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='org_user')
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, null=True, blank=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE, null=True, blank=True)
+    
+    # اضافه کردن organization_type به کاربر
+    organization_type = models.CharField(max_length=50, null=True, blank=True)
+    
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+
+    class Meta:
+        db_table = 'users'
+
+    def __str__(self):
+        return f"{self.email} ({self.get_role_display()})"
+
+=== backend/accounts/views.py ===
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import get_user_model
+from django.contrib.auth import authenticate
+
+User = get_user_model()
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+        
+        if email:
+            try:
+                user = User.objects.get(email=email)
+                attrs['username'] = user.username
+            except User.DoesNotExist:
+                pass
+        
+        return super().validate(attrs)
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+    
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            access = response.data.get('access')
+            refresh = response.data.get('refresh')
+            response.set_cookie(
+                'access_token',
+                access,
+                httponly=False,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 60,
+            )
+            response.set_cookie(
+                'refresh_token',
+                refresh,
+                httponly=True,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 60 * 24 * 7,
+            )
+        return response
+
+
+class RefreshTokenView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            access = response.data.get('access')
+            response.set_cookie(
+                'access_token',
+                access,
+                httponly=False,
+                samesite='Lax',
+                secure=False,
+                max_age=60 * 60,
+            )
+        return response
+
+
+class LogoutView(APIView):
+    def post(self, request):
+        response = Response({"detail": "Logged out."}, status=status.HTTP_205_RESET_CONTENT)
+        response.delete_cookie('access_token')
+        response.delete_cookie('refresh_token')
+        return response
+
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role,
+            "organization_id": user.organization_id if hasattr(user, 'organization_id') else None,
+            "organization_name": user.organization.name if user.organization else None,
+            "department_id": user.department_id if hasattr(user, 'department_id') else None,
+            "department_name": user.department.name if user.department else None,
+            "organization_type": user.organization_type if hasattr(user, 'organization_type') else None,
+            "is_active": user.is_active,
+        })
+
+=== backend/accounts/serializers.py ===
+from rest_framework import serializers
+from .models import User, Organization, Department
+
+
+class OrganizationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Organization
+        fields = ['id', 'name', 'code', 'created_at']
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    organization = OrganizationSerializer(read_only=True)
+    organization_id = serializers.IntegerField(source='organization.id', read_only=True)
+    
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'code', 'organization', 'organization_id', 'created_at']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    
+    department_id = serializers.IntegerField(source='department.id', read_only=True, allow_null=True)
+    organization_id = serializers.IntegerField(source='organization.id', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'username', 'first_name', 'last_name',
+            'role', 'role_display',
+            'organization', 'organization_id', 'organization_name',
+            'department', 'department_id', 'department_name',
+            'is_active', 'date_joined', 'last_login'
+        ]
+        read_only_fields = ['id', 'date_joined', 'last_login']
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = User
+        fields = [
+            'email', 'username', 'password', 'first_name', 'last_name',
+            'role', 'organization', 'department'
+        ]
+    
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+        user = User.objects.create_user(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'email', 'username', 'first_name', 'last_name',
+            'role', 'organization', 'department', 'is_active'
+        ]
+        read_only_fields = ['id', 'date_joined', 'last_login']
+
+=== backend/intangible_assets/models.py ===
+from django.db import models
+from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+
+# ==================== مدل‌های مرحله ۲: کشف و شناسایی ====================
+
+class DiscoveryForm(models.Model):
+    asset_name = models.CharField(max_length=255)
+    asset_code = models.CharField(max_length=50, unique=True)
+    asset_type = models.CharField(max_length=20)
+    description = models.TextField()
+    discovered_by = models.CharField(max_length=255)
+    department = models.CharField(max_length=255)
+    potential_value = models.TextField()
+    attachment = models.FileField(upload_to='discovery/', null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class ExpertInterview(models.Model):
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='interviews')
+    expert_name = models.CharField(max_length=255)
+    expert_position = models.CharField(max_length=255)
+    interview_date = models.DateField()
+    tacit_knowledge = models.TextField()
+    recorded_at = models.DateTimeField(auto_now_add=True)
+
+
+class TacitKnowledgeForm(models.Model):
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='tacit_knowledge')
+    knowledge_title = models.CharField(max_length=255)
+    knowledge_description = models.TextField()
+    source_person = models.CharField(max_length=255)
+    department = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class AssetListForm(models.Model):
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='asset_lists')
+    list_date = models.DateField(auto_now_add=True)
+    total_count = models.IntegerField()
+    notes = models.TextField(blank=True)
+
+
+class ClassificationForm(models.Model):
+    CATEGORY_CHOICES = [
+        ('technological', 'فناورانه'),
+        ('knowledge', 'دانشی'),
+        ('relational', 'ارتباطی'),
+        ('human', 'انسانی'),
+        ('structural', 'ساختاری'),
+    ]
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='classifications')
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    sub_category = models.CharField(max_length=100, blank=True)
+    classification_date = models.DateField(auto_now_add=True)
+
+
+class HiddenAssetChecklist(models.Model):
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='hidden_checklists')
+    is_documented = models.BooleanField(default=False)
+    is_in_use = models.BooleanField(default=False)
+    has_expert = models.BooleanField(default=False)
+    has_market_value = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+
+class PreliminaryEvaluation(models.Model):
+    discovery_form = models.ForeignKey(DiscoveryForm, on_delete=models.CASCADE, related_name='evaluations')
+    estimated_value = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    confidence_level = models.IntegerField(default=50, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    evaluator = models.CharField(max_length=255)
+    evaluation_date = models.DateField(auto_now_add=True)
+
+
+class IdentityAssessment(models.Model):
+    """IA-F-00-01: فرم هویت‌سنجی دارایی‌های نامشهود"""
+    STATUS_CHOICES = [
+        ('verified', 'تأیید شده'),
+        ('pending', 'در انتظار'),
+        ('rejected', 'رد شده'),
+    ]
+    
+    asset_name = models.CharField(max_length=255)
+    asset_type = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    
+    q1 = models.IntegerField(default=3)
+    q2 = models.IntegerField(default=3)
+    q3 = models.IntegerField(default=3)
+    q4 = models.IntegerField(default=3)
+    q5 = models.IntegerField(default=3)
+    q6 = models.IntegerField(default=3)
+    q7 = models.IntegerField(default=3)
+    q8 = models.IntegerField(default=3)
+    q9 = models.IntegerField(default=3)
+    q10 = models.IntegerField(default=3)
+    q11 = models.IntegerField(default=3)
+    q12 = models.IntegerField(default=3)
+    q13 = models.IntegerField(default=3)
+    q14 = models.IntegerField(default=3)
+    q15 = models.IntegerField(default=3)
+    q16 = models.IntegerField(default=3)
+    q17 = models.IntegerField(default=3)
+    q18 = models.IntegerField(default=3)
+    q19 = models.IntegerField(default=3)
+    q20 = models.IntegerField(default=3)
+    
+    total_score = models.FloatField(default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def calculate_score(self):
+        questions = [self.q1, self.q2, self.q3, self.q4, self.q5,
+                     self.q6, self.q7, self.q8, self.q9, self.q10,
+                     self.q11, self.q12, self.q13, self.q14, self.q15,
+                     self.q16, self.q17, self.q18, self.q19, self.q20]
+        total = sum(questions)
+        self.total_score = (total / 100) * 100
+        return self.total_score
+    
+    def determine_status(self):
+        if self.total_score >= 80:
+            return 'verified'
+        elif self.total_score >= 60:
+            return 'pending'
+        else:
+            return 'rejected'
+    
+    def save(self, *args, **kwargs):
+        self.calculate_score()
+        self.status = self.determine_status()
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        ordering = ['-created_at']
+
+
+# ==================== مدل‌های غربالگری ====================
+
+class OrganizationType(models.Model):
+    TYPE_CHOICES = [
+        ('manufacturing', 'تولیدی'),
+        ('service', 'خدماتی'),
+        ('rto', 'RTO'),
+        ('holding', 'هلدینگ'),
+    ]
+    name = models.CharField(max_length=50, choices=TYPE_CHOICES, unique=True)
+    display_name = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.display_name
+
+
+class ScreeningTemplate(models.Model):
+    CATEGORY_CHOICES = [
+        ('strategic_economic', 'استراتژیک - اقتصادی'),
+        ('strategic_social', 'استراتژیک - اجتماعی'),
+        ('strategic_knowledge', 'استراتژیک - دانشی'),
+        ('strategic_cultural', 'استراتژیک - فرهنگی'),
+        ('strategic_environmental', 'استراتژیک - زیست‌محیطی'),
+        ('operational_economic', 'عملیاتی - اقتصادی'),
+        ('operational_social', 'عملیاتی - اجتماعی'),
+        ('operational_knowledge', 'عملیاتی - دانشی'),
+        ('operational_cultural', 'عملیاتی - فرهنگی'),
+        ('operational_environmental', 'عملیاتی - زیست‌محیطی'),
+        ('support_economic', 'پشتیبان - اقتصادی'),
+        ('support_social', 'پشتیبان - اجتماعی'),
+        ('support_knowledge', 'پشتیبان - دانشی'),
+        ('support_cultural', 'پشتیبان - فرهنگی'),
+        ('support_environmental', 'پشتیبان - زیست‌محیطی'),
+    ]
+    RESULT_CHOICES = [
+        ('confirmed', 'دارایی قطعی'),
+        ('conditional', 'مشروط'),
+        ('rejected', 'رد شده'),
+    ]
+    
+    organization_type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE, related_name='templates')
+    item_name = models.CharField(max_length=255)
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    default_result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')
+    is_active = models.BooleanField(default=True)
+    order = models.IntegerField(default=0)
+    description = models.TextField(blank=True)
+    condition_1_non_physical = models.BooleanField(default=True)
+    condition_2_identifiable = models.BooleanField(default=True)
+    condition_3_controllable = models.BooleanField(default=True)
+    condition_4_value_creating = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return f"{self.organization_type.display_name} - {self.item_name}"
+
+
+class ScreenedAsset(models.Model):
+    RESULT_CHOICES = [
+        ('confirmed', 'دارایی قطعی'),
+        ('conditional', 'مشروط'),
+        ('rejected', 'رد شده'),
+    ]
+    
+    asset_name = models.CharField(max_length=255, default='دارایی بدون نام')
+    asset_uid = models.CharField(max_length=50, unique=True, null=True, blank=True)
+    category = models.CharField(max_length=50, default='unknown')
+    result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')
+    discovery_date = models.DateField(null=True, blank=True)
+    version = models.CharField(max_length=20, default='1.0.0')
+    description = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.asset_uid or 'بدون کد'} - {self.asset_name}"
+
+
+# ==================== مدل فایل‌های پیوست ====================
+
+class AssetFile(models.Model):
+    FILE_TYPES = [
+        ('interview', 'مصاحبه'),
+        ('document', 'سند'),
+        ('process', 'فرآیند'),
+        ('database', 'پایگاه داده'),
+        ('rd_project', 'پروژه R&D'),
+    ]
+    
+    asset = models.ForeignKey(ScreenedAsset, on_delete=models.CASCADE, related_name='files')
+    file_type = models.CharField(max_length=20, choices=FILE_TYPES)
+    title = models.CharField(max_length=255)
+    file = models.FileField(upload_to='asset_files/%Y/%m/%d/')
+    description = models.TextField(blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.get_file_type_display()} - {self.title}"
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+
+# ============ مدل‌های مرحله ۳: ارزیابی ============
+from .valuation_models import (
+    AssetType, ValuationDimension, ValuationQuestion,
+    ValuationScoreGuide, AssetValuation, ValuationAnswer
+)
+
+=== backend/intangible_assets/valuation_models.py ===
+from django.db import models
+from django.conf import settings
+from .models import ScreenedAsset
+
+class AssetType(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
+    
+    class Meta:
+        ordering = ['name']
+
+
+class ValuationDimension(models.Model):
+    DIMENSION_CHOICES = [
+        ('strategic', 'استراتژیک'),
+        ('technical', 'فنی و بلوغ'),
+        ('operational', 'عملیاتی'),
+        ('market', 'بازار'),
+        ('risk', 'ریسک'),
+    ]
+    name = models.CharField(max_length=20, choices=DIMENSION_CHOICES, unique=True)
+    display_name = models.CharField(max_length=50)
+    weight = models.DecimalField(max_digits=3, decimal_places=2, default=0.20)
+    order = models.IntegerField(default=0)
+    description = models.TextField(blank=True)
+    
+    def __str__(self):
+        return self.display_name
+    
+    class Meta:
+        ordering = ['order']
+
+
+class ValuationQuestion(models.Model):
+    asset_type = models.ForeignKey(AssetType, on_delete=models.CASCADE, related_name='questions')
+    dimension = models.ForeignKey(ValuationDimension, on_delete=models.CASCADE, related_name='questions')
+    code = models.CharField(max_length=10)
+    question_text = models.TextField()
+    description = models.TextField(blank=True)
+    hint = models.TextField(blank=True)
+    order = models.IntegerField(default=0)
+    
+    class Meta:
+        unique_together = ['asset_type', 'code']
+        ordering = ['order']
+    
+    def __str__(self):
+        return f"{self.asset_type.code} - {self.code}: {self.question_text[:50]}..."
+
+
+class ValuationScoreGuide(models.Model):
+    question = models.ForeignKey(ValuationQuestion, on_delete=models.CASCADE, related_name='score_guides')
+    score = models.IntegerField(choices=[(1, '۱'), (2, '۲'), (3, '۳'), (4, '۴'), (5, '۵')])
+    condition = models.TextField()
+    evidence_required = models.TextField(blank=True)
+    
+    class Meta:
+        unique_together = ['question', 'score']
+        ordering = ['score']
+    
+    def __str__(self):
+        return f"{self.question.code} - امتیاز {self.score}"
+
+
+class AssetValuation(models.Model):
+    STATUS_CHOICES = [
+        ('draft', 'پیش‌نویس'),
+        ('in_progress', 'در حال ارزیابی'),
+        ('completed', 'تکمیل شده'),
+        ('verified', 'تأیید شده'),
+    ]
+    
+    asset = models.ForeignKey(ScreenedAsset, on_delete=models.CASCADE, related_name='valuations')
+    asset_type = models.ForeignKey(AssetType, on_delete=models.CASCADE, null=True, blank=True)
+    evaluated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    evaluated_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    
+    # امتیازات نهایی
+    final_score = models.FloatField(default=0)
+    strategic_score = models.FloatField(default=0)
+    technical_score = models.FloatField(default=0)
+    operational_score = models.FloatField(default=0)
+    market_score = models.FloatField(default=0)
+    risk_score = models.FloatField(default=0)
+    
+    def calculate_final_score(self):
+        """محاسبه امتیاز نهایی = جمع کل امتیازات (نه میانگین)"""
+        answers = self.answers.all()
+        if not answers.exists():
+            return 0
+        
+        # گروه‌بندی بر اساس بُعد
+        dim_scores = {}
+        total_score = 0
+        
+        for answer in answers:
+            if answer.score is not None:
+                dim = answer.question.dimension.name
+                if dim not in dim_scores:
+                    dim_scores[dim] = []
+                dim_scores[dim].append(answer.score)
+                total_score += answer.score  # جمع کل
+        
+        # محاسبه مجموع هر بُعد
+        self.strategic_score = sum(dim_scores.get('strategic', []))
+        self.technical_score = sum(dim_scores.get('technical', []))
+        self.operational_score = sum(dim_scores.get('operational', []))
+        self.market_score = sum(dim_scores.get('market', []))
+        self.risk_score = sum(dim_scores.get('risk', []))
+        
+        # امتیاز نهایی = جمع کل (بدون میانگین)
+        self.final_score = float(total_score)
+        
+        self.save()
+        return self.final_score
+    
+    def __str__(self):
+        return f"ارزیابی {self.asset.asset_name} - {self.final_score:.2f}"
+
+
+class ValuationAnswer(models.Model):
+    valuation = models.ForeignKey(AssetValuation, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(ValuationQuestion, on_delete=models.CASCADE)
+    score = models.IntegerField(choices=[(1, '۱'), (2, '۲'), (3, '۳'), (4, '۴'), (5, '۵')], null=True, blank=True)
+    evidence = models.TextField(blank=True)
+    notes = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['valuation', 'question']
+    
+    def __str__(self):
+        return f"{self.valuation.asset.asset_name} - {self.question.code}: {self.score or '-'}"
+
+=== backend/intangible_assets/views.py ===
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from .models import (
+    DiscoveryForm, ExpertInterview, TacitKnowledgeForm,
+    AssetListForm, ClassificationForm, HiddenAssetChecklist,
+    PreliminaryEvaluation, IdentityAssessment,
+    OrganizationType, ScreeningTemplate, ScreenedAsset,
+    AssetFile
+)
+from .serializers import (
+    DiscoveryFormSerializer, ExpertInterviewSerializer,
+    TacitKnowledgeFormSerializer, AssetListFormSerializer,
+    ClassificationFormSerializer, HiddenAssetChecklistSerializer,
+    PreliminaryEvaluationSerializer, IdentityAssessmentSerializer,
+    OrganizationTypeSerializer, ScreeningTemplateSerializer,
+    ScreenedAssetSerializer, AssetFileSerializer
+)
+from .asset_codes import generate_asset_uid
+
+User = get_user_model()
+
+
+class DiscoveryFormViewSet(viewsets.ModelViewSet):
+    queryset = DiscoveryForm.objects.all()
+    serializer_class = DiscoveryFormSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        if user.role == 'super_admin':
+            return queryset
+        elif user.role == 'org_admin':
+            return queryset.filter(created_by__organization=user.organization)
+        else:  # org_user
+            return queryset.filter(created_by=user)
+    
+    @action(detail=False, methods=['get'])
+    def raw_bank(self, request):
+        queryset = self.get_queryset()
+        data = self.get_serializer(queryset, many=True).data
+        return Response({'raw_bank': data, 'count': queryset.count()})
+
+
+class ExpertInterviewViewSet(viewsets.ModelViewSet):
+    queryset = ExpertInterview.objects.all()
+    serializer_class = ExpertInterviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class TacitKnowledgeFormViewSet(viewsets.ModelViewSet):
+    queryset = TacitKnowledgeForm.objects.all()
+    serializer_class = TacitKnowledgeFormSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class AssetListFormViewSet(viewsets.ModelViewSet):
+    queryset = AssetListForm.objects.all()
+    serializer_class = AssetListFormSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ClassificationFormViewSet(viewsets.ModelViewSet):
+    queryset = ClassificationForm.objects.all()
+    serializer_class = ClassificationFormSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class HiddenAssetChecklistViewSet(viewsets.ModelViewSet):
+    queryset = HiddenAssetChecklist.objects.all()
+    serializer_class = HiddenAssetChecklistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class PreliminaryEvaluationViewSet(viewsets.ModelViewSet):
+    queryset = PreliminaryEvaluation.objects.all()
+    serializer_class = PreliminaryEvaluationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class IdentityAssessmentViewSet(viewsets.ModelViewSet):
+    queryset = IdentityAssessment.objects.all()
+    serializer_class = IdentityAssessmentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        if user.role == 'super_admin':
+            return queryset
+        elif user.role == 'org_admin':
+            return queryset.filter(created_by__organization=user.organization)
+        else:  # org_user
+            return queryset.filter(created_by=user)
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        queryset = self.get_queryset()
+        total = queryset.count()
+        verified = queryset.filter(status='verified').count()
+        pending = queryset.filter(status='pending').count()
+        rejected = queryset.filter(status='rejected').count()
+        return Response({
+            'total': total,
+            'verified': verified,
+            'pending': pending,
+            'rejected': rejected,
+        })
+
+
+class OrganizationTypeViewSet(viewsets.ModelViewSet):
+    queryset = OrganizationType.objects.all()
+    serializer_class = OrganizationTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ScreeningTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = ScreeningTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = ScreeningTemplate.objects.all()
+        org_type_param = self.request.query_params.get('organization_type')
+        
+        queryset = queryset.filter(is_active=True)
+        
+        if org_type_param:
+            try:
+                if org_type_param.isdigit():
+                    org_type = OrganizationType.objects.get(id=int(org_type_param))
+                else:
+                    org_type = OrganizationType.objects.get(name=org_type_param)
+                queryset = queryset.filter(organization_type=org_type)
+            except OrganizationType.DoesNotExist:
+                queryset = queryset.none()
+        
+        return queryset
+
+
+class ScreenedAssetViewSet(viewsets.ModelViewSet):
+    queryset = ScreenedAsset.objects.all()
+    serializer_class = ScreenedAssetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        
+        if user.role == 'super_admin':
+            return queryset
+        elif user.role == 'org_admin':
+            return queryset.filter(created_by__organization=user.organization)
+        else:  # org_user
+            return queryset.filter(created_by=user)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        
+        # دریافت category و item_name از داده‌های ورودی
+        category = serializer.validated_data.get('category', 'unknown')
+        description = serializer.validated_data.get('description', '')
+        
+        # استخراج item_name از description
+        # مثال: "غربالگری شده از مورد: دانش فنی غیرقابل تقلید (Trade Secrets)"
+        item_name = 'سایر'
+        if 'غربالگری شده از مورد:' in description:
+            parts = description.split('غربالگری شده از مورد:')
+            if len(parts) > 1:
+                item_name = parts[1].strip()
+        
+        # شمارش تعداد دارایی‌های موجود با همین ترکیب
+        # برای پیدا کردن شماره سریال بعدی
+        type_code = CATEGORY_CODES.get(category, 'UNK')
+        sub_code = SUB_CODES.get(item_name, 'GEN')
+        prefix = f"IA-{type_code}-{sub_code}"
+        
+        existing = ScreenedAsset.objects.filter(asset_uid__startswith=prefix)
+        existing_count = existing.count()
+        
+        # تولید کد یکتا
+        asset_uid = generate_asset_uid(category, item_name, existing_count)
+        
+        serializer.save(
+            created_by=user,
+            asset_uid=asset_uid
+        )
+
+
+class AssetFileViewSet(viewsets.ModelViewSet):
+    queryset = AssetFile.objects.all()
+    serializer_class = AssetFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = super().get_queryset()
+        asset_id = self.request.query_params.get('asset_id')
+        
+        if asset_id:
+            queryset = queryset.filter(asset_id=asset_id)
+        
+        if user.role == 'super_admin':
+            return queryset
+        elif user.role == 'org_admin':
+            return queryset.filter(asset__created_by__organization=user.organization)
+        else:  # org_user
+            return queryset.filter(uploaded_by=user)
+    
+    def perform_create(self, serializer):
+        serializer.save(uploaded_by=self.request.user)
+
+
+# برای دسترسی به کدها در ویو
+from .asset_codes import CATEGORY_CODES, SUB_CODES
+
+=== backend/intangible_assets/valuation_views.py ===
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from .valuation_models import (
+    AssetType, ValuationDimension, ValuationQuestion,
+    ValuationScoreGuide, AssetValuation, ValuationAnswer
+)
+from .valuation_serializers import (
+    AssetTypeSerializer, ValuationDimensionSerializer,
+    ValuationQuestionSerializer, AssetValuationSerializer,
+    AssetValuationCreateSerializer
+)
+from .models import ScreenedAsset
+
+
+class AssetTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = AssetType.objects.filter(is_active=True)
+    serializer_class = AssetTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ValuationDimensionViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ValuationDimension.objects.all()
+    serializer_class = ValuationDimensionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+class ValuationQuestionViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ValuationQuestionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        queryset = ValuationQuestion.objects.all()
+        asset_type_id = self.request.query_params.get('asset_type')
+        if asset_type_id:
+            queryset = queryset.filter(asset_type_id=asset_type_id)
+        return queryset.order_by('order')
+
+
+class AssetValuationViewSet(viewsets.ModelViewSet):
+    serializer_class = AssetValuationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = AssetValuation.objects.all()
+        
+        if user.role == 'super_admin':
+            pass
+        elif user.role == 'org_admin':
+            queryset = queryset.filter(asset__created_by__organization=user.organization)
+        else:
+            queryset = queryset.filter(asset__created_by=user)
+        
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return AssetValuationCreateSerializer
+        return AssetValuationSerializer
+    
+    def perform_create(self, serializer):
+        serializer.save(evaluated_by=self.request.user)
+    
+    def destroy(self, request, *args, **kwargs):
+        """حذف ارزیابی و تمام پاسخ‌های مرتبط"""
+        instance = self.get_object()
+        # حذف پاسخ‌ها
+        ValuationAnswer.objects.filter(valuation=instance).delete()
+        # حذف ارزیابی
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @action(detail=True, methods=['post'])
+    def submit_answer(self, request, pk=None):
+        try:
+            valuation = self.get_object()
+            question_id = request.data.get('question_id')
+            score = request.data.get('score')
+            evidence = request.data.get('evidence', '')
+            notes = request.data.get('notes', '')
+            
+            if not question_id or score is None:
+                return Response(
+                    {'error': 'question_id و score الزامی هستند'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                question = ValuationQuestion.objects.get(id=question_id)
+            except ValuationQuestion.DoesNotExist:
+                return Response(
+                    {'error': 'سوال یافت نشد'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            answer, created = ValuationAnswer.objects.update_or_create(
+                valuation=valuation,
+                question=question,
+                defaults={
+                    'score': score,
+                    'evidence': evidence,
+                    'notes': notes,
+                }
+            )
+            
+            valuation.calculate_final_score()
+            
+            return Response({
+                'success': True,
+                'message': 'پاسخ ثبت شد',
+                'final_score': valuation.final_score,
+            })
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['get'])
+    def summary(self, request, pk=None):
+        valuation = self.get_object()
+        answers = valuation.answers.all()
+        
+        dim_scores = {}
+        total_score = 0
+        
+        for answer in answers:
+            if answer.score is not None:
+                dim = answer.question.dimension.name
+                if dim not in dim_scores:
+                    dim_scores[dim] = {'total': 0, 'count': 0}
+                dim_scores[dim]['total'] += answer.score
+                dim_scores[dim]['count'] += 1
+                total_score += answer.score
+        
+        for dim in dim_scores:
+            if dim_scores[dim]['count'] > 0:
+                dim_scores[dim]['average'] = dim_scores[dim]['total'] / dim_scores[dim]['count']
+            else:
+                dim_scores[dim]['average'] = 0
+        
+        return Response({
+            'id': valuation.id,
+            'asset': valuation.asset.asset_name,
+            'asset_uid': valuation.asset.asset_uid,
+            'status': valuation.status,
+            'final_score': valuation.final_score,
+            'strategic_score': valuation.strategic_score,
+            'technical_score': valuation.technical_score,
+            'operational_score': valuation.operational_score,
+            'market_score': valuation.market_score,
+            'risk_score': valuation.risk_score,
+            'dimensions': dim_scores,
+            'total_questions': 23,
+            'answered_questions': answers.filter(score__isnull=False).count(),
+        })
+    
+    @action(detail=True, methods=['post'])
+    def complete(self, request, pk=None):
+        valuation = self.get_object()
+        
+        if not valuation.asset_type:
+            valuation.asset_type_id = 1
+            valuation.save()
+        
+        total_questions = ValuationQuestion.objects.filter(
+            asset_type=valuation.asset_type
+        ).count()
+        
+        if total_questions == 0:
+            total_questions = 23
+        
+        answered = valuation.answers.filter(score__isnull=False).count()
+        
+        if answered < total_questions:
+            return Response(
+                {
+                    'error': f'همه سوالات پاسخ داده نشده‌اند. {answered}/{total_questions}',
+                    'remaining': total_questions - answered
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        valuation.status = 'completed'
+        valuation.save()
+        valuation.calculate_final_score()
+        
+        return Response({
+            'success': True,
+            'message': 'ارزیابی تکمیل شد',
+            'final_score': valuation.final_score
+        })
+
+=== frontend/src/lib/api.ts ===
+import axios from "axios";
+import Cookies from "js-cookie";
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  headers: { "Content-Type": "application/json" },
+});
+
+// Request interceptor - attach access token
+api.interceptors.request.use((config) => {
+  const token = Cookies.get("access_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Response interceptor - refresh on 401
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      const refresh = Cookies.get("refresh_token");
+      if (!refresh) return Promise.reject(error);
+      try {
+        const { data } = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/token/refresh/`,
+            { refresh }
+            );
+        Cookies.set("access_token", data.access, { secure: true, sameSite: "strict" });
+        original.headers.Authorization = `Bearer ${data.access}`;
+        return api(original);
+      } catch {
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+=== frontend/src/store/auth-store.ts ===
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { User } from "@/types/auth";
+import { login, logout, getMe } from "@/lib/auth";
+import type { LoginCredentials } from "@/types/auth";
+
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchMe: () => Promise<void>;
+  clearError: () => void;
+  setUser: (user: User | null) => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isLoading: false,
+      error: null,
+      isAuthenticated: false,
+
+      login: async (credentials) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await login(credentials);
+          set({ user: data.user, isLoading: false, isAuthenticated: true });
+        } catch (err: any) {
+          set({
+            error: err.response?.data?.detail || "Login failed",
+            isLoading: false,
+            isAuthenticated: false,
+          });
+          throw err;
+        }
+      },
+
+      logout: async () => {
+        await logout();
+        set({ user: null, isAuthenticated: false });
+      },
+
+      fetchMe: async () => {
+        // اگر قبلاً لاگین کرده و توکن دارد، اطلاعات را دریافت کن
+        const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+        if (!token) {
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+
+        set({ isLoading: true });
+        try {
+          const user = await getMe();
+          set({ user, isLoading: false, isAuthenticated: true });
+        } catch (error) {
+          console.error('Error fetching user:', error);
+          // اگر 401 بود، توکن منقضی شده
+          set({ user: null, isLoading: false, isAuthenticated: false });
+        }
+      },
+
+      clearError: () => set({ error: null }),
+      
+      setUser: (user: User | null) => {
+        set({ user, isAuthenticated: !!user });
+      },
+    }),
+    {
+      name: "auth-storage",
+      partialize: (state) => ({ 
+        user: state.user,
+        isAuthenticated: state.isAuthenticated 
+      }),
+    }
+  )
+);
+
+=== frontend/src/components/layout/app-sidebar.tsx ===
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useAuthStore } from '@/store/auth-store'
+import { useState, useEffect } from 'react'
+import api from '@/lib/api'
+import {
+  LayoutDashboard,
+  Package,
+  Search,
+  DollarSign,
+  Shield,
+  Lightbulb,
+  Share2,
+  ShoppingCart,
+  Eye,
+  TrendingUp,
+  FileText,
+  Settings,
+  HelpCircle,
+  ChevronDown,
+  ChevronLeft,
+  ClipboardCheck,
+  CheckCircle,
+  Building2,
+  Users,
+  Building,
+  BarChart3,
+  ListChecks,
+  Award,
+} from 'lucide-react'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarGroup,
+  SidebarGroupLabel,
+} from '@/components/ui/sidebar'
+
+// ============ منوهای اصلی (مشترک) ============
+const mainNavItems = [
+  { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'دارایی‌های فیزیکی', href: '/dashboard/assets', icon: Package },
+  { label: 'دارایی‌های کشف شده', href: '/dashboard/intangible/assets', icon: Package },
+]
+
+// ============ منوهای مرحله ۲ ============
+const stage2Children = [
+  { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new', icon: Search },
+  { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
+  { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
+]
+
+// ============ منوی مرحله ۳: ارزیابی ============
+const stage3Children = [
+  { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
+  { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
+]
+
+// ============ منوی مراحل ۱۰ گانه ============
+const stageNavItems = [
+  { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
+  { 
+    label: 'مرحله ۲: کشف و شناسایی', 
+    href: '/dashboard/intangible/stage2', 
+    icon: Search,
+    children: stage2Children
+  },
+  { 
+    label: 'مرحله ۳: ارزیابی', 
+    href: '/dashboard/intangible/stage3', 
+    icon: BarChart3,
+    children: stage3Children
+  },
+  { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
+  { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
+  { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
+  { label: 'مرحله ۷: بهره‌برداری', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
+  { label: 'مرحله ۸: پایش', href: '/dashboard/intangible/stage8', icon: Eye },
+  { label: 'مرحله ۹: بهینه‌سازی', href: '/dashboard/intangible/stage9', icon: TrendingUp },
+  { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/intangible/stage10', icon: FileText },
+]
+
+// ============ منوهای تنظیمات (مشترک) ============
+const settingsNavItems = [
+  { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings },
+  { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
+]
+
+export function AppSidebar() {
+  const pathname = usePathname()
+  const { user } = useAuthStore()
+  const [departments, setDepartments] = useState<any[]>([])
+  const [companies, setCompanies] = useState<any[]>([])
+  const [isStagesOpen, setIsStagesOpen] = useState(false)
+  const [isStage2Open, setIsStage2Open] = useState(false)
+  const [isStage3Open, setIsStage3Open] = useState(false)
+  const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)
+  const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)
+  
+  const role = user?.role || 'org_user'
+  const isSuperAdmin = role === 'super_admin'
+  const isOrgAdmin = role === 'org_admin'
+  const isOrgUser = role === 'org_user'
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const { data } = await api.get('/auth/departments/')
+        const depts = data.results || data || []
+        setDepartments(depts)
+      } catch (error) {
+        console.error('Error fetching departments:', error)
+      }
+    }
+    
+    if (user && isOrgAdmin) {
+      fetchDepartments()
+    }
+    
+    if (user && isSuperAdmin) {
+      const fetchCompanies = async () => {
+        try {
+          const { data } = await api.get('/auth/organizations/')
+          const orgs = data.results || data || []
+          setCompanies(orgs)
+        } catch (error) {
+          console.error('Error fetching companies:', error)
+        }
+      }
+      fetchCompanies()
+    }
+  }, [user, isOrgAdmin, isSuperAdmin])
+
+  const renderMenuItem = (item: any, isChild: boolean = false) => {
+    const Icon = item.icon
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+    
+    return (
+      <SidebarMenuItem key={item.href}>
+        <SidebarMenuButton asChild isActive={isActive} className={isChild ? 'pr-8' : ''}>
+          <Link href={item.href} className="flex items-center gap-3 w-full">
+            <Icon className="w-4 h-4 shrink-0" />
+            <span className="text-sm truncate">{item.label}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    )
+  }
+
+  const renderChildrenItems = (children: any[]) => {
+    return (
+      <div className="mr-6">
+        {children.map((child: any) => renderMenuItem(child, true))}
+      </div>
+    )
+  }
+
+  const renderMainNav = () => {
+    const items = isSuperAdmin 
+      ? mainNavItems.filter(item => item.label === 'داشبورد')
+      : mainNavItems
+    
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>اصلی</SidebarGroupLabel>
+        <SidebarMenu>
+          {items.map(item => renderMenuItem(item))}
+        </SidebarMenu>
+      </SidebarGroup>
+    )
+  }
+
+  const renderStagesNav = () => {
+    if (!isOrgUser && !isOrgAdmin) return null
+    
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>
+          <button
+            onClick={() => setIsStagesOpen(!isStagesOpen)}
+            className="flex items-center justify-between w-full text-right text-xs font-medium"
+          >
+            <span>چرخه مدیریت دارایی‌های نامشهود</span>
+            {isStagesOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        </SidebarGroupLabel>
+        {isStagesOpen && (
+          <SidebarMenu>
+            {stageNavItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              
+              if (item.children) {
+                const isStage2 = item.label === 'مرحله ۲: کشف و شناسایی'
+                const isStage3 = item.label === 'مرحله ۳: ارزیابی'
+                const isOpen = isStage2 ? isStage2Open : (isStage3 ? isStage3Open : false)
+                const toggleOpen = isStage2 
+                  ? () => setIsStage2Open(!isStage2Open)
+                  : isStage3 
+                    ? () => setIsStage3Open(!isStage3Open)
+                    : () => {}
+                
+                return (
+                  <div key={item.href} className="space-y-0">
+                    <SidebarMenuItem>
+                      <button
+                        onClick={toggleOpen}
+                        className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg hover:bg-gray-100 ${
+                          isActive ? 'bg-gray-100 font-medium' : ''
+                        }`}
+                      >
+                        <span className="flex items-center gap-3 text-sm">
+                          <Icon className="w-4 h-4 shrink-0 ml-1" />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        {isOpen ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronLeft className="w-4 h-4" />
+                        )}
+                      </button>
+                    </SidebarMenuItem>
+                    {isOpen && renderChildrenItems(item.children)}
+                  </div>
+                )
+              }
+              
+              return renderMenuItem(item)
+            })}
+          </SidebarMenu>
+        )}
+      </SidebarGroup>
+    )
+  }
+
+  const renderDepartmentsNav = () => {
+    if (!isOrgAdmin) return null
+    
+    const userDepts = departments.filter(
+      (dept: any) => dept.organization?.id === user?.organization_id
+    )
+    
+    if (userDepts.length === 0) return null
+    
+    const deptNavItems = userDepts.map((dept: any) => ({
+      label: dept.name,
+      href: `/dashboard/departments/${dept.code}`,
+      icon: Building,
+    }))
+    
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>
+          <button
+            onClick={() => setIsDepartmentsOpen(!isDepartmentsOpen)}
+            className="flex items-center justify-between w-full text-right text-xs font-medium"
+          >
+            <span>واحدها</span>
+            {isDepartmentsOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        </SidebarGroupLabel>
+        {isDepartmentsOpen && (
+          <SidebarMenu>
+            {deptNavItems.map((item: any) => renderMenuItem(item))}
+          </SidebarMenu>
+        )}
+      </SidebarGroup>
+    )
+  }
+
+  const renderCompaniesNav = () => {
+    if (!isSuperAdmin) return null
+    
+    const companyNavItems = companies.map((org: any) => ({
+      label: org.name,
+      href: `/dashboard/companies/${org.code}`,
+      icon: Building2,
+    }))
+    
+    if (companyNavItems.length === 0) return null
+    
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>
+          <button
+            onClick={() => setIsCompaniesOpen(!isCompaniesOpen)}
+            className="flex items-center justify-between w-full text-right text-xs font-medium"
+          >
+            <span>شرکت‌ها</span>
+            {isCompaniesOpen ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronLeft className="w-4 h-4" />
+            )}
+          </button>
+        </SidebarGroupLabel>
+        {isCompaniesOpen && (
+          <SidebarMenu>
+            {companyNavItems.map((item: any) => renderMenuItem(item))}
+          </SidebarMenu>
+        )}
+      </SidebarGroup>
+    )
+  }
+
+  const renderSettingsNav = () => {
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel>سیستم</SidebarGroupLabel>
+        <SidebarMenu>
+          {settingsNavItems.map(item => renderMenuItem(item))}
+        </SidebarMenu>
+      </SidebarGroup>
+    )
+  }
+
+  return (
+    <Sidebar side="right" dir="rtl" className="w-72">
+      <SidebarHeader className="p-4 border-b bg-dark-green">
+        <span className="text-base font-bold text-white">مدیریت دارایی‌ها</span>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {renderMainNav()}
+        {renderStagesNav()}
+        {renderDepartmentsNav()}
+        {renderCompaniesNav()}
+        {renderSettingsNav()}
+      </SidebarContent>
+    </Sidebar>
+  )
+}
+
+=== frontend/tailwind.config.js ===
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // ============ پالت رنگ جدید ============
+        'dark-green': '#015345',
+        'aqua-green': '#8ECFAF',
+        'medium-green': '#3B7A6E',
+        'golden-amber': '#D4A547',
+        'gray-custom': '#F5F5F5',
+        
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["var(--font-vazir)"],
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.2s ease-in-out',
+        'zoom-in-95': 'zoomIn95 0.2s ease-out',
+        'slide-in-from-top': 'slideInFromTop 0.3s ease-out',
+        'slide-out-to-top': 'slideOutToTop 0.3s ease-in',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        zoomIn95: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        slideInFromTop: {
+          '0%': { opacity: '0', transform: 'translateY(-20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideOutToTop: {
+          '0%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-20px)' },
+        },
+      },
+    },
+  },
+  plugins: [],
+}
+
+=== docker-compose.yml ===
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+
+=== start.sh ===
+#!/bin/bash
+
+echo "🚀 Starting Asset Dashboard..."
+
+# ============================================
+# 1. چک کردن Colima
+# ============================================
+echo "🔍 Checking Colima..."
+if ! colima status > /dev/null 2>&1; then
+    echo "⚠️  Colima is not running. Starting Colima..."
+    colima start
+else
+    echo "✅ Colima is running."
+fi
+
+# ============================================
+# 2. استارت بک‌اند (Django + PostgreSQL + Redis)
+# ============================================
+echo "📦 Starting Backend (Django + PostgreSQL + Redis)..."
+docker-compose up -d
+
+# صبر برای آماده شدن بک‌اند
+echo "⏳ Waiting for backend to be ready..."
+sleep 5
+
+# ============================================
+# 3. بستن پورت 3000 اگر اشغال است
+# ============================================
+echo "🧹 Cleaning port 3000..."
+lsof -ti:3000 | xargs kill -9 2>/dev/null || echo "✅ Port 3000 is free"
+
+# ============================================
+# 4. پاک کردن کش فرانت‌اند
+# ============================================
+echo "🧹 Cleaning frontend cache..."
+cd frontend
+rm -rf .next .turbo node_modules/.cache 2>/dev/null || true
+
+# ============================================
+# 5. استارت فرانت‌اند (Next.js) روی پورت 3000
+# ============================================
+echo "🎨 Starting Frontend (Next.js) on port 3000..."
+npm run dev &
+
+# ============================================
+# 6. نمایش اطلاعات
+# ============================================
+cd ..
+echo ""
+echo "✅ Done! 🎉"
+echo "📍 Backend:   http://localhost:8000"
+echo "📍 Frontend:  http://localhost:3000"
+echo "📍 Swagger:   http://localhost:8000/api/docs/"
+echo ""
+echo "📋 برای توقف: Ctrl+C (فرانت‌اند) و docker-compose down (بک‌اند)"
+

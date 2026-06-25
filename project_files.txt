@@ -1,0 +1,880 @@
+./README.md
+./backend/accounts/__init__.py
+./backend/accounts/admin.py
+./backend/accounts/apps.py
+./backend/accounts/models.py
+./backend/accounts/serializers.py
+./backend/accounts/tests.py
+./backend/accounts/urls.py
+./backend/accounts/views.py
+./backend/accounts/views_department.py
+./backend/accounts/views_organization.py
+./backend/accounts/views_user.py
+./backend/assets/__init__.py
+./backend/assets/admin.py
+./backend/assets/apps.py
+./backend/assets/models.py
+./backend/assets/serializer.py
+./backend/assets/serializers.py
+./backend/assets/tests.py
+./backend/assets/urls.py
+./backend/assets/views.py
+./backend/config/__init__.py
+./backend/config/asgi.py
+./backend/config/settings.py
+./backend/config/urls.py
+./backend/config/wsgi.py
+./backend/intangible_assets/__init__.py
+./backend/intangible_assets/admin.py
+./backend/intangible_assets/apps.py
+./backend/intangible_assets/asset_codes.py
+./backend/intangible_assets/management/commands/seed_screening_data.py
+./backend/intangible_assets/models.py
+./backend/intangible_assets/serializers.py
+./backend/intangible_assets/tests.py
+./backend/intangible_assets/urls.py
+./backend/intangible_assets/valuation_models.py
+./backend/intangible_assets/valuation_serializers.py
+./backend/intangible_assets/valuation_views.py
+./backend/intangible_assets/views.py
+./backend/intangible_assets/views_screening.py
+./backend/manage.py
+./backend/staticfiles/admin/css/vendor/select2/LICENSE-SELECT2.md
+./backend/staticfiles/admin/js/SelectBox.js
+./backend/staticfiles/admin/js/SelectFilter2.js
+./backend/staticfiles/admin/js/actions.js
+./backend/staticfiles/admin/js/admin/DateTimeShortcuts.js
+./backend/staticfiles/admin/js/admin/RelatedObjectLookups.js
+./backend/staticfiles/admin/js/autocomplete.js
+./backend/staticfiles/admin/js/calendar.js
+./backend/staticfiles/admin/js/cancel.js
+./backend/staticfiles/admin/js/change_form.js
+./backend/staticfiles/admin/js/collapse.js
+./backend/staticfiles/admin/js/core.js
+./backend/staticfiles/admin/js/filters.js
+./backend/staticfiles/admin/js/inlines.js
+./backend/staticfiles/admin/js/jquery.init.js
+./backend/staticfiles/admin/js/nav_sidebar.js
+./backend/staticfiles/admin/js/popup_response.js
+./backend/staticfiles/admin/js/prepopulate.js
+./backend/staticfiles/admin/js/prepopulate_init.js
+./backend/staticfiles/admin/js/theme.js
+./backend/staticfiles/admin/js/urlify.js
+./backend/staticfiles/admin/js/vendor/jquery/jquery.js
+./backend/staticfiles/admin/js/vendor/jquery/jquery.min.js
+./backend/staticfiles/admin/js/vendor/select2/LICENSE.md
+./backend/staticfiles/admin/js/vendor/select2/i18n/af.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ar.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/az.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/bg.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/bn.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/bs.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ca.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/cs.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/da.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/de.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/dsb.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/el.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/en.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/es.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/et.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/eu.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/fa.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/fi.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/fr.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/gl.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/he.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/hi.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/hr.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/hsb.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/hu.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/hy.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/id.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/is.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/it.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ja.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ka.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/km.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ko.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/lt.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/lv.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/mk.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ms.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/nb.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ne.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/nl.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/pl.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ps.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/pt-BR.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/pt.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ro.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/ru.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sk.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sl.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sq.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sr-Cyrl.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sr.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/sv.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/th.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/tk.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/tr.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/uk.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/vi.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/zh-CN.js
+./backend/staticfiles/admin/js/vendor/select2/i18n/zh-TW.js
+./backend/staticfiles/admin/js/vendor/select2/select2.full.js
+./backend/staticfiles/admin/js/vendor/select2/select2.full.min.js
+./backend/staticfiles/admin/js/vendor/xregexp/xregexp.js
+./backend/staticfiles/admin/js/vendor/xregexp/xregexp.min.js
+./backend/staticfiles/rest_framework/docs/js/api.js
+./backend/staticfiles/rest_framework/docs/js/highlight.pack.js
+./backend/staticfiles/rest_framework/docs/js/jquery.json-view.min.js
+./backend/staticfiles/rest_framework/js/ajax-form.js
+./backend/staticfiles/rest_framework/js/bootstrap.min.js
+./backend/staticfiles/rest_framework/js/coreapi-0.1.1.js
+./backend/staticfiles/rest_framework/js/csrf.js
+./backend/staticfiles/rest_framework/js/default.js
+./backend/staticfiles/rest_framework/js/jquery-3.7.1.min.js
+./backend/staticfiles/rest_framework/js/load-ajax-form.js
+./backend/staticfiles/rest_framework/js/prettify-min.js
+./frontend/README.md
+./frontend/components.json
+./frontend/frontend/next-app/AGENTS.md
+./frontend/frontend/next-app/README.md
+./frontend/frontend/next-app/app/layout.tsx
+./frontend/frontend/next-app/app/page.tsx
+./frontend/frontend/next-app/components/theme-provider.tsx
+./frontend/frontend/next-app/next.config.ts
+./frontend/frontend/next-app/package.json
+./frontend/frontend/next-app/tsconfig.json
+./frontend/frontend/src/app/dashboard/layout.tsx
+./frontend/frontend/src/app/dashboard/page.tsx
+./frontend/frontend/src/components/layout/app-sidebar.tsx
+./frontend/frontend/src/types/auth.ts
+./frontend/middleware.ts
+./frontend/next-env.d.ts
+./frontend/next.config.ts
+./frontend/package-lock.json
+./frontend/package.json
+./frontend/src/app/dashboard/companies/[code]/page.tsx
+./frontend/src/app/dashboard/companies/page.tsx
+./frontend/src/app/dashboard/departments/[code]/page.tsx
+./frontend/src/app/dashboard/departments/page.tsx
+./frontend/src/app/dashboard/intangible/assets/[id]/page.tsx
+./frontend/src/app/dashboard/intangible/assets/page.tsx
+./frontend/src/app/dashboard/intangible/identity-form/page.tsx
+./frontend/src/app/dashboard/intangible/identity-form/view/[id]/page.tsx
+./frontend/src/app/dashboard/intangible/screening/[id]/page.tsx
+./frontend/src/app/dashboard/intangible/screening/list/page.tsx
+./frontend/src/app/dashboard/intangible/screening/new/page.tsx
+./frontend/src/app/dashboard/intangible/screening/page.tsx
+./frontend/src/app/dashboard/intangible/stage2/discovery/new/page.tsx
+./frontend/src/app/dashboard/intangible/stage2/page.tsx
+./frontend/src/app/dashboard/intangible/valuation/[id]/page.tsx
+./frontend/src/app/dashboard/intangible/valuation/completed/page.tsx
+./frontend/src/app/dashboard/intangible/valuation/list/page.tsx
+./frontend/src/app/dashboard/intangible/verified/page.tsx
+./frontend/src/app/dashboard/layout.tsx
+./frontend/src/app/dashboard/page.tsx
+./frontend/src/app/layout.tsx
+./frontend/src/app/login/page.tsx
+./frontend/src/app/page.tsx
+./frontend/src/components/layout/app-sidebar.tsx
+./frontend/src/components/layout/header.tsx
+./frontend/src/components/ui/button.tsx
+./frontend/src/components/ui/card.tsx
+./frontend/src/components/ui/checkbox.tsx
+./frontend/src/components/ui/confirm-modal.tsx
+./frontend/src/components/ui/delete-confirm-modal.tsx
+./frontend/src/components/ui/input.tsx
+./frontend/src/components/ui/label.tsx
+./frontend/src/components/ui/layout/app-sidebar.tsx
+./frontend/src/components/ui/layout/header.tsx
+./frontend/src/components/ui/loading-spinner.tsx
+./frontend/src/components/ui/notification-bar.tsx
+./frontend/src/components/ui/notification-center.tsx
+./frontend/src/components/ui/page-transition.tsx
+./frontend/src/components/ui/select.tsx
+./frontend/src/components/ui/separator.tsx
+./frontend/src/components/ui/sheet.tsx
+./frontend/src/components/ui/sidebar.tsx
+./frontend/src/components/ui/skeleton-loader.tsx
+./frontend/src/components/ui/skeleton.tsx
+./frontend/src/components/ui/tabs.tsx
+./frontend/src/components/ui/textarea.tsx
+./frontend/src/components/ui/tooltip.tsx
+./frontend/src/components/valuation/QuestionCard.tsx
+./frontend/src/hooks/use-mobile.ts
+./frontend/src/lib/api.ts
+./frontend/src/lib/asset-api.ts
+./frontend/src/lib/auth.ts
+./frontend/src/lib/date-utils.ts
+./frontend/src/lib/utils.ts
+./frontend/src/lib/valuation-api.ts
+./frontend/src/store/auth-store.ts
+./frontend/src/types/asset.ts
+./frontend/src/types/auth.ts
+./frontend/tailwind.config.js
+./frontend/tailwind.config.ts
+./frontend/tsconfig.json
+FILE: frontend/src/lib/valuation-api.ts
+import api from './api';
+
+// ============ انواع داده‌ها ============
+export interface AssetType {
+  id: number;
+  name: string;
+  code: string;
+  description: string;
+  is_active: boolean;
+}
+
+export interface ValuationDimension {
+  id: number;
+  name: string;
+  display_name: string;
+  weight: number;
+  order: number;
+}
+
+export interface ValuationScoreGuide {
+  id: number;
+  score: number;
+  condition: string;
+  evidence_required: string;
+}
+
+export interface ValuationQuestion {
+  id: number;
+  asset_type: number;
+  dimension: number;
+  dimension_name: string;
+  code: string;
+  question_text: string;
+  description: string;
+  hint: string;
+  order: number;
+  score_guides: ValuationScoreGuide[];
+}
+
+export interface ValuationAnswer {
+  id: number;
+  question: number;
+  question_code: string;
+  question_text: string;
+  score: number | null;
+  evidence: string;
+  notes: string;
+  updated_at: string;
+}
+
+export interface AssetValuation {
+  id: number;
+  asset: number;
+  asset_name: string;
+  asset_type: number;
+  evaluated_by: number;
+  evaluator_name: string;
+  evaluated_at: string;
+  updated_at: string;
+  status: 'draft' | 'in_progress' | 'completed' | 'verified';
+  final_score: number;
+  strategic_score: number;
+  technical_score: number;
+  operational_score: number;
+  market_score: number;
+  risk_score: number;
+  answers: ValuationAnswer[];
+}
+
+export interface ValuationSummary {
+  id: number;
+  asset: string;
+  asset_uid: string;
+  status: string;
+  final_score: number;
+  strategic_score: number;
+  technical_score: number;
+  operational_score: number;
+  market_score: number;
+  risk_score: number;
+  dimensions: Record<string, { total: number; answered: number; average: number; scores: number[] }>;
+  total_questions: number;
+  answered_questions: number;
+}
+
+// ============ API functions ============
+
+// دریافت انواع دارایی
+export async function getAssetTypes(): Promise<AssetType[]> {
+  const { data } = await api.get('/intangible/asset-types/');
+  return data.results || data || [];
+}
+
+// دریافت سوالات یک نوع دارایی
+export async function getValuationQuestions(assetTypeId: number): Promise<ValuationQuestion[]> {
+  const { data } = await api.get(`/intangible/valuation-questions/?asset_type=${assetTypeId}`);
+  return data.results || data || [];
+}
+
+// شروع ارزیابی جدید
+export async function createValuation(assetId: number, assetTypeId: number): Promise<AssetValuation> {
+  const { data } = await api.post('/intangible/asset-valuations/', {
+    asset: assetId,
+    asset_type: assetTypeId,
+    status: 'draft'
+  });
+  return data;
+}
+
+// دریافت ارزیابی موجود
+export async function getValuation(valuationId: number): Promise<AssetValuation> {
+  const { data } = await api.get(`/intangible/asset-valuations/${valuationId}/`);
+  return data;
+}
+
+// ثبت پاسخ یک سوال
+export async function submitAnswer(
+  valuationId: number,
+  questionId: number,
+  score: number,
+  evidence: string = '',
+  notes: string = ''
+): Promise<any> {
+  const { data } = await api.post(`/intangible/asset-valuations/${valuationId}/submit_answer/`, {
+    question_id: questionId,
+    score,
+    evidence,
+    notes,
+  });
+  return data;
+}
+
+// دریافت خلاصه ارزیابی
+export async function getValuationSummary(valuationId: number): Promise<ValuationSummary> {
+  const { data } = await api.get(`/intangible/asset-valuations/${valuationId}/summary/`);
+  return data;
+}
+
+// تکمیل ارزیابی
+export async function completeValuation(valuationId: number): Promise<any> {
+  const { data } = await api.post(`/intangible/asset-valuations/${valuationId}/complete/`);
+  return data;
+}
+FILE: frontend/src/lib/date-utils.ts
+/**
+ * تبدیل تاریخ میلادی به شمسی با فرمت دلخواه
+ * @param date - تاریخ میلادی (string یا Date)
+ * @param format - فرمت خروجی: 'full', 'date', 'time', 'datetime'
+ * @returns تاریخ شمسی فرمت شده
+ */
+export function toPersianDate(
+  date: string | Date, 
+  format: 'full' | 'date' | 'time' | 'datetime' = 'datetime'
+): string {
+  if (!date) return '-';
+  
+  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  // بررسی اعتبار تاریخ
+  if (isNaN(d.getTime())) return '-';
+  
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Tehran',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  };
+  
+  if (format === 'time' || format === 'datetime') {
+    options.hour = '2-digit';
+    options.minute = '2-digit';
+  }
+  
+  if (format === 'full' || format === 'datetime') {
+    options.second = '2-digit';
+  }
+  
+  try {
+    return new Intl.DateTimeFormat('fa-IR', options).format(d);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return d.toLocaleString('fa-IR');
+  }
+}
+
+/**
+ * تبدیل تاریخ میلادی به شمسی با فرمت سفارشی
+ */
+export function toPersianDateCustom(
+  date: string | Date,
+  options: Intl.DateTimeFormatOptions = {}
+): string {
+  if (!date) return '-';
+  
+  const d = typeof date === 'string' ? new Date(date) : date;
+  
+  if (isNaN(d.getTime())) return '-';
+  
+  try {
+    return new Intl.DateTimeFormat('fa-IR', {
+      timeZone: 'Asia/Tehran',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      ...options,
+    }).format(d);
+  } catch (error) {
+    return d.toLocaleString('fa-IR');
+  }
+}
+FILE: frontend/src/lib/asset-api.ts
+// src/lib/asset-api.ts
+import { Asset, AssetListResponse, AssetFilters, AssetCategory, AssetLocation } from '@/types/asset';
+
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
+
+function getToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const cookie = document.cookie
+    .split('; ')
+    .find(r => r.startsWith('access_token='));
+  return cookie ? cookie.substring('access_token='.length) : undefined;
+}
+
+function headers(): HeadersInit {
+  const token = getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+}
+
+function buildParams(filters: AssetFilters): string {
+  const clean: Record<string, string> = {};
+  for (const [k, v] of Object.entries(filters)) {
+    if (v !== undefined && v !== null && v !== '') {
+      clean[k] = String(v);
+    }
+  }
+  return new URLSearchParams(clean).toString();
+}
+
+export async function getAssets(filters: AssetFilters = {}): Promise<AssetListResponse> {
+  const params = buildParams(filters);
+  const res = await fetch(`${BASE}/api/assets/?${params}`, {
+    headers: headers(),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در دریافت دارایی‌ها');
+  return res.json();
+}
+
+export async function getAsset(id: number): Promise<Asset> {
+  const res = await fetch(`${BASE}/api/assets/${id}/`, {
+    headers: headers(),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('دارایی یافت نشد');
+  return res.json();
+}
+
+export async function createAsset(data: Partial<Asset>): Promise<Asset> {
+  const res = await fetch(`${BASE}/api/assets/`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(data),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در ثبت دارایی');
+  return res.json();
+}
+
+export async function updateAsset(id: number, data: Partial<Asset>): Promise<Asset> {
+  const res = await fetch(`${BASE}/api/assets/${id}/`, {
+    method: 'PATCH',
+    headers: headers(),
+    body: JSON.stringify(data),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در ویرایش دارایی');
+  return res.json();
+}
+
+export async function deleteAsset(id: number): Promise<void> {
+  const res = await fetch(`${BASE}/api/assets/${id}/`, {
+    method: 'DELETE',
+    headers: headers(),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در حذف دارایی');
+}
+
+export async function getCategories(): Promise<AssetCategory[]> {
+  const res = await fetch(`${BASE}/api/categories/`, {
+    headers: headers(),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در دریافت دسته‌بندی‌ها');
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
+export async function getLocations(): Promise<AssetLocation[]> {
+  const res = await fetch(`${BASE}/api/locations/`, {
+    headers: headers(),
+    credentials: 'include',
+  });
+  if (!res.ok) throw new Error('خطا در دریافت مکان‌ها');
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.results ?? [];
+}
+
+export const assetApi = {
+  getAll: getAssets,
+  getAssets,
+  getAsset,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+  getCategories,
+  getLocations,
+};
+FILE: frontend/src/lib/utils.ts
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+FILE: frontend/src/lib/api.ts
+import axios from "axios";
+import Cookies from "js-cookie";
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  headers: { "Content-Type": "application/json" },
+});
+
+// Request interceptor - attach access token
+api.interceptors.request.use((config) => {
+  const token = Cookies.get("access_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// Response interceptor - refresh on 401
+api.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      const refresh = Cookies.get("refresh_token");
+      if (!refresh) return Promise.reject(error);
+      try {
+        const { data } = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/token/refresh/`,
+            { refresh }
+            );
+        Cookies.set("access_token", data.access, { secure: true, sameSite: "strict" });
+        original.headers.Authorization = `Bearer ${data.access}`;
+        return api(original);
+      } catch {
+        Cookies.remove("access_token");
+        Cookies.remove("refresh_token");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+FILE: frontend/src/lib/auth.ts
+import Cookies from "js-cookie";
+import api from "./api";
+import type { LoginCredentials, AuthResponse, User } from "@/types/auth";
+
+const COOKIE_OPTS = { secure: true, sameSite: "strict" as const };
+
+export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>("/auth/login/", {
+    email: credentials.email,
+    password: credentials.password,
+  });
+
+  const access = data.access ?? data.tokens?.access ?? "";
+  const refresh = data.refresh ?? data.tokens?.refresh ?? "";
+
+  if (!access || !refresh) {
+    throw new Error("Invalid auth response: missing tokens");
+  }
+
+  Cookies.set("access_token", access, COOKIE_OPTS);
+  Cookies.set("refresh_token", refresh, COOKIE_OPTS);
+
+  return data;
+}
+
+export async function logout(): Promise<void> {
+  const refresh = Cookies.get("refresh_token");
+  if (refresh) await api.post("/auth/logout/", { refresh }).catch(() => {});
+  Cookies.remove("access_token");
+  Cookies.remove("refresh_token");
+}
+
+export async function getMe(): Promise<User> {
+  const { data } = await api.get<User>("/auth/me/");
+  return data;
+}
+
+export function isAuthenticated(): boolean {
+  return !!Cookies.get("access_token");
+}
+FILE: frontend/src/store/auth-store.ts
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { User } from "@/types/auth";
+import { login, logout, getMe } from "@/lib/auth";
+import type { LoginCredentials } from "@/types/auth";
+
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  error: string | null;
+  isAuthenticated: boolean;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => Promise<void>;
+  fetchMe: () => Promise<void>;
+  clearError: () => void;
+  setUser: (user: User | null) => void;
+}
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set, get) => ({
+      user: null,
+      isLoading: false,
+      error: null,
+      isAuthenticated: false,
+
+      login: async (credentials) => {
+        set({ isLoading: true, error: null });
+        try {
+          const data = await login(credentials);
+          set({ user: data.user, isLoading: false, isAuthenticated: true });
+        } catch (err: any) {
+          set({
+            error: err.response?.data?.detail || "Login failed",
+            isLoading: false,
+            isAuthenticated: false,
+          });
+          throw err;
+        }
+      },
+
+      logout: async () => {
+        await logout();
+        set({ user: null, isAuthenticated: false });
+      },
+
+      fetchMe: async () => {
+        // اگر قبلاً لاگین کرده و توکن دارد، اطلاعات را دریافت کن
+        const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+        if (!token) {
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+
+        set({ isLoading: true });
+        try {
+          const user = await getMe();
+          set({ user, isLoading: false, isAuthenticated: true });
+        } catch (error) {
+          console.error('Error fetching user:', error);
+          // اگر 401 بود، توکن منقضی شده
+          set({ user: null, isLoading: false, isAuthenticated: false });
+        }
+      },
+
+      clearError: () => set({ error: null }),
+      
+      setUser: (user: User | null) => {
+        set({ user, isAuthenticated: !!user });
+      },
+    }),
+    {
+      name: "auth-storage",
+      partialize: (state) => ({ 
+        user: state.user,
+        isAuthenticated: state.isAuthenticated 
+      }),
+    }
+  )
+);
+FILE: frontend/src/types/asset.ts
+export type AssetStatus = 'active' | 'inactive' | 'maintenance' | 'disposed';
+
+export interface AssetCategory {
+  id: number;
+  name: string;
+}
+
+export interface AssetLocation {
+  id: number;
+  name: string;
+}
+
+export interface Asset {
+  id: number;
+  name: string;
+  asset_code: string;
+  status: AssetStatus;
+  category: AssetCategory;
+  location?: AssetLocation;
+  purchase_date?: string;
+  purchase_price?: number;
+  current_value?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AssetWritePayload {
+  name?: string;
+  asset_code?: string;
+  status?: AssetStatus;
+  category_id?: number;
+  location_id?: number;
+  purchase_date?: string;
+  purchase_price?: number;
+  current_value?: number;
+}
+
+export interface AssetListResponse {
+  results: Asset[];
+  count: number;
+  next?: string | null;
+  previous?: string | null;
+}
+
+export interface AssetFilters {
+  status?: AssetStatus;
+  category?: number;
+  search?: string;
+  page?: number;
+}FILE: frontend/src/types/auth.ts
+export interface User {
+  id: number;
+  email: string;
+  username: string;
+  first_name: string;
+  last_name: string;
+  role: 'super_admin' | 'org_admin' | 'org_user';
+  organization_id: number | null;
+  organization_name: string | null;
+  department_id: number | null;
+  department_name: string | null;
+  organization_type: string | null;  // اضافه شده
+  is_active: boolean;
+}
+
+export interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  access: string;
+  refresh: string;
+  user?: User;
+  tokens?: {
+    access: string;
+    refresh: string;
+  };
+}
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@tanstack/react-query": "^5.101.0",
+    "axios": "^1.17.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "js-cookie": "^3.0.8",
+    "lucide-react": "^1.18.0",
+    "next": "16.2.9",
+    "radix-ui": "^1.5.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.79.0",
+    "recharts": "^3.8.1",
+    "shadcn": "^4.11.0",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/js-cookie": "^3.0.6",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.9",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+Django==5.0.6
+djangorestframework==3.15.2
+djangorestframework-simplejwt==5.3.1
+psycopg2-binary==2.9.10
+
+redis==5.0.7
+django-redis==5.4.0
+django-cors-headers==4.4.0
+python-decouple==3.8
+Pillow==10.4.0
+drf-yasg==1.21.7
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+Not available
