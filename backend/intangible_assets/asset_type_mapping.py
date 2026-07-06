@@ -1,190 +1,160 @@
-"""
-Mapping بین آیتم‌های غربالگری و انواع دارایی‌های ارزیابی
-برای تشخیص خودکار فرم مناسب هر دارایی
-"""
+# ============================================
+# 🔥 مپ کامل کدهای اختصاری به نام AssetType
+# ============================================
 
-# نگاشت نام آیتم به ID نوع دارایی
-ITEM_TO_ASSET_TYPE = {
-    # ===== استراتژیک - اقتصادی =====
-    'برند ثبت شده / سبد علائم تجاری': 1,  # BRAND
-    'قراردادهای انحصاری بلندمدت (۳ سال)': 2,  # CONTRACT
-    'مدل کسب‌وکار مستند (BMC)': 3,  # BMC
-    'فرمول‌های قیمت‌گذاری اختصاصی': 4,  # FORMULA
-    'شهرت تجاری قابل ارزش‌گذاری (Goodwill)': 5,  # GOODWILL
-    'پورتفولیوی مشتریان استراتژیک': 6,  # PORTFOLIO
+CODE_TO_ASSET_TYPE = {
+    # ========== فرم‌های اصلی ==========
+    'BRD': 'BRAND',
+    'CON': 'CONTRACT',
+    'BMC': 'BMC',
+    'FRM': 'FORMULA',
+    'GWD': 'GOODWILL',
+    'PRT': 'PORTFOLIO',
     
-    # ===== استراتژیک - اجتماعی =====
-    'شبکه شراکت‌های استراتژیک (MoU/JV)': 6,  # PORTFOLIO
-    'رتبه‌بندی‌های CSR معتبر': 5,  # GOODWILL
-    'عضویت در شوراهای ملی/بین‌المللی': 5,  # GOODWILL
-    'پروتکل‌های همکاری با دولت/دانشگاه': 2,  # CONTRACT
-    'شبکه سفیران برند': 1,  # BRAND
+    # ========== فرم‌های استراتژیک ==========
+    'TOV': 'TOV_GUIDELINES',
+    'CUL': 'CULTURAL_CHARTER',
+    'ONB': 'ONBOARDING_PLATFORM',
+    'PRS': 'PRESENTATION',
+    'TRN': 'TRANSFORMATION',
+    'RIT': 'RITUALS',
+    'DEC': 'DECISION_GUIDE',
     
-    # ===== استراتژیک - دانشی =====
-    'پتنت‌ها و حقوق اختراع ثبت شده': 1,  # BRAND
-    'نرم‌افزارهای اختصاصی (کد منبع)': 4,  # FORMULA
-    'مستند خط لوله تحقیق و توسعه': 2,  # CONTRACT
-    'مدل‌های پیش‌بینی/شبیه‌سازی منحصربه‌فرد': 4,  # FORMULA
-    'دانش فنی غیرقابل تقلید (Trade Secrets)': 4,  # FORMULA
-    'پایگاه داده تحلیلی استراتژیک': 4,  # FORMULA
-    'دانش فنی منحصربه‌فرد کارشناسان کلیدی': 4,  # FORMULA
-    'تجربه حل مسائل پیچیده': 4,  # FORMULA
+    # ========== فرم‌های ESG ==========
+    'ETH': 'ETHICS',
+    'ESG': 'ESG',
+    'SUS': 'SUSTAINABILITY_2030',
+    'NTZ': 'NET_ZERO',
+    'CSR': 'CSR_RATING',
+    'MEM': 'MEMBERSHIP',
+    'PRO': 'PROTOCOL',
+    'ENV': 'ENV_MONITOR',
     
-    # ===== استراتژیک - فرهنگی =====
-    'سند فلسفه و ارزش‌های سازمانی': 3,  # BMC
-    'Story Brand مستندشده': 1,  # BRAND
-    'سیستم رهبری تحول': 3,  # BMC
-    'آیین‌های کلان': 3,  # BMC
-    'شیوه‌نامه تصمیم‌گیری استراتژیک': 3,  # BMC
-    'کدهای اخلاقی مصوب': 3,  # BMC
+    # ========== فرم‌های انرژی ==========
+    'ENM': 'ENMS',
+    'CAR': 'CARBON_CALC',
+    'CRC': 'CARBON_CREDIT',
+    'CFP': 'CARBON_FOOTPRINT',
+    'CRD': 'CARBON_REDUCTION',
     
-    # ===== استراتژیک - زیست‌محیطی =====
-    'گواهینامه‌های ESG (ISO 14001)': 5,  # GOODWILL
-    'سند استراتژی پایداری ۲۰۳۰': 3,  # BMC
-    'سیاست Net Zero مصوب': 3,  # BMC
-    'گزارش‌های پایداری منتشرشده': 5,  # GOODWILL
-    'اعتبارات کربنی (Carbon Credits)': 5,  # GOODWILL
-    'برنامه اقتصاد گردشی': 3,  # BMC
+    # ========== فرم‌های دانش ==========
+    'TAC': 'TACIT_KNOWLEDGE',
+    'SKL': 'SKILLS',
+    'EXP': 'EXPERIENCE',
+    'NET': 'NETWORK_CONTACTS',
+    'BPR': 'BEST_PRACTICES',
+    'LSN': 'LESSONS_LEARNED',
+    'LMS': 'LMS',
     
-    # ===== عملیاتی - اقتصادی =====
-    'فرآیندهای استاندارد بهینه شده (SOPs)': 3,  # BMC
-    'الگوریتم‌های قیمت‌گذاری پویا': 4,  # FORMULA
-    'سیستم تحلیل عملکرد (KPI Dashboards)': 4,  # FORMULA
-    'قراردادهای فعال زنجیره تأمین': 2,  # CONTRACT
-    'تکنیک‌های کاهش هزینه عملیاتی': 4,  # FORMULA
-    'روش‌های بهبود بهره‌وری (ناب/شش سیگما)': 4,  # FORMULA
+    # ========== فرم‌های فنی ==========
+    'PAT': 'PATENT',
+    'RND': 'R&D_PIPELINE',
+    'PRD': 'PREDICTIVE_MODEL',
+    'AI': 'AI_ML',
+    'ADB': 'ANALYTICS_DB',
+    'BI': 'BI_TOOLS',
+    'CLD': 'CLOUD',
+    'SW': 'SOFTWARE',
+    'SIM': 'SIMULATION',
+    'SRC': 'PROPRIETARY_SOFTWARE',
+    'ENG': 'ENGINEERING_DRAWINGS',
+    'TST': 'TEST_RECORDS',
+    'TS': 'TEST_RECORDS',  # 🔥 اضافه شد
     
-    # ===== عملیاتی - اجتماعی =====
-    'شبکه کاری بین‌بخشی فعال': 6,  # PORTFOLIO
-    'تیم‌های پروژه‌ای مستند': 3,  # BMC
-    'قراردادهای همکاری بین شرکتی': 2,  # CONTRACT
-    'سیستم بازخورد ۳۶۰ درجه': 3,  # BMC
-    'انجمن‌های صنفی داخلی': 6,  # PORTFOLIO
+    # ========== فرم‌های مدیریتی ==========
+    'ACC': 'ACCOUNTING',
+    'CMS': 'CMS',
+    'CRM': 'CRM',
+    'DMS': 'DMS',
+    'EMS': 'EMS',
+    'ERP': 'ERP_CRM',
+    'SRM': 'SRM',
+    'SOP': 'SOP',
+    'WIKI': 'INTERNAL_WIKI',
+    'ART': 'RESEARCH_DB',
+    'FIN': 'ACCOUNTING',
+    'WST': 'WASTE_MANAGEMENT',
+    'PRJ': 'PROJECT_DOCS',
+    'KMS': 'KMS',
+    'GLOS': 'GLOSSARY',
     
-    # ===== عملیاتی - دانشی =====
-    'دانش ضمنی کارکنان خبره': 4,  # FORMULA
-    'مهارت‌های تخصصی غیرمستند': 4,  # FORMULA
-    'تکنیک‌های عملی آموخته شده از تجربه': 4,  # FORMULA
-    'شبکه تماس و روابط شخصی کارکنان': 6,  # PORTFOLIO
-    'بهترین شیوه‌های غیررسمی': 4,  # FORMULA
-    'پایگاه داده Lessons Learned': 4,  # FORMULA
-    'پلتفرم LMS (سامانه آموزش)': 3,  # BMC
-    'ویکی/دانش‌نامه داخلی': 3,  # BMC
-    'مستندات پروژه‌های اجرایی': 3,  # BMC
-    'کتابخانه فیلم‌های آموزشی': 3,  # BMC
-    'سیستم مدیریت محتوا (CMS)': 3,  # BMC
+    # ========== فرم‌های فرهنگی ==========
+    'CLT': 'CULTURE_SYSTEM',
+    'DRS': 'DRESS_CODE',
+    'REC': 'RECOGNITION',
+    'VIS': 'VISUAL_STYLE',
+    'SYM': 'VISUAL_SYMBOLS',
+    'VID': 'VIDEO_LIBRARY',
+    'DIG': 'DIGITAL_LIBRARY',
     
-    # ===== عملیاتی - فرهنگی =====
-    'دستورالعمل‌های تعامل و ارتباط': 3,  # BMC
-    'زبان و اصطلاحات مشترک (Glossary)': 3,  # BMC
-    'آیین‌های روزمره (Stand-ups)': 3,  # BMC
-    'نمادهای بصری (لوگو، رنگ، معماری)': 1,  # BRAND
-    'قوانین لباس و رفتار (Dress Code)': 3,  # BMC
-    'سنت‌های جشن/تقدیر': 3,  # BMC
+    # ========== فرم‌های ارتباطی ==========
+    'COM': 'COMMUNICATION_GUIDE',
+    'SOC': 'INTERNAL_SOCIAL',
+    'FDB': 'FEEDBACK',
+    'BAM': 'BRAND_AMBASSADOR',
+    'IAM': 'INTERNAL_AMBASSADOR',
     
-    # ===== عملیاتی - زیست‌محیطی =====
-    'دستورالعمل‌های مدیریت ضایعات': 3,  # BMC
-    'سیستم بازیافت عملیاتی': 3,  # BMC
-    'استانداردهای مصرف آب/انرژی': 3,  # BMC
-    'روش‌های کاهش آلودگی': 3,  # BMC
-    'چک‌لیست‌های محیط‌زیستی': 3,  # BMC
-    'سیاست خرید سبز': 3,  # BMC
+    # ========== فرم‌های مالی و قراردادی ==========
+    'MOU': 'PARTNERSHIP',
+    'JV': 'PARTNERSHIP',
+    'SLA': 'CONTRACT',
+    'NDA': 'CONTRACT',
+    'LIC': 'LICENSES',
+    'TRD': 'TRADE_SECRET',
+    'IP': 'PATENT',
+    'TM': 'BRAND',
+    'COPY': 'BRAND',
     
-    # ===== پشتیبان - اقتصادی =====
-    'نرم‌افزارهای ERP/CRM': 3,  # BMC
-    'پایگاه داده مشتریان (CRM Database)': 6,  # PORTFOLIO
-    'ابزارهای BI و تحلیل داده': 4,  # FORMULA
-    'سیستم مالی (Accounting Software)': 3,  # BMC
-    'زیرساخت Cloud/Server': 3,  # BMC
-    'الیسنس‌های نرم‌افزاری': 3,  # BMC
+    # ========== فرم‌های عمومی ==========
+    'GEN': 'CLOUD',
+    'DSH': 'DASHBOARD',
+    'LRN': 'LESSONS_LEARNED',
+    'RPT': 'SUST_REPORT',
+    'STR': 'BRAND_STORY',
+    'SUP': 'SUPPLY_CHAIN',
+    'LOG': 'LOGISTICS',
     
-    # ===== پشتیبان - اجتماعی =====
-    'پلتفرم‌های ارتباط داخلی (Teams, Slack)': 3,  # BMC
-    'سامانه‌های بازخورد مشتریان': 6,  # PORTFOLIO
-    'شبکه‌های اجتماعی داخلی': 6,  # PORTFOLIO
-    'سیستم مدیریت ارتباط با ذی‌نفعان': 6,  # PORTFOLIO
-    'پورتال کارکنان': 3,  # BMC
-    'ابزارهای نظرسنجی': 3,  # BMC
+    # ========== فرم‌های پایداری ==========
+    'CIR': 'CIRCULAR_ECONOMY',
+    'RCL': 'RECYCLING',
+    'ENR': 'ENERGY_MANAGEMENT',
+    'RSC': 'RESOURCE_STANDARDS',
+    'PUB': 'PUBLIC_TRUST',
     
-    # ===== پشتیبان - دانشی =====
-    'سیستم مدیریت دانش (KMS)': 3,  # BMC
-    'ابزارهای AI/ML': 4,  # FORMULA
-    'کتابخانه دیجیتال': 3,  # BMC
-    'پایگاه داده مقالات/تحقیقات': 4,  # FORMULA
-    'سیستم مدیریت اسناد (DMS)': 3,  # BMC
-    'ابزارهای شبیه‌سازی و مدل‌سازی': 4,  # FORMULA
+    # ========== فرم‌های تخصصی ==========
+    'SIM': 'SIMULATION',
+    'DYN': 'DYNAMIC_PRICING',
+    'TEAM': 'PROJECT_TEAMS',
+    'CROSS': 'CROSS_FUNCTIONAL',
     
-    # ===== پشتیبان - فرهنگی =====
-    'راهنمای سبک بصری (Brand Guidelines)': 1,  # BRAND
-    'دستورالعمل ارتباطات (Tone of Voice)': 1,  # BRAND
-    'سیستم مدیریت فرهنگ سازمانی': 3,  # BMC
-    'اساسنامه فرهنگی': 3,  # BMC
-    'پلتفرم Onboarding': 3,  # BMC
-    'قالب‌های ارائه (Templates)': 3,  # BMC
+    # ========== فرم‌های گزارش و تحلیل ==========
+    'DB': 'ANALYTICS_DB',
+    'BI': 'BI_TOOLS',
+    'GRI': 'CSR_GRI',
     
-    # ===== پشتیبان - زیست‌محیطی =====
-    'سیستم مانیتورینگ محیط‌زیستی': 3,  # BMC
-    'ابزار محاسبه ردپای کربنی': 4,  # FORMULA
-    'داشبورد ESG': 3,  # BMC
-    'گزارش‌دهی محیط‌زیستی (Reporting Tools)': 3,  # BMC
-    'استانداردهای سبز (Green Building)': 3,  # BMC
-    'سیستم مدیریت انرژی (EnMS)': 3,  # BMC
+    # ========== فرم‌های CRM و ارتباط با مشتری ==========
+    'CDB': 'CRM_DATABASE',
+    'EMP': 'EMPLOYEE_PORTAL',
+    
+    # ========== فرم‌های فرآیندی ==========
+    'PRC': 'PROCESS',
+    'POL': 'POLICY',
+    'GDL': 'GUIDELINE',
+    
+    # ========== 🔥 کدهای جدید اضافه شده ==========
+    'STK': 'TRADE_SECRET',  # دانش فنی
+    'TS': 'TEST_RECORDS',   # سوابق آزمایشات
 }
 
-# نگاشت نام آیتم به کد AssetType (برای مواقعی که ID در دسترس نیست)
-ITEM_TO_ASSET_TYPE_CODE = {
-    'برند ثبت شده / سبد علائم تجاری': 'BRAND',
-    'قراردادهای انحصاری بلندمدت (۳ سال)': 'CONTRACT',
-    'مدل کسب‌وکار مستند (BMC)': 'BMC',
-    'فرمول‌های قیمت‌گذاری اختصاصی': 'FORMULA',
-    'شهرت تجاری قابل ارزش‌گذاری (Goodwill)': 'GOODWILL',
-    'پورتفولیوی مشتریان استراتژیک': 'PORTFOLIO',
-}
-
-
-def get_asset_type_id_from_item(item_name: str) -> int:
-    """
-    تشخیص ID نوع دارایی از روی نام آیتم غربالگری
-    
-    Args:
-        item_name: نام آیتم غربالگری
-        
-    Returns:
-        int: ID نوع دارایی (پیش‌فرض: 1 = BRAND)
-    """
-    # حذف کاراکتر‌های اضافی و normalize
-    item_name = item_name.strip()
-    
-    # جستجوی دقیق
-    if item_name in ITEM_TO_ASSET_TYPE:
-        return ITEM_TO_ASSET_TYPE[item_name]
-    
-    # جستجوی جزئی (contains)
-    for key, value in ITEM_TO_ASSET_TYPE.items():
-        if key in item_name or item_name in key:
-            return value
-    
-    # پیش‌فرض: BRAND
-    return 1
-
-
-def get_asset_type_code_from_item(item_name: str) -> str:
-    """
-    تشخیص کد نوع دارایی از روی نام آیتم غربالگری
-    
-    Args:
-        item_name: نام آیتم غربالگری
-        
-    Returns:
-        str: کد نوع دارایی (پیش‌فرض: 'BRAND')
-    """
-    item_name = item_name.strip()
-    
-    if item_name in ITEM_TO_ASSET_TYPE_CODE:
-        return ITEM_TO_ASSET_TYPE_CODE[item_name]
-    
-    for key, value in ITEM_TO_ASSET_TYPE_CODE.items():
-        if key in item_name or item_name in key:
-            return value
-    
-    return 'BRAND'
+# ============================================
+# 🔥 تابع کمکی برای تشخیص AssetType
+# ============================================
+def get_asset_type_code(uid: str) -> str | None:
+    """دریافت کد AssetType از UID"""
+    if not uid:
+        return None
+    parts = uid.split('-')
+    if len(parts) >= 3:
+        code = parts[2]
+        return CODE_TO_ASSET_TYPE.get(code)
+    return None

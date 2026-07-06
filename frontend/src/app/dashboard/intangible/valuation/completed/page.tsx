@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
+import { fetchAllValuations } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
@@ -12,19 +13,10 @@ import { PageTransition } from '@/components/ui/page-transition';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { 
   Award, 
-  TrendingUp, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  Building2,
-  Building,
-  User,
-  Calendar,
   Search,
   Eye,
   BarChart3,
   RefreshCw,
-  Trash2
 } from 'lucide-react';
 
 interface ValuationSummary {
@@ -34,6 +26,7 @@ interface ValuationSummary {
   asset_uid: string;
   status: string;
   final_score: number;
+  weighted_score: number;
   strategic_score: number;
   technical_score: number;
   operational_score: number;
@@ -49,8 +42,8 @@ export default function CompletedValuationsPage() {
   const [valuations, setValuations] = useState<ValuationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
   
-  // Modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingRevaluate, setPendingRevaluate] = useState<{ assetId: number; valuationId: number; assetName: string } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
@@ -59,35 +52,48 @@ export default function CompletedValuationsPage() {
     fetchValuations();
   }, []);
 
-  const fetchValuations = async () => {
+  const fetchValuations = async (showRefresh = false) => {
     try {
-      setLoading(true);
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
       
-      const { data } = await api.get('/intangible/asset-valuations/?status=completed');
-      const items = data.results || data || [];
+      console.log('📥 دریافت همه دارایی‌های ارزیابی شده...');
+      
+      const allValuations = await fetchAllValuations('completed');
       
       const summaries = await Promise.all(
-        items.map(async (val: any) => {
+        allValuations.map(async (val: any) => {
           try {
             const { data: summary } = await api.get(`/intangible/asset-valuations/${val.id}/summary/`);
-            return { ...summary, id: val.id, asset_id: val.asset };
+            return { 
+              ...summary, 
+              id: val.id, 
+              asset_id: val.asset,
+              weighted_score: summary.weighted_score || summary.final_score
+            };
           } catch (e) {
             return null;
           }
         })
       );
       
-      // مرتب‌سازی بر اساس امتیاز (بیشترین به کمترین)
       const sorted = summaries
         .filter(s => s !== null)
-        .sort((a, b) => (b?.final_score || 0) - (a?.final_score || 0));
+        .sort((a, b) => (b?.weighted_score || 0) - (a?.weighted_score || 0));
       
       setValuations(sorted);
+      console.log(`✅ ${sorted.length} ارزیابی دریافت شد`);
+      
     } catch (error) {
-      console.error('Error fetching completed valuations:', error);
+      console.error('❌ Error fetching completed valuations:', error);
     } finally {
-      setLoading(false);
+      if (showRefresh) setRefreshing(false);
+      else setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchValuations(true);
   };
 
   const handleRevaluateClick = (assetId: number, valuationId: number, assetName: string) => {
@@ -108,11 +114,9 @@ export default function CompletedValuationsPage() {
       
       console.log('🔄 شروع ارزیابی مجدد برای assetId:', assetId);
       
-      // 1. حذف ارزیابی قبلی
       await api.delete(`/intangible/asset-valuations/${valuationId}/`);
       console.log('✅ ارزیابی قبلی حذف شد');
       
-      // 2. ایجاد ارزیابی جدید
       const response = await api.post('/intangible/asset-valuations/', {
         asset: assetId,
         asset_type: 1,
@@ -122,8 +126,6 @@ export default function CompletedValuationsPage() {
       
       setShowConfirmModal(false);
       setPendingRevaluate(null);
-      
-      // 3. رفتن به صفحه ارزیابی با assetId
       router.push(`/dashboard/intangible/valuation/${assetId}`);
       
     } catch (error: any) {
@@ -132,6 +134,10 @@ export default function CompletedValuationsPage() {
     } finally {
       setModalLoading(false);
     }
+  };
+
+  const getDisplayScore = (val: ValuationSummary) => {
+    return val.weighted_score || val.final_score;
   };
 
   const getScoreColor = (score: number) => {
@@ -175,15 +181,24 @@ export default function CompletedValuationsPage() {
 
   return (
     <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark-green">دارایی‌های ارزیابی شده</h1>
           <p className="text-sm text-gray-500">
-            دارایی‌هایی که فرآیند ارزیابی آنها تکمیل شده است
+            {valuations.length} دارایی ارزیابی شده
           </p>
         </div>
-        <div className="text-sm text-gray-500">
-          <span className="font-bold text-dark-green">{valuations.length}</span> دارایی ارزیابی شده
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی'}
+          </Button>
         </div>
       </div>
 
@@ -210,98 +225,108 @@ export default function CompletedValuationsPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredValuations.map((val) => (
-            <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden">
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{val.asset || 'نامشخص'}</p>
-                    <p className="text-xs text-gray-400">{val.asset_uid || 'بدون کد'}</p>
-                  </div>
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getScoreBg(val.final_score)}`}>
-                    {getScoreEmoji(val.final_score)} {getScoreLabel(val.final_score)}
-                  </div>
-                </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredValuations.map((val) => {
+              const displayScore = getDisplayScore(val);
+              return (
+                <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden">
+                  <CardContent className="p-5 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{val.asset || 'نامشخص'}</p>
+                        <p className="text-xs text-gray-400">{val.asset_uid || 'بدون کد'}</p>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getScoreBg(displayScore)}`}>
+                        {getScoreEmoji(displayScore)} {getScoreLabel(displayScore)}
+                      </div>
+                    </div>
 
-                <div className="text-center py-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">امتیاز نهایی</p>
-                  <p className={`text-3xl font-bold ${getScoreColor(val.final_score)}`}>
-                    {val.final_score?.toFixed(2) || '0.00'}
-                  </p>
-                </div>
+                    <div className="text-center py-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500">امتیاز نهایی</p>
+                      <p className={`text-3xl font-bold ${getScoreColor(displayScore)}`}>
+                        {displayScore?.toFixed(2) || '0.00'}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">از ۵ (وزنی)</p>
+                    </div>
 
-                <div className="grid grid-cols-5 gap-1 text-center">
-                  <div className="p-1 bg-blue-50 rounded">
-                    <p className="text-[10px] text-gray-500">استراتژیک</p>
-                    <p className="text-xs font-bold text-blue-600">{val.strategic_score?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <div className="p-1 bg-purple-50 rounded">
-                    <p className="text-[10px] text-gray-500">فنی</p>
-                    <p className="text-xs font-bold text-purple-600">{val.technical_score?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <div className="p-1 bg-amber-50 rounded">
-                    <p className="text-[10px] text-gray-500">عملیاتی</p>
-                    <p className="text-xs font-bold text-amber-600">{val.operational_score?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <div className="p-1 bg-green-50 rounded">
-                    <p className="text-[10px] text-gray-500">بازار</p>
-                    <p className="text-xs font-bold text-green-600">{val.market_score?.toFixed(2) || '0.00'}</p>
-                  </div>
-                  <div className="p-1 bg-red-50 rounded">
-                    <p className="text-[10px] text-gray-500">ریسک</p>
-                    <p className="text-xs font-bold text-red-600">{val.risk_score?.toFixed(2) || '0.00'}</p>
-                  </div>
-                </div>
+                    <div className="grid grid-cols-5 gap-1 text-center">
+                      <div className="p-1 bg-blue-50 rounded">
+                        <p className="text-[10px] text-gray-500">استراتژیک</p>
+                        <p className="text-xs font-bold text-blue-600">{val.strategic_score?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="p-1 bg-purple-50 rounded">
+                        <p className="text-[10px] text-gray-500">فنی</p>
+                        <p className="text-xs font-bold text-purple-600">{val.technical_score?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="p-1 bg-amber-50 rounded">
+                        <p className="text-[10px] text-gray-500">عملیاتی</p>
+                        <p className="text-xs font-bold text-amber-600">{val.operational_score?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="p-1 bg-green-50 rounded">
+                        <p className="text-[10px] text-gray-500">بازار</p>
+                        <p className="text-xs font-bold text-green-600">{val.market_score?.toFixed(2) || '0.00'}</p>
+                      </div>
+                      <div className="p-1 bg-red-50 rounded">
+                        <p className="text-[10px] text-gray-500">ریسک</p>
+                        <p className="text-xs font-bold text-red-600">{val.risk_score?.toFixed(2) || '0.00'}</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>پاسخ داده شده: {val.answered_questions || 0}/{val.total_questions || 23}</span>
-                  <span>{val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5">
-                  <div
-                    className="bg-dark-green h-1.5 rounded-full transition-all"
-                    style={{ width: `${val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%` }}
-                  />
-                </div>
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>پاسخ داده شده: {val.answered_questions || 0}/{val.total_questions || 23}</span>
+                      <span>{val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div
+                        className="bg-dark-green h-1.5 rounded-full transition-all"
+                        style={{ width: `${val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%` }}
+                      />
+                    </div>
 
-                {/* دکمه‌ها */}
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                  <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                    <Button variant="outline" size="sm" className="w-full flex items-center gap-1 text-xs">
-                      <Eye className="w-3 h-3" />
-                      مشاهده دارایی
-                    </Button>
-                  </Link>
-                  <Link href={`/dashboard/intangible/valuation/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                    <Button size="sm" className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 text-xs">
-                      <BarChart3 className="w-3 h-3" />
-                      مشاهده ارزیابی
-                    </Button>
-                  </Link>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex-1 min-w-[80px] border-amber-400 text-amber-600 hover:bg-amber-50 flex items-center gap-1 text-xs"
-                    onClick={() => {
-                      if (val.asset_id) {
-                        handleRevaluateClick(val.asset_id, val.id, val.asset || '');
-                      } else {
-                        alert('خطا: شناسه دارایی یافت نشد');
-                      }
-                    }}
-                  >
-                    <RefreshCw className="w-3 h-3" />
-                    ارزیابی مجدد
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    {/* 🔥 دکمه‌ها با فرمت اصلی */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                      <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="flex-1 min-w-[80px]">
+                        <Button variant="outline" size="sm" className="w-full flex items-center gap-1 text-xs">
+                          <Eye className="w-3 h-3" />
+                          مشاهده دارایی
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/intangible/valuation/${val.asset_id}`} className="flex-1 min-w-[80px]">
+                        <Button size="sm" className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 text-xs">
+                          <BarChart3 className="w-3 h-3" />
+                          مشاهده ارزیابی
+                        </Button>
+                      </Link>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1 min-w-[80px] border-amber-400 text-amber-600 hover:bg-amber-50 flex items-center gap-1 text-xs"
+                        onClick={() => {
+                          if (val.asset_id) {
+                            handleRevaluateClick(val.asset_id, val.id, val.asset || '');
+                          } else {
+                            alert('خطا: شناسه دارایی یافت نشد');
+                          }
+                        }}
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        ارزیابی مجدد
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          
+          <div className="text-center text-sm text-gray-400 border-t pt-4">
+            نمایش {filteredValuations.length} از {valuations.length} دارایی
+            {searchTerm && ` (فیلتر شده)`}
+          </div>
+        </>
       )}
 
-      {/* Modal تأیید ارزیابی مجدد */}
       <ConfirmModal
         isOpen={showConfirmModal}
         onClose={() => {

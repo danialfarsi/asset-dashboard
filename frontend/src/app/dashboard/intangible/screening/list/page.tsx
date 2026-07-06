@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
+import { fetchAllScreenedAssets } from '@/lib/api-utils';
 import { toPersianDate } from '@/lib/date-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Eye, Search } from 'lucide-react';
+import { Plus, Eye, Search, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 
 interface ScreenedAsset {
@@ -30,21 +31,37 @@ export default function ScreenedAssetsListPage() {
   const [assets, setAssets] = useState<ScreenedAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchAssets();
   }, []);
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (showRefresh = false) => {
     try {
-      setLoading(true);
-      const { data } = await api.get('/intangible/screened-assets/');
-      setAssets(data.results || data || []);
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
+      
+      console.log('📥 دریافت همه دارایی‌های غربالگری شده...');
+      
+      // 🔥 استفاده از تابع جدید برای دریافت همه
+      const allAssets = await fetchAllScreenedAssets();
+      
+      setAssets(allAssets);
+      setTotalCount(allAssets.length);
+      console.log(`✅ ${allAssets.length} دارایی دریافت شد`);
+      
     } catch (error) {
-      console.error('Error fetching assets:', error);
+      console.error('❌ Error fetching assets:', error);
     } finally {
-      setLoading(false);
+      if (showRefresh) setRefreshing(false);
+      else setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchAssets(true);
   };
 
   const handleAssetClick = (assetId: number) => {
@@ -109,19 +126,31 @@ export default function ScreenedAssetsListPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold">دارایی‌های غربالگری شده</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {assets.length} دارایی غربالگری شده
+            {totalCount} دارایی غربالگری شده
           </p>
         </div>
-        <Link href="/dashboard/intangible/screening/new">
-          <Button className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            غربالگری جدید
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی'}
           </Button>
-        </Link>
+          <Link href="/dashboard/intangible/screening/new">
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              غربالگری جدید
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* جستجو */}
@@ -204,6 +233,14 @@ export default function ScreenedAssetsListPage() {
           ))
         )}
       </div>
+      
+      {/* نمایش تعداد کل */}
+      {totalCount > 0 && (
+        <div className="text-center text-sm text-gray-400 border-t pt-4">
+          نمایش {filteredAssets.length} از {totalCount} دارایی
+          {searchTerm && ` (فیلتر شده)`}
+        </div>
+      )}
     </div>
   );
 }

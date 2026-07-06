@@ -1,40 +1,32 @@
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (
-    DiscoveryFormViewSet, ExpertInterviewViewSet, TacitKnowledgeFormViewSet,
-    AssetListFormViewSet, ClassificationFormViewSet, HiddenAssetChecklistViewSet,
-    PreliminaryEvaluationViewSet, IdentityAssessmentViewSet,
-    OrganizationTypeViewSet, ScreeningTemplateViewSet, ScreenedAssetViewSet,
+from . import views
+from . import valuation_views
+from .views_screening import (
+    OrganizationTypeViewSet, 
+    ScreeningTemplateViewSet, 
+    ScreenedAssetViewSet,
     AssetFileViewSet
 )
-from .valuation_views import (
-    AssetTypeViewSet, ValuationDimensionViewSet,
-    ValuationQuestionViewSet, AssetValuationViewSet
-)
+from .views_asset_type_detection import DetectAssetTypeView
 
+# ============ Router برای ViewSet ها ============
 router = DefaultRouter()
+router.register(r'screened-assets', ScreenedAssetViewSet, basename='screened-asset')
+router.register(r'organization-types', OrganizationTypeViewSet, basename='organization-type')
+router.register(r'screening-templates', ScreeningTemplateViewSet, basename='screening-template')
+router.register(r'asset-files', AssetFileViewSet, basename='asset-file')
 
-# مرحله ۲: کشف و شناسایی
-router.register('discovery-forms', DiscoveryFormViewSet, basename='discovery-form')
-router.register('expert-interviews', ExpertInterviewViewSet, basename='expert-interview')
-router.register('tacit-knowledge', TacitKnowledgeFormViewSet, basename='tacit-knowledge')
-router.register('asset-lists', AssetListFormViewSet, basename='asset-list')
-router.register('classifications', ClassificationFormViewSet, basename='classification')
-router.register('hidden-checklists', HiddenAssetChecklistViewSet, basename='hidden-checklist')
-router.register('preliminary-evaluations', PreliminaryEvaluationViewSet, basename='preliminary-evaluation')
-router.register('identity-assessments', IdentityAssessmentViewSet, basename='identity-assessment')
+# Valuation routers
+router.register(r'asset-types', valuation_views.AssetTypeViewSet, basename='asset-type')
+router.register(r'valuation-dimensions', valuation_views.ValuationDimensionViewSet, basename='valuation-dimension')
+router.register(r'valuation-questions', valuation_views.ValuationQuestionViewSet, basename='valuation-question')
+router.register(r'asset-valuations', valuation_views.AssetValuationViewSet, basename='asset-valuation')
 
-# غربالگری
-router.register('organization-types', OrganizationTypeViewSet, basename='organization-type')
-router.register('screening-templates', ScreeningTemplateViewSet, basename='screening-template')
-router.register('screened-assets', ScreenedAssetViewSet, basename='screened-asset')
-
-# فایل‌های پیوست
-router.register('asset-files', AssetFileViewSet, basename='asset-file')
-
-# ============ مرحله ۳: ارزیابی ============
-router.register('asset-types', AssetTypeViewSet, basename='asset-type')
-router.register('valuation-dimensions', ValuationDimensionViewSet, basename='valuation-dimension')
-router.register('valuation-questions', ValuationQuestionViewSet, basename='valuation-question')
-router.register('asset-valuations', AssetValuationViewSet, basename='asset-valuation')
-
-urlpatterns = router.urls
+# ============ URL Patterns ============
+urlpatterns = [
+    path('', include(router.urls)),
+    
+    # 🔥 API جدید برای تشخیص AssetType
+    path('detect-asset-type/<str:asset_uid>/', DetectAssetTypeView.as_view(), name='detect_asset_type'),
+]

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
+import { fetchAllScreenedAssets, fetchAllValuations } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
@@ -23,7 +24,8 @@ import {
   Award,
   Eye,
   Filter,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 
 interface Asset {
@@ -56,35 +58,42 @@ export default function ValuationListPage() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [valuationStatus, setValuationStatus] = useState<Record<number, ValuationStatus>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchAssets();
   }, []);
 
-  const fetchAssets = async () => {
+  const fetchAssets = async (showRefresh = false) => {
     try {
-      setLoading(true);
+      if (showRefresh) setRefreshing(true);
+      else setLoading(true);
       
-      // دریافت دارایی‌های غربالگری شده
-      const { data } = await api.get('/intangible/screened-assets/');
-      const assetsData = data.results || data || [];
+      console.log('📥 دریافت همه دارایی‌های غربالگری شده...');
+      
+      // 🔥 دریافت همه دارایی‌ها با Pagination کامل
+      const allAssets = await fetchAllScreenedAssets();
       
       // فقط دارایی‌های قطعی (confirmed) قابل ارزیابی هستند
-      const confirmedAssets = assetsData.filter((a: any) => a.result === 'confirmed');
+      const confirmedAssets = allAssets.filter((a: any) => a.result === 'confirmed');
       setAssets(confirmedAssets);
+      setTotalCount(confirmedAssets.length);
+      console.log(`✅ ${confirmedAssets.length} دارایی قابل ارزیابی دریافت شد`);
+      
+      // 🔥 دریافت همه ارزیابی‌ها با Pagination کامل
+      console.log('📥 دریافت همه ارزیابی‌ها...');
+      const allValuations = await fetchAllValuations();
+      console.log(`✅ ${allValuations.length} ارزیابی دریافت شد`);
       
       // بررسی وضعیت ارزیابی هر دارایی
       const statusMap: Record<number, ValuationStatus> = {};
       
-      // دریافت همه ارزیابی‌ها
-      const { data: valuationsData } = await api.get('/intangible/asset-valuations/');
-      const valuations = valuationsData.results || valuationsData || [];
-      
       for (const asset of confirmedAssets) {
         // پیدا کردن ارزیابی‌های این دارایی
-        const assetValuations = valuations.filter((v: any) => v.asset === asset.id);
+        const assetValuations = allValuations.filter((v: any) => v.asset === asset.id);
         
         if (assetValuations.length === 0) {
           statusMap[asset.id] = {
@@ -114,10 +123,15 @@ export default function ValuationListPage() {
       setValuationStatus(statusMap);
       
     } catch (error) {
-      console.error('Error fetching assets:', error);
+      console.error('❌ Error fetching assets:', error);
     } finally {
-      setLoading(false);
+      if (showRefresh) setRefreshing(false);
+      else setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchAssets(true);
   };
 
   const getResultBadge = (result: string) => {
@@ -273,15 +287,24 @@ export default function ValuationListPage() {
 
   return (
     <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-dark-green">ارزیابی دارایی‌ها</h1>
           <p className="text-sm text-gray-500">
-            دارایی‌های غربالگری شده را ارزیابی کنید
+            {totalCount} دارایی قابل ارزیابی
           </p>
         </div>
-        <div className="text-sm text-gray-500">
-          <span className="font-bold text-dark-green">{assets.length}</span> دارایی قابل ارزیابی
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'در حال به‌روزرسانی...' : 'به‌روزرسانی'}
+          </Button>
         </div>
       </div>
 
@@ -346,99 +369,109 @@ export default function ValuationListPage() {
           <p className="text-sm mt-1">سعی کنید فیلتر یا جستجو را تغییر دهید</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredAssets.map((asset) => {
-            const status = valuationStatus[asset.id] || { 
-              has_valuation: false, 
-              valuation_id: null, 
-              status: null, 
-              final_score: null,
-              is_completed: false,
-              is_in_progress: false
-            };
-            const isCompleted = status.is_completed;
-            const hasValuation = status.has_valuation;
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAssets.map((asset) => {
+              const status = valuationStatus[asset.id] || { 
+                has_valuation: false, 
+                valuation_id: null, 
+                status: null, 
+                final_score: null,
+                is_completed: false,
+                is_in_progress: false
+              };
+              const isCompleted = status.is_completed;
+              const hasValuation = status.has_valuation;
 
-            return (
-              <Card key={asset.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm">
-                <CardContent className="p-5 space-y-3">
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{asset.asset_name}</p>
-                      <p className="text-xs text-gray-400">{asset.asset_uid}</p>
-                    </div>
-                    {getResultBadge(asset.result)}
-                  </div>
-
-                  {/* اطلاعات */}
-                  <div className="space-y-1 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <span className="px-2 py-0.5 bg-gray-100 rounded-full">
-                        {getCategoryLabel(asset.category)}
-                      </span>
-                    </div>
-                    {asset.organization_name && (
-                      <div className="flex items-center gap-1">
-                        <Building2 className="w-3 h-3" />
-                        <span>{asset.organization_name}</span>
+              return (
+                <Card key={asset.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm">
+                  <CardContent className="p-5 space-y-3">
+                    {/* Header */}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{asset.asset_name}</p>
+                        <p className="text-xs text-gray-400">{asset.asset_uid}</p>
                       </div>
-                    )}
-                    {asset.department_name && (
-                      <div className="flex items-center gap-1">
-                        <Building className="w-3 h-3" />
-                        <span>{asset.department_name}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      <span>{asset.created_by_name || 'نامشخص'}</span>
+                      {getResultBadge(asset.result)}
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formatDate(asset.created_at)}</span>
-                    </div>
-                  </div>
 
-                  {/* وضعیت ارزیابی و دکمه */}
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(status)}
-                      {status.final_score !== null && (
-                        <span className="text-sm font-bold text-dark-green">
-                          {status.final_score.toFixed(2)}
+                    {/* اطلاعات */}
+                    <div className="space-y-1 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <span className="px-2 py-0.5 bg-gray-100 rounded-full">
+                          {getCategoryLabel(asset.category)}
                         </span>
+                      </div>
+                      {asset.organization_name && (
+                        <div className="flex items-center gap-1">
+                          <Building2 className="w-3 h-3" />
+                          <span>{asset.organization_name}</span>
+                        </div>
+                      )}
+                      {asset.department_name && (
+                        <div className="flex items-center gap-1">
+                          <Building className="w-3 h-3" />
+                          <span>{asset.department_name}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <span>{asset.created_by_name || 'نامشخص'}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{formatDate(asset.created_at)}</span>
+                      </div>
+                    </div>
+
+                    {/* وضعیت ارزیابی و دکمه */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(status)}
+                        {status.final_score !== null && (
+                          <span className="text-sm font-bold text-dark-green">
+                            {status.final_score.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {isCompleted ? (
+                        <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
+                          <Button size="sm" className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1">
+                            <Eye className="w-4 h-4" />
+                            مشاهده ارزیابی
+                          </Button>
+                        </Link>
+                      ) : hasValuation ? (
+                        <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
+                          <Button size="sm" variant="outline" className="flex items-center gap-1 border-amber-400 text-amber-600 hover:bg-amber-50">
+                            <Clock className="w-4 h-4" />
+                            ادامه ارزیابی
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
+                          <Button size="sm" className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1">
+                            <TrendingUp className="w-4 h-4" />
+                            شروع ارزیابی
+                          </Button>
+                        </Link>
                       )}
                     </div>
-                    
-                    {isCompleted ? (
-                      <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
-                        <Button size="sm" className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          مشاهده ارزیابی
-                        </Button>
-                      </Link>
-                    ) : hasValuation ? (
-                      <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
-                        <Button size="sm" variant="outline" className="flex items-center gap-1 border-amber-400 text-amber-600 hover:bg-amber-50">
-                          <Clock className="w-4 h-4" />
-                          ادامه ارزیابی
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Link href={`/dashboard/intangible/valuation/${asset.id}`}>
-                        <Button size="sm" className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1">
-                          <TrendingUp className="w-4 h-4" />
-                          شروع ارزیابی
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+          
+          {/* نمایش تعداد کل */}
+          {totalCount > 0 && (
+            <div className="text-center text-sm text-gray-400 border-t pt-4">
+              نمایش {filteredAssets.length} از {totalCount} دارایی
+              {searchTerm && ` (فیلتر شده)`}
+            </div>
+          )}
+        </>
       )}
     </PageTransition>
   );

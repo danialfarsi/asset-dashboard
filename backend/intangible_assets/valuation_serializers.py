@@ -67,7 +67,7 @@ class AssetValuationCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AssetValuation
-        fields = ['asset', 'asset_type', 'status', 'answers']
+        fields = ['id', 'asset', 'asset_type', 'status', 'answers']  # 🔥 اضافه کردن 'id'
     
     def create(self, validated_data):
         answers_data = validated_data.pop('answers', [])

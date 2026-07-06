@@ -215,6 +215,15 @@ class ScreenedAsset(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
+    # ==================== فیلد جدید: نوع دارایی ====================
+    asset_type = models.ForeignKey(
+        'AssetType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='screened_assets'
+    )
+    
     def __str__(self):
         return f"{self.asset_uid or 'بدون کد'} - {self.asset_name}"
 
