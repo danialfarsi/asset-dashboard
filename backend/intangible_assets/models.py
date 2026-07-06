@@ -192,6 +192,15 @@ class ScreeningTemplate(models.Model):
     condition_3_controllable = models.BooleanField(default=True)
     condition_4_value_creating = models.BooleanField(default=True)
     
+    # 🔥 فیلد AssetType اضافه شد
+    asset_type = models.ForeignKey(
+        'AssetType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='screening_templates'
+    )
+    
     def __str__(self):
         return f"{self.organization_type.display_name} - {self.item_name}"
 

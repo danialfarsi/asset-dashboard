@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
 import { ArrowLeft, Save, Eye, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { fetchAllValuations } from '@/lib/api-utils';
 
 interface ScoreGuide {
   id: number;
@@ -86,7 +87,6 @@ export default function ValuationPage() {
       let assetTypeId: number | null = null;
       let assetTypeCode: string | null = null;
 
-      // از asset_type خود دارایی استفاده کن
       if (assetData.asset_type?.id) {
         assetTypeId = assetData.asset_type.id;
         assetTypeCode = assetData.asset_type.code;
@@ -94,7 +94,6 @@ export default function ValuationPage() {
         console.log(`✅ AssetType از دارایی: ${assetTypeId} (${assetTypeCode})`);
       }
 
-      // اگر نداشت، از تشخیص استفاده کن
       if (!assetTypeId && assetData.asset_uid) {
         try {
           const { data: detection } = await api.get(
@@ -130,25 +129,28 @@ export default function ValuationPage() {
 
       console.log('📥 3. پیدا کردن ارزیابی...');
       
-      // دریافت همه ارزیابی‌ها
-      const { data: allValuations } = await api.get('/intangible/asset-valuations/');
-      const valuations = allValuations.results || allValuations || [];
-      console.log(`📋 کل ارزیابی‌ها: ${valuations.length}`);
+      // 🔥 استفاده از fetchAllValuations برای دریافت همه ارزیابی‌ها
+      const allValuations = await fetchAllValuations();
+      console.log(`📋 کل ارزیابی‌ها: ${allValuations.length}`);
       
-      const assetValuations = valuations.filter((v: any) => v.asset === parseInt(assetId));
+      const assetValuations = allValuations.filter((v: any) => v.asset === parseInt(assetId));
       console.log(`📋 ${assetValuations.length} ارزیابی برای این دارایی پیدا شد`);
 
       let valId: number | null = null;
 
-      // اگر ارزیابی وجود دارد
       if (assetValuations.length > 0) {
-        // مرتب‌سازی بر اساس ID (جدیدترین اول)
-        const sortedValuations = [...assetValuations].sort((a, b) => b.id - a.id);
+        // 🔥 اولویت ۱: پیدا کردن ارزیابی completed
+        const completedValuation = assetValuations.find((v: any) => v.status === 'completed');
         
-        // انتخاب جدیدترین ارزیابی
-        const latestValuation = sortedValuations[0];
-        valId = latestValuation.id;
-        console.log(`✅ انتخاب ارزیابی: ${valId} (جدیدترین)`);
+        if (completedValuation) {
+          valId = completedValuation.id;
+          console.log(`✅ ارزیابی completed پیدا شد: ${valId}`);
+        } else {
+          // 🔥 اولویت ۲: جدیدترین ارزیابی (هر وضعیتی)
+          const sortedValuations = [...assetValuations].sort((a, b) => b.id - a.id);
+          valId = sortedValuations[0].id;
+          console.log(`📝 جدیدترین ارزیابی: ${valId}`);
+        }
         
         // دریافت پاسخ‌ها
         try {
@@ -212,7 +214,6 @@ export default function ValuationPage() {
         }
       }
 
-      // 🔥 اگر valId پیدا شد، تنظیم کن
       if (valId) {
         setValuationId(valId);
         console.log(`✅ valuationId ست شد: ${valId}`);
@@ -247,9 +248,8 @@ export default function ValuationPage() {
     
     if (!currentValuationId) {
       try {
-        const { data: allValuations } = await api.get('/intangible/asset-valuations/');
-        const valuations = allValuations.results || allValuations || [];
-        const found = valuations.find((v: any) => v.asset === parseInt(assetId));
+        const allValuations = await fetchAllValuations();
+        const found = allValuations.find((v: any) => v.asset === parseInt(assetId));
         
         if (found) {
           currentValuationId = found.id;

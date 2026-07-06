@@ -3,11 +3,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import ScreenedAsset
 from .valuation_models import AssetType
-from .asset_type_mapping import CODE_TO_ASSET_TYPE, get_asset_type_code
+from .asset_type_mapping import get_asset_type_code
 
 class DetectAssetTypeView(APIView):
     """
-    API برای تشخیص AssetType از روی UID دارایی
+    API برای تشخیص هوشمند AssetType از روی UID، نام و دسته‌بندی دارایی
     """
     permission_classes = [IsAuthenticated]
     
@@ -25,8 +25,12 @@ class DetectAssetTypeView(APIView):
                     'source': 'asset_type_field'
                 })
             
-            # تشخیص از روی UID با مپ کامل
-            type_code = get_asset_type_code(asset_uid)
+            # 🔥 تشخیص هوشمند از روی UID، نام و دسته‌بندی
+            type_code = get_asset_type_code(
+                uid=asset.asset_uid,
+                name=asset.asset_name,
+                category=asset.category
+            )
             
             if type_code:
                 try:
@@ -39,7 +43,7 @@ class DetectAssetTypeView(APIView):
                         'asset_type_id': asset_type.id,
                         'asset_type_code': asset_type.code,
                         'asset_type_name': asset_type.name,
-                        'source': 'uid_detection'
+                        'source': 'smart_detection'
                     })
                 except AssetType.DoesNotExist:
                     pass

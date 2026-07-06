@@ -59,7 +59,7 @@ CODE_TO_ASSET_TYPE = {
     'SRC': 'PROPRIETARY_SOFTWARE',
     'ENG': 'ENGINEERING_DRAWINGS',
     'TST': 'TEST_RECORDS',
-    'TS': 'TEST_RECORDS',  # 🔥 اضافه شد
+    'TS': 'TEST_RECORDS',
     
     # ========== فرم‌های مدیریتی ==========
     'ACC': 'ACCOUNTING',
@@ -106,7 +106,7 @@ CODE_TO_ASSET_TYPE = {
     'COPY': 'BRAND',
     
     # ========== فرم‌های عمومی ==========
-    'GEN': 'CLOUD',
+    # 🔥 حذف 'GEN': 'CLOUD' - دیگر GEN را به CLOUD مپ نمی‌کنیم
     'DSH': 'DASHBOARD',
     'LRN': 'LESSONS_LEARNED',
     'RPT': 'SUST_REPORT',
@@ -122,7 +122,6 @@ CODE_TO_ASSET_TYPE = {
     'PUB': 'PUBLIC_TRUST',
     
     # ========== فرم‌های تخصصی ==========
-    'SIM': 'SIMULATION',
     'DYN': 'DYNAMIC_PRICING',
     'TEAM': 'PROJECT_TEAMS',
     'CROSS': 'CROSS_FUNCTIONAL',
@@ -140,21 +139,126 @@ CODE_TO_ASSET_TYPE = {
     'PRC': 'PROCESS',
     'POL': 'POLICY',
     'GDL': 'GUIDELINE',
-    
-    # ========== 🔥 کدهای جدید اضافه شده ==========
-    'STK': 'TRADE_SECRET',  # دانش فنی
-    'TS': 'TEST_RECORDS',   # سوابق آزمایشات
 }
 
+
 # ============================================
-# 🔥 تابع کمکی برای تشخیص AssetType
+# 🔥 مپ تشخیص بر اساس اسم دارایی (برای کدهای عمومی)
 # ============================================
-def get_asset_type_code(uid: str) -> str | None:
-    """دریافت کد AssetType از UID"""
+NAME_TO_ASSET_TYPE = {
+    # دانش
+    'دانش ضمنی': 'TACIT_KNOWLEDGE',
+    'دانش فنی': 'TACIT_KNOWLEDGE',
+    'تجربه': 'EXPERIENCE',
+    'مهارت': 'SKILLS',
+    'درس آموخته': 'LESSONS_LEARNED',
+    'درس‌آموخته': 'LESSONS_LEARNED',
+    'بهترین شیوه': 'BEST_PRACTICES',
+    
+    # نرم‌افزار و فناوری
+    'نرم افزار': 'SOFTWARE',
+    'نرم‌افزار': 'SOFTWARE',
+    'ابزار': 'SOFTWARE',
+    'سیستم': 'SOFTWARE',
+    'پلتفرم': 'SOFTWARE',
+    'زیرساخت': 'CLOUD',
+    'کلود': 'CLOUD',
+    'ابر': 'CLOUD',
+    'سرور': 'CLOUD',
+    
+    # مدیریتی
+    'فرآیند': 'PROCESS',
+    'دستورالعمل': 'GUIDELINE',
+    'سیاست': 'POLICY',
+    'قرارداد': 'CONTRACT',
+    'همکاری': 'PARTNERSHIP',
+    'شبکه': 'NETWORK_CONTACTS',
+    
+    # برند و بازاریابی
+    'برند': 'BRAND',
+    'برندینگ': 'BRAND',
+    'مارک': 'BRAND',
+    'داستان برند': 'BRAND_STORY',
+    
+    # ESG و پایداری
+    'پایداری': 'SUSTAINABILITY_2030',
+    'محیط زیست': 'ENV_MONITOR',
+    'انرژی': 'ENERGY_MANAGEMENT',
+    'کربن': 'CARBON_CALC',
+    
+    # مالی
+    'مالی': 'ACCOUNTING',
+    'حسابداری': 'ACCOUNTING',
+    'پورتفولیو': 'PORTFOLIO',
+}
+
+
+# ============================================
+# 🔥 تابع تشخیص هوشمند AssetType
+# ============================================
+def get_asset_type_code(uid: str, name: str = '', category: str = '') -> str | None:
+    """
+    تشخیص AssetType از روی UID، نام و دسته‌بندی
+    
+    اولویت:
+    1. کد اختصاری در UID (اگر معتبر باشد)
+    2. تشخیص از روی نام دارایی (برای کدهای عمومی)
+    3. تشخیص از روی دسته‌بندی
+    """
     if not uid:
         return None
+    
     parts = uid.split('-')
     if len(parts) >= 3:
         code = parts[2]
+        
+        # 🔥 اگر کد GEN است، از روی نام تشخیص بده
+        if code == 'GEN':
+            if name:
+                # جستجوی دقیق در نام
+                for key, value in NAME_TO_ASSET_TYPE.items():
+                    if key in name:
+                        return value
+                
+                # جستجوی کلمات کلیدی در نام
+                name_lower = name.lower()
+                if 'دانش' in name_lower or 'ضمنی' in name_lower:
+                    return 'TACIT_KNOWLEDGE'
+                if 'نرم' in name_lower or 'افزار' in name_lower:
+                    return 'SOFTWARE'
+                if 'برند' in name_lower:
+                    return 'BRAND'
+                if 'قرارداد' in name_lower:
+                    return 'CONTRACT'
+                if 'پایداری' in name_lower or 'esg' in name_lower:
+                    return 'SUSTAINABILITY_2030'
+            
+            # اگر از روی نام تشخیص داده نشد، از روی category استفاده کن
+            if category:
+                category_map = {
+                    'strategic_knowledge': 'TACIT_KNOWLEDGE',
+                    'strategic_economic': 'PORTFOLIO',
+                    'strategic_social': 'PARTNERSHIP',
+                    'strategic_cultural': 'CULTURAL_CHARTER',
+                    'strategic_environmental': 'ENV_MONITOR',
+                    'operational_knowledge': 'LESSONS_LEARNED',
+                    'operational_economic': 'ACCOUNTING',
+                    'operational_social': 'COMMUNICATION_GUIDE',
+                    'operational_cultural': 'CULTURE_SYSTEM',
+                    'operational_environmental': 'ENERGY_MANAGEMENT',
+                    'support_knowledge': 'KMS',
+                    'support_economic': 'ACCOUNTING',
+                    'support_social': 'INTERNAL_SOCIAL',
+                    'support_cultural': 'RECOGNITION',
+                    'support_environmental': 'WASTE_MANAGEMENT',
+                }
+                if category in category_map:
+                    return category_map[category]
+            
+            # اگر هیچکدام کار نکرد، BRAND (پیش‌فرض)
+            return 'BRAND'
+        
+        # برای کدهای غیر GEN، از مپ استفاده کن
         return CODE_TO_ASSET_TYPE.get(code)
+    
     return None
