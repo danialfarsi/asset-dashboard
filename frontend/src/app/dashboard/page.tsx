@@ -32,7 +32,19 @@ import {
   Layers,
   ChevronLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Target,
+  Rocket,
+  Shield,
+  Star,
+  Gift,
+  Coffee,
+  Brain,
+  Lightbulb,
+  Briefcase,
+  Globe,
+  Heart,
+  Compass
 } from 'lucide-react';
 
 // Recharts
@@ -42,7 +54,16 @@ import {
   Cell,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
 } from 'recharts';
 
 const COLORS = ['#015345', '#8ECFAF', '#D4A547', '#3B7A6E', '#F5F5F5', '#EF4444'];
@@ -54,6 +75,7 @@ interface DashboardStats {
   rejectedAssets: number;
   totalUsers: number;
   totalDepartments: number;
+  valuationProgress: number;
 }
 
 interface RecentAsset {
@@ -78,10 +100,16 @@ export default function DashboardPage() {
     rejectedAssets: 0,
     totalUsers: 0,
     totalDepartments: 0,
+    valuationProgress: 0,
   });
   const [recentAssets, setRecentAssets] = useState<RecentAsset[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [valuationStatus, setValuationStatus] = useState<{
+    completed: number;
+    inProgress: number;
+    notStarted: number;
+  }>({ completed: 0, inProgress: 0, notStarted: 0 });
 
   const role = user?.role || 'org_user';
   const isSuperAdmin = role === 'super_admin';
@@ -118,6 +146,18 @@ export default function DashboardPage() {
         totalDepartments = depts.length;
       } catch (e) {}
 
+      // وضعیت ارزیابی
+      let completed = 0,
+        inProgress = 0,
+        notStarted = 0;
+      try {
+        const { data: valData } = await api.get('/intangible/asset-valuations/');
+        const vals = valData.results || valData || [];
+        completed = vals.filter((v: any) => v.status === 'completed').length;
+        inProgress = vals.filter((v: any) => v.status === 'draft' || v.status === 'in_progress').length;
+        notStarted = Math.max(0, assets.length - completed - inProgress);
+      } catch (e) {}
+
       setStats({
         totalAssets: assets.length,
         verifiedAssets: verified,
@@ -125,7 +165,10 @@ export default function DashboardPage() {
         rejectedAssets: rejected,
         totalUsers: totalUsers,
         totalDepartments: totalDepartments,
+        valuationProgress: assets.length > 0 ? Math.round((completed / assets.length) * 100) : 0,
       });
+
+      setValuationStatus({ completed, inProgress, notStarted });
 
       const categoryMap: Record<string, string> = {
         'strategic_economic': 'استراتژیک',
@@ -222,6 +265,20 @@ export default function DashboardPage() {
     return roles[role] || role;
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'صبح بخیر ☀️';
+    if (hour < 17) return 'ظهر بخیر 🌤️';
+    if (hour < 21) return 'عصر بخیر 🌅';
+    return 'شب بخیر 🌙';
+  };
+
+  // تابع کمکی برای فرمت درصد
+  const formatPercent = (percent: number | undefined) => {
+    if (percent === undefined || isNaN(percent)) return '۰%';
+    return `${(percent * 100).toFixed(0)}%`;
+  };
+
   if (loading) {
     return (
       <div className="p-6">
@@ -231,96 +288,248 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 1. داشبورد super_admin
+  // 1. DASHBOARD SUPER_ADMIN
   // ============================================================
   if (isSuperAdmin) {
     return (
-      <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
-        {/* نوتیفیکیشن بار */}
+      <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
         <NotificationBar />
 
-        <div className="bg-gradient-to-r from-dark-green to-medium-green rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
-          
-          <div className="relative flex items-center justify-between">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-medium-green to-aqua-green p-8 text-white">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-golden-amber rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          </div>
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
-                {/* لوگو */}
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/20">
+                <Crown className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30">
-                    <Award className="w-4 h-4" /> دسترسی کامل
+                <p className="text-sm text-white/80">{getGreeting()}</p>
+                <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                    <Crown className="w-3 h-3" /> {getRoleDisplay(role)}
+                  </span>
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                    <Award className="w-3 h-3" /> دسترسی کامل
                   </span>
                 </div>
               </div>
             </div>
-            <Link href="/dashboard/companies">
-              <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm transition-all backdrop-blur-sm border border-white/10 flex items-center gap-2">
-                <Building2 className="w-4 h-4" /> مدیریت شرکت‌ها
-              </button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/dashboard/companies">
+                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white">
+                  <Building2 className="w-4 h-4 ml-2" />
+                  مدیریت شرکت‌ها
+                </Button>
+              </Link>
+              <Link href="/dashboard/intangible/screening/new">
+                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+                  <Search className="w-4 h-4 ml-2" />
+                  غربالگری جدید
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            {[
+              { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
+              { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
+              { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
+              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+            ].map((stat, index) => (
+              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <p className="text-xs text-white/70">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ... بقیه محتوای super_admin ... */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Building2 className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">شرکت‌ها</p><p className="text-2xl font-bold text-dark-green">2</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-aqua-green/20 p-3 rounded-xl"><Building className="w-6 h-6 text-medium-green" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><Users className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={280}>
-                <RePieChart>
-                  <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} dataKey="value">
-                    {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
-                  </Pie>
-                  <Tooltip /><Legend />
-                </RePieChart>
-              </ResponsiveContainer>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p>
+                  <p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p>
+                </div>
+                <div className="bg-dark-green/10 p-3 rounded-xl">
+                  <Package className="w-6 h-6 text-dark-green" />
+                </div>
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">شرکت‌ها</span><span className="text-lg font-bold text-dark-green">2</span></div>
-                <div className="flex justify-between items-center"><span className="text-sm text-gray-500">کاربران</span><span className="text-lg font-bold text-dark-green">{stats.totalUsers}</span></div>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">تأیید شده</p>
+                  <p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-xl">
+                  <CheckCircle className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">در انتظار</p>
+                  <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-xl">
+                  <Clock className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 font-medium">رد شده</p>
+                  <p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p>
+                </div>
+                <div className="bg-red-50 p-3 rounded-xl">
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-dark-green/10 p-3 rounded-xl">
+                <Building2 className="w-6 h-6 text-dark-green" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">شرکت‌ها</p>
+                <p className="text-2xl font-bold text-dark-green">2</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-aqua-green/20 p-3 rounded-xl">
+                <Building className="w-6 h-6 text-medium-green" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">واحدها</p>
+                <p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-golden-amber/20 p-3 rounded-xl">
+                <Users className="w-6 h-6 text-golden-amber" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">کاربران</p>
+                <p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+                <PieChart className="w-5 h-5 text-dark-green" />
+                توزیع دارایی‌ها
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={280}>
+                <RePieChart>
+                  <Pie
+                    data={chartData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${formatPercent(percent)}`}
+                    outerRadius={90}
+                    dataKey="value"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </RePieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+                <Activity className="w-5 h-5 text-dark-green" />
+                خلاصه عملکرد
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  { label: 'کل دارایی‌ها', value: stats.totalAssets, color: 'dark-green' },
+                  { label: 'تأیید شده', value: stats.verifiedAssets, color: 'emerald-600' },
+                  { label: 'در انتظار', value: stats.pendingAssets, color: 'amber-600' },
+                  { label: 'رد شده', value: stats.rejectedAssets, color: 'red-600' },
+                ].map((item) => (
+                  <div key={item.label} className="flex justify-between items-center border-b pb-3">
+                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className={`text-lg font-bold text-${item.color}`}>{item.value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-sm text-gray-500">نرخ تأیید</span>
+                  <span className="text-lg font-bold text-emerald-600">
+                    {stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین فعالیت‌ها</CardTitle>
-            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
+            <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+              <Clock className="w-5 h-5 text-dark-green" />
+              آخرین فعالیت‌ها
+            </CardTitle>
+            <Link href="/dashboard/intangible/assets">
+              <Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button>
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
                   <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
-                    <div className="flex items-center justify-between"><span className="font-medium text-sm">{asset.asset_name}</span>{getResultBadge(asset.result)}</div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">{asset.asset_name}</span>
+                      {getResultBadge(asset.result)}
+                    </div>
                     <p className="text-xs text-gray-400 mt-1">{asset.asset_uid}</p>
-                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500"><Building2 className="w-3 h-3" />{asset.organization_name || 'نامشخص'}</div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-400"><Calendar className="w-3 h-3" />{formatDate(asset.created_at)}</div>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                      <Building2 className="w-3 h-3" />
+                      {asset.organization_name || 'نامشخص'}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                      <Calendar className="w-3 h-3" />
+                      {formatDate(asset.created_at)}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -332,57 +541,130 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 2. داشبورد org_admin
+  // 2. DASHBOARD ORG_ADMIN
   // ============================================================
   if (isOrgAdmin) {
     return (
-      <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
+      <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
         <NotificationBar />
-        
-        <div className="bg-gradient-to-r from-dark-green via-medium-green to-aqua-green rounded-2xl p-6 text-white relative overflow-hidden">
-          {/* ... محتوای org_admin ... */}
-          <div className="relative flex items-center justify-between">
+
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-aqua-green to-medium-green p-8 text-white">
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-golden-amber rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+          </div>
+          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
-                {/* لوگو */}
+              <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/20">
+                <Building2 className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
+                <p className="text-sm text-white/80">{getGreeting()}</p>
+                <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                    <User className="w-3 h-3" /> {getRoleDisplay(role)}
+                  </span>
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                    <Building2 className="w-3 h-3" /> {user?.organization_name}
+                  </span>
                 </div>
               </div>
             </div>
-            <Link href="/dashboard/intangible/screening/new">
-              <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm transition-all backdrop-blur-sm border border-white/10 flex items-center gap-2">
-                <Search className="w-4 h-4" /> غربالگری جدید
-              </button>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/dashboard/departments">
+                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white">
+                  <Building className="w-4 h-4 ml-2" />
+                  مدیریت واحدها
+                </Button>
+              </Link>
+              <Link href="/dashboard/intangible/screening/new">
+                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+                  <Search className="w-4 h-4 ml-2" />
+                  غربالگری جدید
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            {[
+              { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
+              { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
+              { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
+              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+            ].map((stat, index) => (
+              <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <p className="text-xs text-white/70">{stat.label}</p>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* ... بقیه محتوای org_admin ... */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
-          <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div>
+                <div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div>
+                <div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div>
+                <div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div>
+                <div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Building className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-aqua-green/20 p-3 rounded-xl"><Users className="w-6 h-6 text-medium-green" /></div><div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
-          <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-dark-green/10 p-3 rounded-xl"><Building className="w-6 h-6 text-dark-green" /></div>
+              <div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-aqua-green/20 p-3 rounded-xl"><Users className="w-6 h-6 text-medium-green" /></div>
+              <div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div>
+            </CardContent>
+          </Card>
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6 flex items-center gap-4">
+              <div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div>
+              <div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
+          <Card className="border-0 shadow-sm">
             <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <RePieChart>
-                  <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} dataKey="value">
+                  <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${formatPercent(percent)}`} outerRadius={90} dataKey="value">
                     {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                   </Pie>
                   <Tooltip /><Legend />
@@ -390,7 +672,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-0 shadow-sm">
             <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -404,7 +686,7 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
             <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
@@ -429,56 +711,120 @@ export default function DashboardPage() {
   }
 
   // ============================================================
-  // 3. داشبورد org_user
+  // 3. DASHBOARD ORG_USER
   // ============================================================
   return (
-    <PageTransition className="p-6 space-y-6 bg-gray-custom min-h-screen">
+    <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
       <NotificationBar />
-      
-      <div className="bg-gradient-to-r from-dark-green via-aqua-green to-medium-green rounded-2xl p-6 text-white relative overflow-hidden">
-        {/* ... محتوای org_user ... */}
-        <div className="relative flex items-center justify-between">
+
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-aqua-green to-medium-green p-8 text-white">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-golden-amber rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+        </div>
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
-              {/* لوگو */}
+            <div className="p-3 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/20">
+              <User className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold">خوش آمدید، {getFullName()} عزیز</h1>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                <span className="bg-white/20 px-3 py-1 rounded-full text-sm backdrop-blur-sm border border-white/10">{getRoleDisplay(role)}</span>
-                <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-golden-amber/30"><Building2 className="w-4 h-4" />{user?.organization_name}</span>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-sm flex items-center gap-1 border border-white/20"><Building className="w-4 h-4" />{user?.department_name}</span>
+              <p className="text-sm text-white/80">{getGreeting()}</p>
+              <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                  <User className="w-3 h-3" /> {getRoleDisplay(role)}
+                </span>
+                <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                  <Building2 className="w-3 h-3" /> {user?.organization_name}
+                </span>
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-white/20">
+                  <Building className="w-3 h-3" /> {user?.department_name}
+                </span>
               </div>
             </div>
           </div>
-          <Link href="/dashboard/intangible/screening/new">
-            <button className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm transition-all backdrop-blur-sm border border-white/10 flex items-center gap-2">
-              <Search className="w-4 h-4" /> غربالگری جدید
-            </button>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/dashboard/intangible/screening/new">
+              <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+                <Search className="w-4 h-4 ml-2" />
+                غربالگری جدید
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          {[
+            { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
+            { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
+            { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
+            { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+          ].map((stat, index) => (
+            <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <p className="text-xs text-white/70">{stat.label}</p>
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ... بقیه محتوای org_user ... */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div><div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div><div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div><div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div></div></CardContent></Card>
-        <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div><div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div></div></CardContent></Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div>
+              <div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div>
+              <div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div>
+              <div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div>
+              <div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-dark-green/10 p-3 rounded-xl"><Users className="w-6 h-6 text-dark-green" /></div><div><p className="text-sm text-gray-500">همکاران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div></CardContent></Card>
-        <Card><CardContent className="p-6 flex items-center gap-4"><div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div><div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div></CardContent></Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="bg-dark-green/10 p-3 rounded-xl"><Users className="w-6 h-6 text-dark-green" /></div>
+            <div><p className="text-sm text-gray-500">همکاران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-6 flex items-center gap-4">
+            <div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div>
+            <div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <RePieChart>
-                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} outerRadius={90} dataKey="value">
+                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${formatPercent(percent)}`} outerRadius={90} dataKey="value">
                   {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                 </Pie>
                 <Tooltip /><Legend />
@@ -486,7 +832,7 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -500,7 +846,7 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
           <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>

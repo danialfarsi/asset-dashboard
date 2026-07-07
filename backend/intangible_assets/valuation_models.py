@@ -276,6 +276,12 @@ class ValuationAnswer(models.Model):
     notes = models.TextField(blank=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    # 🔥 فیلدهای جدید برای فایل‌های شواهد
+    evidence_interview = models.FileField(upload_to='evidence/interviews/%Y/%m/%d/', null=True, blank=True)
+    evidence_document = models.FileField(upload_to='evidence/documents/%Y/%m/%d/', null=True, blank=True)
+    evidence_process = models.FileField(upload_to='evidence/processes/%Y/%m/%d/', null=True, blank=True)
+    evidence_database = models.FileField(upload_to='evidence/databases/%Y/%m/%d/', null=True, blank=True)
+    
     class Meta:
         unique_together = ['valuation', 'question']
     
@@ -373,98 +379,6 @@ class ValuationWeight(models.Model):
     
     def get_score_summary(self, organization_type):
         """دریافت خلاصه کامل امتیازات"""
-        from .models import ValuationWeight
-        
-        dimension_counts = {'strategic': 6, 'technical': 4, 'operational': 4, 'market': 5, 'risk': 4}
-        
-        try:
-            weights = ValuationWeight.objects.get(
-                asset_type=self.asset_type,
-                organization_type=organization_type
-            )
-            weights_dict = {
-                'strategic': weights.strategic_weight,
-                'technical': weights.technical_weight,
-                'operational': weights.operational_weight,
-                'market': weights.market_weight,
-                'risk': weights.risk_weight,
-            }
-        except ValuationWeight.DoesNotExist:
-            weights_dict = {'strategic': 0.25, 'technical': 0.20, 'operational': 0.20, 'market': 0.25, 'risk': 0.10}
-        
-        averages = {
-            'strategic': self.strategic_score / dimension_counts['strategic'] if dimension_counts['strategic'] > 0 else 0,
-            'technical': self.technical_score / dimension_counts['technical'] if dimension_counts['technical'] > 0 else 0,
-            'operational': self.operational_score / dimension_counts['operational'] if dimension_counts['operational'] > 0 else 0,
-            'market': self.market_score / dimension_counts['market'] if dimension_counts['market'] > 0 else 0,
-            'risk': self.risk_score / dimension_counts['risk'] if dimension_counts['risk'] > 0 else 0,
-        }
-        
-        weighted_scores = {}
-        for dim in averages:
-            weighted_scores[dim] = round(averages[dim] * weights_dict.get(dim, 0.20), 2)
-        
-        final_score = sum(weighted_scores.values())
-        
-        return {
-            'averages': averages,
-            'weights': weights_dict,
-            'weighted_scores': weighted_scores,
-            'final_score': round(final_score, 2),
-            'total_questions': 23,
-            'answered_questions': self.answers.filter(score__isnull=False).count(),
-        }
-
-    def calculate_weighted_score(self, organization_type):
-        from .models import ValuationWeight
-        
-        try:
-            weights = ValuationWeight.objects.get(
-                asset_type=self.asset_type,
-                organization_type=organization_type
-            )
-        except ValuationWeight.DoesNotExist:
-            default_weights = {'strategic': 0.25, 'technical': 0.20, 'operational': 0.20, 'market': 0.25, 'risk': 0.10}
-            return self.calculate_fallback_score(default_weights)
-        
-        dimension_counts = {'strategic': 6, 'technical': 4, 'operational': 4, 'market': 5, 'risk': 4}
-        
-        strategic_avg = self.strategic_score / dimension_counts['strategic'] if dimension_counts['strategic'] > 0 else 0
-        technical_avg = self.technical_score / dimension_counts['technical'] if dimension_counts['technical'] > 0 else 0
-        operational_avg = self.operational_score / dimension_counts['operational'] if dimension_counts['operational'] > 0 else 0
-        market_avg = self.market_score / dimension_counts['market'] if dimension_counts['market'] > 0 else 0
-        risk_avg = self.risk_score / dimension_counts['risk'] if dimension_counts['risk'] > 0 else 0
-        
-        final_score = (
-            strategic_avg * weights.strategic_weight +
-            technical_avg * weights.technical_weight +
-            operational_avg * weights.operational_weight +
-            market_avg * weights.market_weight +
-            risk_avg * weights.risk_weight
-        )
-        
-        return round(final_score, 2)
-    
-    def calculate_fallback_score(self, default_weights):
-        dimension_counts = {'strategic': 6, 'technical': 4, 'operational': 4, 'market': 5, 'risk': 4}
-        
-        strategic_avg = self.strategic_score / dimension_counts['strategic'] if dimension_counts['strategic'] > 0 else 0
-        technical_avg = self.technical_score / dimension_counts['technical'] if dimension_counts['technical'] > 0 else 0
-        operational_avg = self.operational_score / dimension_counts['operational'] if dimension_counts['operational'] > 0 else 0
-        market_avg = self.market_score / dimension_counts['market'] if dimension_counts['market'] > 0 else 0
-        risk_avg = self.risk_score / dimension_counts['risk'] if dimension_counts['risk'] > 0 else 0
-        
-        final_score = (
-            strategic_avg * default_weights.get('strategic', 0.25) +
-            technical_avg * default_weights.get('technical', 0.20) +
-            operational_avg * default_weights.get('operational', 0.20) +
-            market_avg * default_weights.get('market', 0.25) +
-            risk_avg * default_weights.get('risk', 0.10)
-        )
-        
-        return round(final_score, 2)
-    
-    def get_score_summary(self, organization_type):
         from .models import ValuationWeight
         
         dimension_counts = {'strategic': 6, 'technical': 4, 'operational': 4, 'market': 5, 'risk': 4}

@@ -40,7 +40,10 @@ class ValuationAnswerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ValuationAnswer
-        fields = ['id', 'question', 'question_code', 'question_text', 'score', 'evidence', 'notes', 'updated_at']
+        fields = ['id', 'question', 'question_code', 'question_text', 'score', 
+                  'evidence', 'notes', 'updated_at',
+                  'evidence_interview', 'evidence_document', 
+                  'evidence_process', 'evidence_database']
 
 
 class AssetValuationSerializer(serializers.ModelSerializer):
@@ -59,7 +62,9 @@ class AssetValuationSerializer(serializers.ModelSerializer):
 class ValuationAnswerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ValuationAnswer
-        fields = ['question', 'score', 'evidence', 'notes']
+        fields = ['question', 'score', 'evidence', 'notes',
+                  'evidence_interview', 'evidence_document', 
+                  'evidence_process', 'evidence_database']
 
 
 class AssetValuationCreateSerializer(serializers.ModelSerializer):
@@ -67,7 +72,7 @@ class AssetValuationCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = AssetValuation
-        fields = ['id', 'asset', 'asset_type', 'status', 'answers']  # 🔥 اضافه کردن 'id'
+        fields = ['id', 'asset', 'asset_type', 'status', 'answers']
     
     def create(self, validated_data):
         answers_data = validated_data.pop('answers', [])

@@ -4,16 +4,19 @@ import { useEffect, useState } from 'react';
 import { Bell, X, CheckCircle, AlertCircle, Clock, TrendingUp, Building2, Package, Eye, CheckCheck, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/api';
 
 interface Notification {
   id: number;
+  title: string;
   message: string;
   description?: string;
   type: 'info' | 'warning' | 'success' | 'urgent';
   link?: string;
-  linkText?: string;
+  link_text?: string;
   time?: string;
-  read?: boolean;
+  is_read?: boolean;
+  created_at: string;
   icon?: any;
 }
 
@@ -22,95 +25,121 @@ export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // دریافت اعلان‌ها (mock)
-    const fetchNotifications = async () => {
-      try {
-        // TODO: بعداً با API واقعی جایگزین کنید
-        const mockNotifications: Notification[] = [
-          {
-            id: 1,
-            message: '۵ دارایی در انتظار ارزیابی',
-            description: 'دارایی‌های جدید نیاز به ارزیابی دارند',
-            type: 'info',
-            link: '/dashboard/intangible/valuation/list',
-            linkText: 'مشاهده',
-            time: '۵ دقیقه پیش',
-            read: false,
-            icon: Package,
-          },
-          {
-            id: 2,
-            message: '۲ دارایی نیاز به بازبینی دارند',
-            description: 'بررسی مجدد این دارایی‌ها توصیه می‌شود',
-            type: 'warning',
-            link: '/dashboard/intangible/screening/list',
-            linkText: 'مشاهده',
-            time: '۱ ساعت پیش',
-            read: false,
-            icon: AlertCircle,
-          },
-          {
-            id: 3,
-            message: 'امتیاز ارزیابی کلی: ۷۸٪',
-            description: 'نرخ تأیید دارایی‌ها در وضعیت مطلوب است',
-            type: 'success',
-            time: '۲ ساعت پیش',
-            read: true,
-            icon: TrendingUp,
-          },
-          {
-            id: 4,
-            message: 'دارایی جدید غربالگری شد',
-            description: 'برند ثبت‌شده جدید به لیست اضافه شد',
-            type: 'success',
-            link: '/dashboard/intangible/assets',
-            linkText: 'مشاهده',
-            time: '۳ ساعت پیش',
-            read: true,
-            icon: CheckCircle,
-          },
-          {
-            id: 5,
-            message: 'یادآوری: ارزیابی مرحله ۳',
-            description: 'مرحله ارزیابی دارایی‌ها را تکمیل کنید',
-            type: 'urgent',
-            link: '/dashboard/intangible/valuation/list',
-            linkText: 'شروع ارزیابی',
-            time: '۵ ساعت پیش',
-            read: false,
-            icon: Clock,
-          },
-        ];
-        setNotifications(mockNotifications);
-        setUnreadCount(mockNotifications.filter(n => !n.read).length);
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
-    };
-
     fetchNotifications();
+    // هر ۳۰ ثانیه یک بار چک کن
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  const markAsRead = (id: number) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === id ? { ...n, read: true } : n
-      )
-    );
-    setUnreadCount(prev => Math.max(0, prev - 1));
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/intangible/notifications/');
+      const items = data.results || data || [];
+      
+      // تبدیل داده‌ها به فرمت مورد نیاز
+      const formatted = items.map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        description: n.message,
+        type: n.type || 'info',
+        link: n.link,
+        link_text: n.link_text,
+        is_read: n.is_read,
+        created_at: n.created_at,
+        icon: getIconByType(n.type),
+      }));
+      
+      setNotifications(formatted);
+      const unread = formatted.filter((n: Notification) => !n.is_read).length;
+      setUnreadCount(unread);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      // در صورت خطا، از داده‌های استاتیک استفاده کن
+      setNotifications(getStaticNotifications());
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(n => ({ ...n, read: true }))
-    );
-    setUnreadCount(0);
+  const getIconByType = (type: string) => {
+    switch (type) {
+      case 'success': return CheckCircle;
+      case 'warning': return AlertCircle;
+      case 'urgent': return Clock;
+      case 'info': return Bell;
+      default: return Bell;
+    }
+  };
+
+  const getStaticNotifications = (): Notification[] => {
+    return [
+      {
+        id: 1,
+        title: '۵ دارایی در انتظار ارزیابی',
+        message: 'دارایی‌های جدید نیاز به ارزیابی دارند',
+        type: 'info',
+        link: '/dashboard/intangible/valuation/list',
+        link_text: 'مشاهده',
+        is_read: false,
+        created_at: new Date(Date.now() - 300000).toISOString(),
+        icon: Package,
+      },
+      {
+        id: 2,
+        title: '۲ دارایی نیاز به بازبینی دارند',
+        message: 'بررسی مجدد این دارایی‌ها توصیه می‌شود',
+        type: 'warning',
+        link: '/dashboard/intangible/screening/list',
+        link_text: 'مشاهده',
+        is_read: false,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        icon: AlertCircle,
+      },
+      {
+        id: 3,
+        title: 'امتیاز ارزیابی کلی: ۷۸٪',
+        message: 'نرخ تأیید دارایی‌ها در وضعیت مطلوب است',
+        type: 'success',
+        is_read: true,
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        icon: TrendingUp,
+      },
+    ];
+  };
+
+  const markAsRead = async (id: number) => {
+    try {
+      await api.post(`/intangible/notifications/${id}/mark_read/`);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.post('/intangible/notifications/mark_all_read/');
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, is_read: true }))
+      );
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    markAsRead(notification.id);
+    if (!notification.is_read) {
+      markAsRead(notification.id);
+    }
     if (notification.link) {
       router.push(notification.link);
     }
@@ -137,6 +166,17 @@ export function NotificationCenter() {
       case 'urgent': return 'فوری';
       default: return 'اطلاعیه';
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - date.getTime()) / 60000);
+    
+    if (diff < 1) return 'لحظاتی پیش';
+    if (diff < 60) return `${diff} دقیقه پیش`;
+    if (diff < 1440) return `${Math.floor(diff / 60)} ساعت پیش`;
+    return `${Math.floor(diff / 1440)} روز پیش`;
   };
 
   return (
@@ -197,7 +237,12 @@ export function NotificationCenter() {
 
             {/* لیست اعلان‌ها */}
             <div className="max-h-96 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-8 text-gray-400">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dark-green mx-auto mb-3" />
+                  <p className="text-sm">در حال بارگذاری...</p>
+                </div>
+              ) : notifications.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <Bell className="w-12 h-12 mx-auto mb-3 opacity-30" />
                   <p className="text-sm">هیچ اعلانی وجود ندارد</p>
@@ -206,7 +251,7 @@ export function NotificationCenter() {
                 notifications.map((notification) => {
                   const styles = getTypeStyles(notification.type);
                   const Icon = notification.icon || Bell;
-                  const isUnread = !notification.read;
+                  const isUnread = !notification.is_read;
 
                   return (
                     <div
@@ -232,29 +277,39 @@ export function NotificationCenter() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className={`text-sm font-medium ${isUnread ? 'text-gray-900' : 'text-gray-600'}`}>
-                            {notification.message}
+                            {notification.title || notification.message}
                           </p>
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${styles.bg} ${styles.text}`}>
                             {getTypeLabel(notification.type)}
                           </span>
                         </div>
-                        {notification.description && (
-                          <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
-                            {notification.description}
-                          </p>
-                        )}
+                        <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">
+                          {notification.message}
+                        </p>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-[10px] text-gray-400">
-                            {notification.time || 'اکنون'}
+                            {formatDate(notification.created_at)}
                           </span>
-                          {notification.linkText && (
+                          {notification.link_text && (
                             <span className="text-xs text-dark-green font-medium hover:underline flex items-center gap-0.5">
-                              {notification.linkText}
+                              {notification.link_text}
                               <ChevronLeft className="w-3 h-3" />
                             </span>
                           )}
                         </div>
                       </div>
+
+                      {isUnread && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markAsRead(notification.id);
+                          }}
+                          className="flex-shrink-0 text-gray-400 hover:text-gray-600"
+                        >
+                          <CheckCheck className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   );
                 })
@@ -266,6 +321,7 @@ export function NotificationCenter() {
               <Link
                 href="/dashboard/notifications"
                 className="block text-center text-xs text-gray-500 hover:text-dark-green transition-colors font-medium"
+                onClick={() => setIsOpen(false)}
               >
                 مشاهده همه اعلان‌ها
               </Link>

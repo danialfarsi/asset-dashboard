@@ -293,3 +293,69 @@ class AssetValuationViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=True, methods=['post'])
+    def submit_answer_with_evidence(self, request, pk=None):
+        """ثبت پاسخ با شواهد فایل"""
+        try:
+            valuation = self.get_object()
+            question_id = request.data.get('question_id')
+            score = request.data.get('score')
+            evidence = request.data.get('evidence', '')
+            notes = request.data.get('notes', '')
+            
+            # فایل‌های شواهد
+            evidence_interview = request.FILES.get('evidence_interview')
+            evidence_document = request.FILES.get('evidence_document')
+            evidence_process = request.FILES.get('evidence_process')
+            evidence_database = request.FILES.get('evidence_database')
+            
+            if not question_id or score is None:
+                return Response(
+                    {'error': 'question_id و score الزامی هستند'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            try:
+                question = ValuationQuestion.objects.get(id=question_id)
+            except ValuationQuestion.DoesNotExist:
+                return Response(
+                    {'error': 'سوال یافت نشد'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # ایجاد یا به‌روزرسانی پاسخ
+            answer, created = ValuationAnswer.objects.update_or_create(
+                valuation=valuation,
+                question=question,
+                defaults={
+                    'score': score,
+                    'evidence': evidence,
+                    'notes': notes,
+                }
+            )
+            
+            # ذخیره فایل‌ها
+            if evidence_interview:
+                answer.evidence_interview = evidence_interview
+            if evidence_document:
+                answer.evidence_document = evidence_document
+            if evidence_process:
+                answer.evidence_process = evidence_process
+            if evidence_database:
+                answer.evidence_database = evidence_database
+            answer.save()
+            
+            valuation.calculate_final_score()
+            
+            return Response({
+                'success': True,
+                'message': 'پاسخ با شواهد ثبت شد',
+                'final_score': valuation.final_score,
+                'answer_id': answer.id,
+            })
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

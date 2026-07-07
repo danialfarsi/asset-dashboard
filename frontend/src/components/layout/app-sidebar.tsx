@@ -29,6 +29,7 @@ import {
   BarChart3,
   ListChecks,
   Award,
+  PieChart,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -59,6 +60,7 @@ const stage2Children = [
 const stage3Children = [
   { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
   { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
+  { label: 'ارزش‌گذاری', href: '/dashboard/intangible/valuation/valuation', icon: PieChart }, // 🔥 جدید
 ]
 
 // ============ منوی مراحل ۱۰ گانه ============
@@ -71,7 +73,7 @@ const stageNavItems = [
     children: stage2Children
   },
   { 
-    label: 'مرحله ۳: ارزیابی', 
+    label: 'مرحله ۳: ارزیابی و ارزش گذاری', 
     href: '/dashboard/intangible/stage3', 
     icon: BarChart3,
     children: stage3Children
@@ -106,6 +108,19 @@ export function AppSidebar() {
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
+
+  // باز کردن منوها بر اساس مسیر فعلی
+  useEffect(() => {
+    if (pathname.includes('/dashboard/intangible/stage2')) {
+      setIsStagesOpen(true)
+      setIsStage2Open(true)
+    }
+    if (pathname.includes('/dashboard/intangible/stage3') || 
+        pathname.includes('/dashboard/intangible/valuation')) {
+      setIsStagesOpen(true)
+      setIsStage3Open(true)
+    }
+  }, [pathname])
 
   useEffect(() => {
     const fetchDepartments = async () => {

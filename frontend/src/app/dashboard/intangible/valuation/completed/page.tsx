@@ -17,6 +17,7 @@ import {
   Eye,
   BarChart3,
   RefreshCw,
+  Hash
 } from 'lucide-react';
 
 interface ValuationSummary {
@@ -34,6 +35,7 @@ interface ValuationSummary {
   risk_score: number;
   total_questions: number;
   answered_questions: number;
+  rank?: number;
 }
 
 export default function CompletedValuationsPage() {
@@ -45,7 +47,7 @@ export default function CompletedValuationsPage() {
   const [refreshing, setRefreshing] = useState(false);
   
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingRevaluate, setPendingRevaluate] = useState<{ assetId: number; valuationId: number; assetName: string } | null>(null);
+  const [pendingRevaluate, setPendingRevaluate] = useState<{ assetId: number; assetName: string } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
   useEffect(() => {
@@ -81,8 +83,13 @@ export default function CompletedValuationsPage() {
         .filter(s => s !== null)
         .sort((a, b) => (b?.weighted_score || 0) - (a?.weighted_score || 0));
       
-      setValuations(sorted);
-      console.log(`✅ ${sorted.length} ارزیابی دریافت شد`);
+      const ranked = sorted.map((item, index) => ({
+        ...item,
+        rank: index + 1
+      }));
+      
+      setValuations(ranked);
+      console.log(`✅ ${ranked.length} ارزیابی دریافت شد`);
       
     } catch (error) {
       console.error('❌ Error fetching completed valuations:', error);
@@ -96,12 +103,12 @@ export default function CompletedValuationsPage() {
     fetchValuations(true);
   };
 
-  const handleRevaluateClick = (assetId: number, valuationId: number, assetName: string) => {
+  const handleRevaluateClick = (assetId: number, assetName: string) => {
     if (!assetId) {
       alert('خطا: شناسه دارایی یافت نشد');
       return;
     }
-    setPendingRevaluate({ assetId, valuationId, assetName });
+    setPendingRevaluate({ assetId, assetName });
     setShowConfirmModal(true);
   };
 
@@ -110,23 +117,28 @@ export default function CompletedValuationsPage() {
 
     setModalLoading(true);
     try {
-      const { assetId, valuationId } = pendingRevaluate;
+      const { assetId } = pendingRevaluate;
       
       console.log('🔄 شروع ارزیابی مجدد برای assetId:', assetId);
       
-      await api.delete(`/intangible/asset-valuations/${valuationId}/`);
-      console.log('✅ ارزیابی قبلی حذف شد');
+      // 🔥 به جای DELETE، یک ارزیابی جدید با status='draft' ایجاد کن
+      // اول asset_type رو از دارایی بگیر
+      const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
+      const assetTypeId = assetData.asset_type?.id || 1;
       
       const response = await api.post('/intangible/asset-valuations/', {
         asset: assetId,
-        asset_type: 1,
+        asset_type: assetTypeId,
         status: 'draft'
       });
+      
       console.log('✅ ارزیابی جدید ایجاد شد:', response.data.id);
       
       setShowConfirmModal(false);
       setPendingRevaluate(null);
-      router.push(`/dashboard/intangible/valuation/${assetId}`);
+      
+      // 🔥 رفتن به صفحه ارزیابی با پارامتر new=true
+      router.push(`/dashboard/intangible/valuation/${assetId}?new=true`);
       
     } catch (error: any) {
       console.error('❌ Error revaluating:', error);
@@ -164,6 +176,13 @@ export default function CompletedValuationsPage() {
     if (score >= 3) return '👍';
     if (score >= 2) return '📊';
     return '⚠️';
+  };
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    if (rank === 2) return 'text-gray-600 bg-gray-50 border-gray-200';
+    if (rank === 3) return 'text-amber-600 bg-amber-50 border-amber-200';
+    return 'text-blue-600 bg-blue-50 border-blue-200';
   };
 
   const filteredValuations = valuations.filter(v =>
@@ -229,9 +248,17 @@ export default function CompletedValuationsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredValuations.map((val) => {
               const displayScore = getDisplayScore(val);
+              const rankColor = getRankColor(val.rank || 0);
+              
               return (
-                <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden">
-                  <CardContent className="p-5 space-y-3">
+                <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden relative">
+                  {/* رنک ثابت در گوشه */}
+                  <div className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-sm border ${rankColor} z-10`}>
+                    <Hash className="w-3 h-3" />
+                    <span className="text-xs font-bold">{val.rank}</span>
+                  </div>
+
+                  <CardContent className="p-5 space-y-3 pt-12">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">{val.asset || 'نامشخص'}</p>
@@ -284,7 +311,6 @@ export default function CompletedValuationsPage() {
                       />
                     </div>
 
-                    {/* 🔥 دکمه‌ها با فرمت اصلی */}
                     <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
                       <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="flex-1 min-w-[80px]">
                         <Button variant="outline" size="sm" className="w-full flex items-center gap-1 text-xs">
@@ -304,7 +330,7 @@ export default function CompletedValuationsPage() {
                         className="flex-1 min-w-[80px] border-amber-400 text-amber-600 hover:bg-amber-50 flex items-center gap-1 text-xs"
                         onClick={() => {
                           if (val.asset_id) {
-                            handleRevaluateClick(val.asset_id, val.id, val.asset || '');
+                            handleRevaluateClick(val.asset_id, val.asset || '');
                           } else {
                             alert('خطا: شناسه دارایی یافت نشد');
                           }
@@ -320,10 +346,12 @@ export default function CompletedValuationsPage() {
             })}
           </div>
           
-          <div className="text-center text-sm text-gray-400 border-t pt-4">
-            نمایش {filteredValuations.length} از {valuations.length} دارایی
-            {searchTerm && ` (فیلتر شده)`}
-          </div>
+          {valuations.length > 0 && (
+            <div className="text-center text-sm text-gray-400 border-t pt-4">
+              نمایش {filteredValuations.length} از {valuations.length} دارایی
+              {searchTerm && ` (فیلتر شده)`}
+            </div>
+          )}
         </>
       )}
 
