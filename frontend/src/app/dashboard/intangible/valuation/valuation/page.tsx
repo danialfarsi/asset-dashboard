@@ -78,6 +78,7 @@ export default function ValuationPage() {
   const [selectedMethod, setSelectedMethod] = useState<string>('M-03');
   const [isMethodConfirmed, setIsMethodConfirmed] = useState(false);
   const [valuationData, setValuationData] = useState<ValuationData | null>(null);
+  const [valuationCaseId, setValuationCaseId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     assetId: '',
     name: '',
@@ -110,6 +111,7 @@ export default function ValuationPage() {
             description: data.description || '',
             created_at: data.created_at,
             created_by_name: data.created_by_name || 'نامشخص',
+            valuation_method: data.valuation_method,
           };
         } catch {
           return null;
@@ -147,7 +149,6 @@ export default function ValuationPage() {
         description: asset.description || '',
       }));
       
-      // دریافت آخرین ارزیابی برای این دارایی
       try {
         const allValuations = await fetchAllValuations('completed');
         const assetValuations = allValuations.filter((v: any) => v.asset === asset.id);
@@ -248,13 +249,11 @@ export default function ValuationPage() {
       case 3:
         return (
           <Step3_Parameters
-            selectedMethod={selectedMethod}
-            isMethodConfirmed={isMethodConfirmed}
-            onMethodConfirm={setIsMethodConfirmed}
-            onMethodSelect={setSelectedMethod}
+            assetId={selectedAsset?.id}  // 🔥 اضافه شد
+            valuationCaseId={valuationCaseId}  // 🔥 اضافه شد
             onNext={nextStep}
             onPrev={prevStep}
-            methods={VALUATION_METHODS}
+            onSave={(data) => console.log('Saved:', data)}
           />
         );
       case 4:

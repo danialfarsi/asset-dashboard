@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.utils import timezone
 
 # ==================== مدل‌های مرحله ۲: کشف و شناسایی ====================
 
@@ -75,17 +74,14 @@ class PreliminaryEvaluation(models.Model):
 
 
 class IdentityAssessment(models.Model):
-    """IA-F-00-01: فرم هویت‌سنجی دارایی‌های نامشهود"""
     STATUS_CHOICES = [
         ('verified', 'تأیید شده'),
         ('pending', 'در انتظار'),
         ('rejected', 'رد شده'),
     ]
-    
     asset_name = models.CharField(max_length=255)
     asset_type = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
-    
     q1 = models.IntegerField(default=3)
     q2 = models.IntegerField(default=3)
     q3 = models.IntegerField(default=3)
@@ -106,10 +102,8 @@ class IdentityAssessment(models.Model):
     q18 = models.IntegerField(default=3)
     q19 = models.IntegerField(default=3)
     q20 = models.IntegerField(default=3)
-    
     total_score = models.FloatField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -192,7 +186,6 @@ class ScreeningTemplate(models.Model):
     condition_3_controllable = models.BooleanField(default=True)
     condition_4_value_creating = models.BooleanField(default=True)
     
-    # 🔥 فیلد AssetType
     asset_type = models.ForeignKey(
         'AssetType',
         on_delete=models.SET_NULL,
@@ -201,7 +194,6 @@ class ScreeningTemplate(models.Model):
         related_name='screening_templates'
     )
     
-    # 🔥 فیلد روش ارزش‌گذاری
     valuation_method = models.CharField(
         max_length=20,
         blank=True,
@@ -224,6 +216,7 @@ class ScreeningTemplate(models.Model):
         return f"{self.organization_type.display_name} - {self.item_name}"
 
 
+# ==================== مدل اصلی ScreenedAsset ====================
 class ScreenedAsset(models.Model):
     RESULT_CHOICES = [
         ('confirmed', 'دارایی قطعی'),
@@ -243,13 +236,19 @@ class ScreenedAsset(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
-    # ==================== فیلد جدید: نوع دارایی ====================
     asset_type = models.ForeignKey(
         'AssetType',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='screened_assets'
+    )
+    
+    valuation_method = models.CharField(
+        max_length=10,
+        blank=True,
+        null=True,
+        help_text='روش ارزش‌گذاری انتخاب شده برای این دارایی'
     )
     
     def __str__(self):
@@ -282,11 +281,24 @@ class AssetFile(models.Model):
     class Meta:
         ordering = ['-uploaded_at']
 
+
 # ============ مدل‌های مرحله ۳: ارزیابی ============
 from .valuation_models import (
     AssetType, ValuationDimension, ValuationQuestion,
-    ValuationScoreGuide, AssetValuation, ValuationAnswer
+    ValuationScoreGuide, AssetValuation, ValuationAnswer,
+    ValuationWeight
 )
 
 # ============ مدل نوتیفیکیشن ============
 from .notification_models import Notification
+
+# ============ مدل‌های STEP 3 ============
+from .valuation_step3_models import ValuationStep3, ValuationStep3Evidence
+
+# ============ مدل‌های ارزش‌گذاری ============
+from .valuation_models import (
+    ValuationCase, ValuationAssumption, ValuationEvidenceTag,
+    ValuationCategory, LifecycleStage, CurrencyType,
+    InflationBasis, SourceReliability, OverlapRiskLevel,
+    OverlapType, ReviewStatus, AssumptionTag, EvidenceTag
+)

@@ -54,10 +54,8 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):
-        """تکمیل و ارسال مورد ارزش‌گذاری برای بررسی"""
         valuation_case = self.get_object()
         
-        # اعتبارسنجی
         if not valuation_case.asset_description_doc:
             return Response(
                 {'error': 'سند شرح دارایی (asset_description_doc) الزامی است'},
@@ -76,7 +74,6 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # اگر روش ارزش‌گذاری درآمدی است (M-01 تا M-04)
         if valuation_case.valuation_method in ['M-01', 'M-02', 'M-03', 'M-04']:
             if not valuation_case.external_benchmark_doc:
                 return Response(
@@ -84,7 +81,6 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
         
-        # بررسی حداقل یک فرضیه
         if valuation_case.assumptions.count() == 0:
             return Response(
                 {'error': 'حداقل یک فرضیه (assumption) باید ثبت شود'},
@@ -97,9 +93,8 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(valuation_case)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['get'])
+    @action(detail=False, methods=['get'])
     def validation_rules(self, request):
-        """دریافت قوانین اعتبارسنجی"""
         return Response({
             'min_assumptions': 1,
             'min_source_reliability': 'medium',

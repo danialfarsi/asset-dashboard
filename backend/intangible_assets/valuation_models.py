@@ -1,11 +1,14 @@
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
-from .models import ScreenedAsset
 
 # ============================================
-# مدل‌های موجود (قبلاً نوشته شده)
+# مدل‌های موجود (با import از models.py)
 # ============================================
+
+# 🔥 فقط import کن، دوباره تعریف نکن
+from .models import ScreenedAsset
+
 
 class AssetType(models.Model):
     name = models.CharField(max_length=100)
@@ -268,7 +271,7 @@ class ValuationWeight(models.Model):
         ('holding', 'هلدینگ یا مجموعه اقتصادی'),
     ]
     
-    asset_type = models.ForeignKey('AssetType', on_delete=models.CASCADE, related_name='weights')
+    asset_type = models.ForeignKey(AssetType, on_delete=models.CASCADE, related_name='weights')
     organization_type = models.CharField(max_length=20, choices=ORGANIZATION_TYPES)
     
     strategic_weight = models.FloatField(default=0.25, verbose_name='وزن استراتژیک')
@@ -288,19 +291,10 @@ class ValuationWeight(models.Model):
     
     def __str__(self):
         return f'{self.asset_type.code} - {self.get_organization_type_display()}'
-    
-    def get_weights_dict(self):
-        return {
-            'strategic': self.strategic_weight,
-            'technical': self.technical_weight,
-            'operational': self.operational_weight,
-            'market': self.market_weight,
-            'risk': self.risk_weight,
-        }
 
 
 # ============================================
-# 🔥 مدل‌های جدید برای ارزش‌گذاری (STEP 2)
+# 🔥 مدل‌های ارزش‌گذاری (ValuationCase و ...)
 # ============================================
 
 class ValuationCategory(models.TextChoices):
@@ -369,56 +363,48 @@ class EvidenceTag(models.TextChoices):
 
 
 class ValuationCase(models.Model):
-    """
-    مدل اصلی ارزش‌گذاری - هر دارایی یک مورد ارزش‌گذاری دارد
-    """
-    # ارتباط با دارایی
     asset = models.ForeignKey(ScreenedAsset, on_delete=models.CASCADE, related_name='valuation_cases')
     
-    # ماژول A - اطلاعات پایه
+    # ماژول A
     category = models.CharField(max_length=20, choices=ValuationCategory.choices, default=ValuationCategory.OPERATIONAL)
-    business_unit = models.CharField(max_length=255, blank=False)  # از Registry می‌آید
+    business_unit = models.CharField(max_length=255, blank=False)
     lifecycle_stage = models.CharField(max_length=20, choices=LifecycleStage.choices, default=LifecycleStage.GROWTH, blank=True)
     
-    # ماژول B - Quality Scores
-    quality_override_reason = models.TextField(blank=True, null=True)  # شرطی: اگر Quality Score نیامد
+    # ماژول B
+    quality_override_reason = models.TextField(blank=True, null=True)
     
-    # ماژول C - Base Inputs
+    # ماژول C
     currency = models.CharField(max_length=3, choices=CurrencyType.choices, default=CurrencyType.IRR)
     inflation_basis = models.CharField(max_length=10, choices=InflationBasis.choices, default=InflationBasis.COST, blank=True)
     tax_rate = models.FloatField(default=0.25, validators=[MinValueValidator(0), MaxValueValidator(0.50)])
     discount_rate = models.FloatField(default=0.18, validators=[MinValueValidator(0.10), MaxValueValidator(0.35)])
     forecast_horizon = models.IntegerField(default=5, validators=[MinValueValidator(3), MaxValueValidator(10)])
-    terminal_growth_rate = models.FloatField(default=0.05)  # شرط: < discount_rate
-    current_revenue = models.BigIntegerField(default=500000000000)  # ریال
+    terminal_growth_rate = models.FloatField(default=0.05)
+    current_revenue = models.BigIntegerField(default=500000000000)
     useful_life = models.IntegerField(default=5, validators=[MinValueValidator(1)], blank=True)
     source_reliability = models.CharField(max_length=20, choices=SourceReliability.choices, default=SourceReliability.HIGH)
     
-    # ماژول D - Attachments & Evidence (فایل‌ها)
+    # ماژول D
     asset_description_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)
     ownership_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)
     financial_source_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)
     expert_input_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)
-    external_benchmark_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)  # شرطی: برای M-01 تا M-04
+    external_benchmark_doc = models.FileField(upload_to='valuation/docs/%Y/%m/%d/', null=True, blank=True)
     
-    # ماژول E - Dependencies
+    # ماژول E
     linked_assets = models.ManyToManyField(ScreenedAsset, related_name='linked_valuations', blank=True)
     overlap_risk_level = models.CharField(max_length=10, choices=OverlapRiskLevel.choices, default=OverlapRiskLevel.MEDIUM)
     overlap_type = models.CharField(max_length=10, choices=OverlapType.choices, default=OverlapType.REVENUE)
     review_status = models.CharField(max_length=10, choices=ReviewStatus.choices, default=ReviewStatus.PENDING)
     expert_note = models.TextField(blank=True, null=True)
     
-    # ماژول F - Assumptions (به صورت جداگانه مدیریت می‌شود)
-    # ماژول G - Valuation Method
-    valuation_method = models.CharField(max_length=20, blank=True, null=True)  # M-01 تا M-09
+    # ماژول G
+    valuation_method = models.CharField(max_length=20, blank=True, null=True)
     
-    # وضعیت
     status = models.CharField(max_length=20, choices=AssetValuation.STATUS_CHOICES, default='draft')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='valuation_cases')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    # امتیاز نهایی
     final_score = models.FloatField(default=0)
     
     class Meta:
@@ -431,9 +417,6 @@ class ValuationCase(models.Model):
 
 
 class ValuationAssumption(models.Model):
-    """
-    مدل فرضیات ارزش‌گذاری (ماژول F)
-    """
     valuation_case = models.ForeignKey(ValuationCase, on_delete=models.CASCADE, related_name='assumptions')
     assumption_text = models.TextField()
     assumption_tag = models.CharField(max_length=20, choices=AssumptionTag.choices, default=AssumptionTag.GENERAL)
@@ -448,11 +431,8 @@ class ValuationAssumption(models.Model):
 
 
 class ValuationEvidenceTag(models.Model):
-    """
-    مدل تگ‌های شواهد (ماژول D)
-    """
     valuation_case = models.ForeignKey(ValuationCase, on_delete=models.CASCADE, related_name='evidence_tags')
-    file_field = models.CharField(max_length=50)  # نام فیلدی که تگ به آن مربوط می‌شود
+    file_field = models.CharField(max_length=50)
     tag = models.CharField(max_length=30, choices=EvidenceTag.choices)
     created_at = models.DateTimeField(auto_now_add=True)
     

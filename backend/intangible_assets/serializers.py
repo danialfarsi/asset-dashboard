@@ -84,7 +84,8 @@ class ScreeningTemplateSerializer(serializers.ModelSerializer):
         fields = ['id', 'item_name', 'category', 'category_label',
                   'default_result', 'result_label', 'order', 'is_active',
                   'condition_1_non_physical', 'condition_2_identifiable',
-                  'condition_3_controllable', 'condition_4_value_creating']
+                  'condition_3_controllable', 'condition_4_value_creating',
+                  'valuation_method', 'asset_type']
 
 
 class ScreenedAssetSerializer(serializers.ModelSerializer):
@@ -93,7 +94,6 @@ class ScreenedAssetSerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='created_by.organization.name', read_only=True, default='')
     department_name = serializers.CharField(source='created_by.department.name', read_only=True, default='')
     
-    # اطلاعات کامل کاربر ایجاد کننده
     created_by = serializers.SerializerMethodField()
 
     class Meta:

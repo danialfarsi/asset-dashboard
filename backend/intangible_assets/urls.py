@@ -9,10 +9,13 @@ from .views_screening import (
     AssetFileViewSet
 )
 from .views_asset_type_detection import DetectAssetTypeView
-from .notification_views import NotificationViewSet
+from .valuation_case_views import ValuationCaseViewSet
+from .valuation_step3_views import ValuationStep3ViewSet
 
 # ============ Router برای ViewSet ها ============
 router = DefaultRouter()
+
+# Screening routers
 router.register(r'screened-assets', ScreenedAssetViewSet, basename='screened-asset')
 router.register(r'organization-types', OrganizationTypeViewSet, basename='organization-type')
 router.register(r'screening-templates', ScreeningTemplateViewSet, basename='screening-template')
@@ -24,18 +27,16 @@ router.register(r'valuation-dimensions', valuation_views.ValuationDimensionViewS
 router.register(r'valuation-questions', valuation_views.ValuationQuestionViewSet, basename='valuation-question')
 router.register(r'asset-valuations', valuation_views.AssetValuationViewSet, basename='asset-valuation')
 
-# 🔥 Notification router (قبل از urlpatterns)
-router.register(r'notifications', NotificationViewSet, basename='notification')
+# Valuation Case routers - با نام منحصربه‌فرد
+router.register(r'valuation-cases', ValuationCaseViewSet, basename='valuation-cases')
+
+# STEP 3 routers
+router.register(r'valuation-step3', ValuationStep3ViewSet, basename='valuation-step3')
 
 # ============ URL Patterns ============
 urlpatterns = [
     path('', include(router.urls)),
     
-    # 🔥 API جدید برای تشخیص AssetType
+    # تشخیص AssetType
     path('detect-asset-type/<str:asset_uid>/', DetectAssetTypeView.as_view(), name='detect_asset_type'),
 ]
-
-from .valuation_case_views import ValuationCaseViewSet
-
-# ثبت ValuationCase در router
-router.register(r'valuation-cases', ValuationCaseViewSet, basename='valuation-case')

@@ -1,0 +1,1149 @@
+ مستندات کامل STEP 4 برای تیم توسعه (M-04, M-05, M-06)
+سلام تیم توسعه!
+
+این مستندات کامل موتور محاسبه STEP 4 برای ۳ روش M-04, M-05, M-06 هست. می‌تونید بر اساسش کد بزنید.
+
+🏗️ معماری کلی STEP 4
+jsx
+// Step4Container.jsx
+const Step4Container = ({ caseId, methodId }) => {
+  
+  // بر اساس methodId، موتور محاسبه مناسب رو رندر کن
+  const renderCalculationEngine = () => {
+    switch(methodId) {
+      case 'M-04': return <M04_WWM_Engine caseId={caseId} />;
+      case 'M-05': return <M05_RCM_Engine caseId={caseId} />;
+      case 'M-06': return <M06_RPCM_Engine caseId={caseId} />;
+      default: return <div>روش نامعتبر</div>;
+    }
+  };
+
+  return (
+    <div className="step4-container">
+      <StepHeader step={4} caseId={caseId} methodId={methodId} />
+      {renderCalculationEngine()}
+      <StepFooter onBack={() => goToStep3()} onContinue={() => goToStep5()} />
+    </div>
+  );
+};
+📊 ۱. موتور محاسبه M-04 | WWM (With-and-Without Method)
+فرمول محاسبه
+text
+Value = Σ [(FCF_with_t - FCF_without_t) × (1 - Tax)] / (1 + r)^t
+ساختار داده ورودی (از STEP 3)
+json
+{
+  "with_fcf_by_year": [60000000, 60000000, 60000000, 60000000, 60000000],
+  "without_fcf_by_year": [30000000, 30000000, 30000000, 30000000, 30000000],
+  "rampup_period": 3,
+  "discount_rate": 0.18,
+  "tax_rate": 0.25,
+  "expert_signoff": ["Dr. Ahmadi", "Dr. Rezaei"]
+}
+کد کامل موتور محاسبه
+jsx
+// M-04_WWM_Engine.jsx
+import React, { useState, useEffect } from 'react';
+import { Table, Card, Alert, Button, Space, Tooltip, Progress } from 'antd';
+import { DownloadOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
+
+const M04_WWM_Engine = ({ caseId }) => {
+  
+  // ==================== State ====================
+  const [loading, setLoading] = useState(true);
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  // ==================== داده‌های نمونه (از STEP 3) ====================
+  // در حالت واقعی، این داده‌ها از API می‌آیند
+  const step3Data = {
+    with_fcf_by_year: [60000000, 60000000, 60000000, 60000000, 60000000],
+    without_fcf_by_year: [30000000, 30000000, 30000000, 30000000, 30000000],
+    rampup_period: 3,
+    discount_rate: 0.18,
+    tax_rate: 0.25,
+    expert_signoff: ["Dr. Ahmadi", "Dr. Rezaei"]
+  };
+
+  // ==================== موتور محاسبه ====================
+  const calculateWWM = (data) => {
+    const {
+      with_fcf_by_year,
+      without_fcf_by_year,
+      rampup_period,
+      discount_rate,
+      tax_rate
+    } = data;
+
+    const horizon = with_fcf_by_year.length;
+    const calculationTable = [];
+    let totalPV = 0;
+
+    for (let t = 0; t < horizon; t++) {
+      const year = t + 1;
+      
+      // ۱. محاسبه تفاضل جریان نقدی
+      const differentialFCF = with_fcf_by_year[t] - without_fcf_by_year[t];
+      
+      // ۲. اعمال مالیات
+      const afterTax = differentialFCF * (1 - tax_rate);
+      
+      // ۳. ضریب تنزیل
+      const discountFactor = 1 / Math.pow(1 + discount_rate, year);
+      
+      // ۴. ارزش حال
+      const presentValue = afterTax * discountFactor;
+      
+      // ۵. بررسی دوره Ramp-up (تأثیر در سال‌های اول)
+      const rampupFactor = year <= rampup_period ? 
+        (year / rampup_period) : 1;
+      const adjustedPV = presentValue * rampupFactor;
+      
+      totalPV += adjustedPV;
+      
+      calculationTable.push({
+        year,
+        withFCF: with_fcf_by_year[t],
+        withoutFCF: without_fcf_by_year[t],
+        differentialFCF,
+        afterTax,
+        discountFactor,
+        presentValue,
+        rampupFactor,
+        adjustedPV
+      });
+    }
+
+    return {
+      totalValue: totalPV,
+      calculationTable,
+      summary: {
+        totalWithFCF: with_fcf_by_year.reduce((a, b) => a + b, 0),
+        totalWithoutFCF: without_fcf_by_year.reduce((a, b) => a + b, 0),
+        totalDifferential: calculationTable.reduce((a, b) => a + b.differentialFCF, 0),
+        avgDifferential: calculationTable.reduce((a, b) => a + b.differentialFCF, 0) / horizon
+      }
+    };
+  };
+
+  // ==================== useEffect ====================
+  useEffect(() => {
+    try {
+      setLoading(true);
+      const result = calculateWWM(step3Data);
+      setCalculationResult(result);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ==================== ستون‌های جدول ====================
+  const columns = [
+    { 
+      title: 'سال', 
+      dataIndex: 'year', 
+      key: 'year',
+      align: 'center'
+    },
+    { 
+      title: 'With FCF (IRR)', 
+      dataIndex: 'withFCF', 
+      key: 'withFCF',
+      align: 'right',
+      render: (val) => val.toLocaleString()
+    },
+    { 
+      title: 'Without FCF (IRR)', 
+      dataIndex: 'withoutFCF', 
+      key: 'withoutFCF',
+      align: 'right',
+      render: (val) => val.toLocaleString()
+    },
+    { 
+      title: 'تفاضل (IRR)', 
+      dataIndex: 'differentialFCF', 
+      key: 'differentialFCF',
+      align: 'right',
+      render: (val) => val.toLocaleString()
+    },
+    { 
+      title: 'پس از مالیات (IRR)', 
+      dataIndex: 'afterTax', 
+      key: 'afterTax',
+      align: 'right',
+      render: (val) => val.toLocaleString()
+    },
+    { 
+      title: 'ضریب تنزیل', 
+      dataIndex: 'discountFactor', 
+      key: 'discountFactor',
+      align: 'center',
+      render: (val) => val.toFixed(4)
+    },
+    { 
+      title: 'ضریب Ramp-up', 
+      dataIndex: 'rampupFactor', 
+      key: 'rampupFactor',
+      align: 'center',
+      render: (val) => val.toFixed(2)
+    },
+    { 
+      title: 'ارزش حال (IRR)', 
+      dataIndex: 'adjustedPV', 
+      key: 'adjustedPV',
+      align: 'right',
+      render: (val) => val.toLocaleString(),
+      className: 'highlight-column'
+    }
+  ];
+
+  // ==================== Render ====================
+  if (loading) {
+    return <div className="loading">⏳ در حال محاسبه...</div>;
+  }
+
+  if (error) {
+    return <Alert type="error" message="خطا در محاسبه" description={error} />;
+  }
+
+  const { totalValue, calculationTable, summary } = calculationResult;
+
+  return (
+    <div className="calculation-engine m04-wwm">
+      
+      {/* Header */}
+      <div className="engine-header">
+        <h2>📊 STEP 4: موتور محاسبه - WWM</h2>
+        <p className="method-subtitle">روش با/بدون (With-and-Without Method)</p>
+      </div>
+
+      {/* Input Summary */}
+      <Card title="📥 خلاصه ورودی‌ها" className="input-summary">
+        <div className="input-grid">
+          <div className="input-item">
+            <span>افق پیش‌بینی:</span>
+            <strong>{step3Data.with_fcf_by_year.length} سال</strong>
+          </div>
+          <div className="input-item">
+            <span>دوره Ramp-up:</span>
+            <strong>{step3Data.rampup_period} سال</strong>
+          </div>
+          <div className="input-item">
+            <span>نرخ تنزیل (WACC):</span>
+            <strong>{(step3Data.discount_rate * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>نرخ مالیات:</span>
+            <strong>{(step3Data.tax_rate * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>امضای خبره:</span>
+            <strong>{step3Data.expert_signoff.join(', ')}</strong>
+          </div>
+        </div>
+      </Card>
+
+      {/* Main Calculation Table */}
+      <Card title="📊 جدول محاسبات گام‌به‌گام" className="calculation-table">
+        <Table 
+          dataSource={calculationTable}
+          columns={columns}
+          pagination={false}
+          rowKey="year"
+          size="middle"
+          bordered
+          summary={(data) => {
+            const total = data.reduce((acc, row) => acc + row.adjustedPV, 0);
+            return (
+              <Table.Summary fixed>
+                <Table.Summary.Row>
+                  <Table.Summary.Cell index={0} colSpan={7} align="left">
+                    <strong>جمع ارزش حال (PV)</strong>
+                  </Table.Summary.Cell>
+                  <Table.Summary.Cell index={1} align="right">
+                    <strong>{total.toLocaleString()} IRR</strong>
+                  </Table.Summary.Cell>
+                </Table.Summary.Row>
+              </Table.Summary>
+            );
+          }}
+        />
+      </Card>
+
+      {/* Results Summary */}
+      <div className="results-grid">
+        
+        <Card title="📈 خلاصه جریان‌های نقدی" className="result-card">
+          <div className="result-item">
+            <span>مجموع With FCF:</span>
+            <strong>{summary.totalWithFCF.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>مجموع Without FCF:</span>
+            <strong>{summary.totalWithoutFCF.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>تفاضل کل:</span>
+            <strong>{summary.totalDifferential.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>میانگین تفاضل سالانه:</span>
+            <strong>{summary.avgDifferential.toLocaleString()} IRR</strong>
+          </div>
+        </Card>
+
+        <Card title="🎯 ارزش نهایی" className="result-card highlight">
+          <div className="final-value">
+            <div className="value-number">{totalValue.toLocaleString()} IRR</div>
+            <div className="value-label">ارزش برآوردی</div>
+            <Progress 
+              percent={82} 
+              status="active" 
+              strokeColor="#1890ff"
+              format={() => 'سطح اطمینان: ۸۲%'}
+            />
+          </div>
+        </Card>
+
+      </div>
+
+      {/* Notes */}
+      <Alert
+        message="⚠️ نکات مهم"
+        description={
+          <div>
+            <p>• این روش دارای بالاترین حساسیت (±۶۰%) است - نتایج را با دقت بررسی کنید</p>
+            <p>• سناریوی 'Without' باید توسط پنل خبره تأیید شده باشد</p>
+            <p>• دوره Ramp-up تأثیر مستقیم بر ارزش نهایی دارد</p>
+            <p>• حداقل ۲ امضای خبره برای اعتبارسنجی لازم است</p>
+          </div>
+        }
+        type="warning"
+        showIcon
+        className="notes-alert"
+      />
+
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        <Space>
+          <Button icon={<FileExcelOutlined />}>📥 خروجی Excel</Button>
+          <Button icon={<FilePdfOutlined />}>📥 خروجی PDF</Button>
+          <Button type="primary" onClick={() => goToStep5()}>➡️ ادامه به STEP 5</Button>
+        </Space>
+      </div>
+
+    </div>
+  );
+};
+
+export default M04_WWM_Engine;
+💰 ۲. موتور محاسبه M-05 | RCM (Replacement Cost Method)
+فرمول محاسبه
+text
+Direct Cost = Σ (person_months × monthly_rate) + material_infra_cost
+With Overhead = Direct Cost × (1 + overhead_pct)
+With Profit = With Overhead × (1 + developer_profit_pct)
+After Functional Obs = With Profit × (1 - functional_obs_pct)
+Final Value = After Functional Obs × (1 - economic_obs_pct)
+ساختار داده ورودی (از STEP 3)
+json
+{
+  "labor_breakdown": [
+    { "role": "Developer", "person_months": 24, "monthly_rate": 2000000 },
+    { "role": "Tester", "person_months": 12, "monthly_rate": 1500000 }
+  ],
+  "material_infra_cost": 150000000,
+  "overhead_pct": 0.20,
+  "developer_profit_pct": 0.15,
+  "functional_obs_pct": 0.10,
+  "economic_obs_pct": 0.05
+}
+کد کامل موتور محاسبه
+jsx
+// M-05_RCM_Engine.jsx
+import React, { useState, useEffect } from 'react';
+import { Table, Card, Alert, Button, Space, Progress, Steps } from 'antd';
+import { DownloadOutlined, FilePdfOutlined, FileExcelOutlined } from '@ant-design/icons';
+
+const M05_RCM_Engine = ({ caseId }) => {
+  
+  // ==================== State ====================
+  const [loading, setLoading] = useState(true);
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  // ==================== داده‌های نمونه (از STEP 3) ====================
+  const step3Data = {
+    labor_breakdown: [
+      { role: 'Developer', person_months: 24, monthly_rate: 2000000 },
+      { role: 'Tester', person_months: 12, monthly_rate: 1500000 },
+      { role: 'UI/UX Designer', person_months: 6, monthly_rate: 1800000 }
+    ],
+    material_infra_cost: 150000000,
+    overhead_pct: 0.20,
+    developer_profit_pct: 0.15,
+    functional_obs_pct: 0.10,
+    economic_obs_pct: 0.05,
+    evidence_cost: 'cost_estimation.xlsx',
+    evidence_salary: 'salary_benchmark.pdf'
+  };
+
+  // ==================== موتور محاسبه ====================
+  const calculateRCM = (data) => {
+    const {
+      labor_breakdown,
+      material_infra_cost,
+      overhead_pct,
+      developer_profit_pct,
+      functional_obs_pct,
+      economic_obs_pct
+    } = data;
+
+    // ۱. محاسبه هزینه نیروی کار
+    let totalLaborCost = 0;
+    const laborDetails = labor_breakdown.map(item => {
+      const cost = item.person_months * item.monthly_rate;
+      totalLaborCost += cost;
+      return {
+        ...item,
+        laborCost: cost,
+        laborCostFormatted: cost.toLocaleString()
+      };
+    });
+
+    // ۲. هزینه مستقیم کل
+    const directCost = totalLaborCost + material_infra_cost;
+
+    // ۳. اعمال سربار
+    const withOverhead = directCost * (1 + overhead_pct);
+
+    // ۴. اعمال سود توسعه‌دهنده
+    const withProfit = withOverhead * (1 + developer_profit_pct);
+
+    // ۵. اعمال منسوخی کارکردی
+    const afterFunctionalObs = withProfit * (1 - functional_obs_pct);
+
+    // ۶. اعمال منسوخی اقتصادی
+    const finalValue = afterFunctionalObs * (1 - economic_obs_pct);
+
+    // ۷. محاسبه آبشار محاسباتی (Waterfall)
+    const waterfallSteps = [
+      {
+        step: 1,
+        title: 'هزینه مستقیم نیروی کار',
+        calculation: `Σ (${labor_breakdown.length} نقش) = ${totalLaborCost.toLocaleString()}`,
+        amount: totalLaborCost
+      },
+      {
+        step: 2,
+        title: '+ هزینه مواد/زیرساخت',
+        calculation: `${totalLaborCost.toLocaleString()} + ${material_infra_cost.toLocaleString()}`,
+        amount: directCost
+      },
+      {
+        step: 3,
+        title: `+ سربار (${(overhead_pct * 100)}%)`,
+        calculation: `${directCost.toLocaleString()} × ${(1 + overhead_pct)}`,
+        amount: withOverhead
+      },
+      {
+        step: 4,
+        title: `+ سود توسعه‌دهنده (${(developer_profit_pct * 100)}%)`,
+        calculation: `${withOverhead.toLocaleString()} × ${(1 + developer_profit_pct)}`,
+        amount: withProfit
+      },
+      {
+        step: 5,
+        title: `- منسوخی کارکردی (${(functional_obs_pct * 100)}%)`,
+        calculation: `${withProfit.toLocaleString()} × ${(1 - functional_obs_pct)}`,
+        amount: afterFunctionalObs
+      },
+      {
+        step: 6,
+        title: `- منسوخی اقتصادی (${(economic_obs_pct * 100)}%)`,
+        calculation: `${afterFunctionalObs.toLocaleString()} × ${(1 - economic_obs_pct)}`,
+        amount: finalValue,
+        isFinal: true
+      }
+    ];
+
+    return {
+      totalLaborCost,
+      directCost,
+      withOverhead,
+      withProfit,
+      afterFunctionalObs,
+      finalValue,
+      laborDetails,
+      waterfallSteps,
+      summary: {
+        totalPersonMonths: labor_breakdown.reduce((acc, item) => acc + item.person_months, 0),
+        totalRoles: labor_breakdown.length
+      }
+    };
+  };
+
+  // ==================== useEffect ====================
+  useEffect(() => {
+    try {
+      setLoading(true);
+      const result = calculateRCM(step3Data);
+      setCalculationResult(result);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ==================== Render ====================
+  if (loading) {
+    return <div className="loading">⏳ در حال محاسبه...</div>;
+  }
+
+  if (error) {
+    return <Alert type="error" message="خطا در محاسبه" description={error} />;
+  }
+
+  const {
+    totalLaborCost,
+    directCost,
+    withOverhead,
+    withProfit,
+    afterFunctionalObs,
+    finalValue,
+    laborDetails,
+    waterfallSteps,
+    summary
+  } = calculationResult;
+
+  // ستون‌های جدول نیروی کار
+  const laborColumns = [
+    { title: 'نقش', dataIndex: 'role', key: 'role' },
+    { title: 'نفر-ماه', dataIndex: 'person_months', key: 'person_months' },
+    { title: 'نرخ ماهانه', dataIndex: 'monthly_rate', key: 'monthly_rate', render: (val) => val.toLocaleString() },
+    { title: 'هزینه نیروی کار', dataIndex: 'laborCost', key: 'laborCost', render: (val) => val.toLocaleString() }
+  ];
+
+  // ستون‌های Waterfall
+  const waterfallColumns = [
+    { title: 'مرحله', dataIndex: 'step', key: 'step' },
+    { title: 'شرح', dataIndex: 'title', key: 'title' },
+    { title: 'محاسبه', dataIndex: 'calculation', key: 'calculation' },
+    { 
+      title: 'مقدار (IRR)', 
+      dataIndex: 'amount', 
+      key: 'amount',
+      render: (val, record) => (
+        <strong style={{ color: record.isFinal ? '#52c41a' : 'inherit' }}>
+          {val.toLocaleString()}
+        </strong>
+      )
+    }
+  ];
+
+  return (
+    <div className="calculation-engine m05-rcm">
+      
+      {/* Header */}
+      <div className="engine-header">
+        <h2>💰 STEP 4: موتور محاسبه - RCM</h2>
+        <p className="method-subtitle">روش هزینه جایگزینی (Replacement Cost Method)</p>
+        <div className="badge-container">
+          <span className="badge">⭐ پرکاربردترین روش (۳۵ دارایی)</span>
+          <span className="badge confidence">سطح اطمینان: ۹۱%</span>
+        </div>
+      </div>
+
+      {/* Input Summary */}
+      <Card title="📥 خلاصه ورودی‌ها" className="input-summary">
+        <div className="input-grid">
+          <div className="input-item">
+            <span>تعداد نقش‌ها:</span>
+            <strong>{summary.totalRoles} نقش</strong>
+          </div>
+          <div className="input-item">
+            <span>کل نفر-ماه:</span>
+            <strong>{summary.totalPersonMonths} نفر-ماه</strong>
+          </div>
+          <div className="input-item">
+            <span>سربار:</span>
+            <strong>{(step3Data.overhead_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>سود توسعه‌دهنده:</span>
+            <strong>{(step3Data.developer_profit_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>منسوخی کارکردی:</span>
+            <strong>{(step3Data.functional_obs_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>منسوخی اقتصادی:</span>
+            <strong>{(step3Data.economic_obs_pct * 100)}%</strong>
+          </div>
+        </div>
+      </Card>
+
+      {/* Labor Breakdown Table */}
+      <Card title="👥 جزئیات نیروی کار" className="labor-table">
+        <Table 
+          dataSource={laborDetails}
+          columns={laborColumns}
+          pagination={false}
+          rowKey="role"
+          size="middle"
+          bordered
+          summary={() => (
+            <Table.Summary fixed>
+              <Table.Summary.Row>
+                <Table.Summary.Cell index={0} colSpan={3} align="left">
+                  <strong>جمع کل هزینه نیروی کار</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">
+                  <strong>{totalLaborCost.toLocaleString()} IRR</strong>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          )}
+        />
+        <div className="material-cost">
+          <span>هزینه مواد/زیرساخت:</span>
+          <strong>{step3Data.material_infra_cost.toLocaleString()} IRR</strong>
+        </div>
+      </Card>
+
+      {/* Waterfall Table */}
+      <Card title="📊 جدول آبشار محاسباتی (Waterfall)" className="waterfall-table">
+        <Table 
+          dataSource={waterfallSteps}
+          columns={waterfallColumns}
+          pagination={false}
+          rowKey="step"
+          size="middle"
+          bordered
+          rowClassName={(record) => record.isFinal ? 'final-row' : ''}
+        />
+      </Card>
+
+      {/* Results Summary */}
+      <div className="results-grid">
+        
+        <Card title="📈 خلاصه مراحل محاسبه" className="result-card">
+          <div className="result-item">
+            <span>هزینه مستقیم نیروی کار:</span>
+            <strong>{totalLaborCost.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>هزینه مستقیم کل:</span>
+            <strong>{directCost.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>با سربار (۲۰%):</span>
+            <strong>{withOverhead.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>با سود توسعه‌دهنده (۱۵%):</span>
+            <strong>{withProfit.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>پس از منسوخی کارکردی (۱۰%):</span>
+            <strong>{afterFunctionalObs.toLocaleString()} IRR</strong>
+          </div>
+        </Card>
+
+        <Card title="🎯 ارزش نهایی" className="result-card highlight">
+          <div className="final-value">
+            <div className="value-number">{finalValue.toLocaleString()} IRR</div>
+            <div className="value-label">ارزش برآوردی</div>
+            <Progress 
+              percent={91} 
+              status="active" 
+              strokeColor="#52c41a"
+              format={() => 'سطح اطمینان: ۹۱%'}
+            />
+          </div>
+        </Card>
+
+      </div>
+
+      {/* Notes */}
+      <Alert
+        message="✅ نکات مهم"
+        description={
+          <div>
+            <p>• این روش بالاترین سطح اطمینان (۹۱%) را دارد</p>
+            <p>• منسوخی کارکردی از ارزیابی کیفی (امتیاز ۳.۷۵/۵.۰) محاسبه شده است</p>
+            <p>• هزینه مواد/زیرساخت اختیاری است ولی برای دقت بیشتر توصیه می‌شود</p>
+            <p>• این روش به‌عنوان روش اصلی برای دارایی‌های نرم‌افزاری توصیه می‌شود</p>
+          </div>
+        }
+        type="success"
+        showIcon
+        className="notes-alert"
+      />
+
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        <Space>
+          <Button icon={<FileExcelOutlined />}>📥 خروجی Excel</Button>
+          <Button icon={<FilePdfOutlined />}>📥 خروجی PDF</Button>
+          <Button type="primary" onClick={() => goToStep5()}>➡️ ادامه به STEP 5</Button>
+        </Space>
+      </div>
+
+    </div>
+  );
+};
+
+export default M05_RCM_Engine;
+📄 ۳. موتور محاسبه M-06 | RPCM (Reproduction Cost Method)
+فرمول محاسبه
+text
+Labor Cost = Σ (person_days × daily_rate)
+Direct Cost = Labor Cost + direct_repro_cost
+With Overhead = Direct Cost × (1 + coordination_oh_pct)
+After Relevance Obs = With Overhead × (1 - relevance_obs_pct)
+After Age Factor = After Relevance Obs × (1 - age_factor_pct)
+Final Value = After Age Factor × (1 - physical_obs_pct)  // physical_obs_pct = 0
+ساختار داده ورودی (از STEP 3)
+json
+{
+  "labor_breakdown": [
+    { "role": "نویسنده", "person_days": 30, "daily_rate": 1200000 },
+    { "role": "ویراستار", "person_days": 10, "daily_rate": 1000000 }
+  ],
+  "direct_repro_cost": 80000000,
+  "coordination_oh_pct": 0.12,
+  "relevance_obs_pct": 0.15,
+  "age_factor_pct": 0.067,
+  "physical_obs_pct": 0,
+  "last_review_date": "1404-12-01"
+}
+کد کامل موتور محاسبه
+jsx
+// M-06_RPCM_Engine.jsx
+import React, { useState, useEffect } from 'react';
+import { Table, Card, Alert, Button, Space, Progress, Tag } from 'antd';
+import { DownloadOutlined, FilePdfOutlined, FileExcelOutlined, CalendarOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+
+const M06_RPCM_Engine = ({ caseId }) => {
+  
+  // ==================== State ====================
+  const [loading, setLoading] = useState(true);
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  // ==================== داده‌های نمونه (از STEP 3) ====================
+  const step3Data = {
+    labor_breakdown: [
+      { role: 'نویسنده', person_days: 30, daily_rate: 1200000 },
+      { role: 'ویراستار', person_days: 10, daily_rate: 1000000 },
+      { role: 'طراح گرافیک', person_days: 8, daily_rate: 1500000 }
+    ],
+    direct_repro_cost: 80000000,
+    coordination_oh_pct: 0.12,
+    relevance_obs_pct: 0.15,
+    age_factor_pct: 0.067,
+    physical_obs_pct: 0,
+    last_review_date: '1404-12-01',
+    evidence_labor: 'project_plan.pdf',
+    evidence_workshop: 'workshop_evidence.pdf'
+  };
+
+  // ==================== موتور محاسبه ====================
+  const calculateRPCM = (data) => {
+    const {
+      labor_breakdown,
+      direct_repro_cost,
+      coordination_oh_pct,
+      relevance_obs_pct,
+      age_factor_pct,
+      physical_obs_pct,
+      last_review_date
+    } = data;
+
+    // ۱. محاسبه هزینه نیروی کار
+    let totalLaborCost = 0;
+    const laborDetails = labor_breakdown.map(item => {
+      const cost = item.person_days * item.daily_rate;
+      totalLaborCost += cost;
+      return {
+        ...item,
+        laborCost: cost,
+        laborCostFormatted: cost.toLocaleString()
+      };
+    });
+
+    // ۲. هزینه مستقیم کل
+    const directCost = totalLaborCost + direct_repro_cost;
+
+    // ۳. اعمال سربار هماهنگی
+    const withOverhead = directCost * (1 + coordination_oh_pct);
+
+    // ۴. اعمال منسوخی محتوایی
+    const afterRelevanceObs = withOverhead * (1 - relevance_obs_pct);
+
+    // ۵. اعمال عامل سن
+    const afterAgeFactor = afterRelevanceObs * (1 - age_factor_pct);
+
+    // ۶. اعمال منسوخی فیزیکی (همیشه ۰ برای اسناد)
+    const finalValue = afterAgeFactor * (1 - physical_obs_pct);
+
+    // ۷. محاسبه سن سند
+    const reviewDate = dayjs(last_review_date, 'YYYY-MM-DD');
+    const now = dayjs();
+    const yearsDiff = now.diff(reviewDate, 'year', true);
+    const monthsDiff = now.diff(reviewDate, 'month', true);
+
+    // ۸. محاسبه آبشار محاسباتی (Waterfall)
+    const waterfallSteps = [
+      {
+        step: 1,
+        title: 'هزینه مستقیم نیروی کار',
+        calculation: `Σ (${labor_breakdown.length} نقش) = ${totalLaborCost.toLocaleString()}`,
+        amount: totalLaborCost,
+        color: '#1890ff'
+      },
+      {
+        step: 2,
+        title: '+ هزینه مستقیم بازتولید',
+        calculation: `${totalLaborCost.toLocaleString()} + ${direct_repro_cost.toLocaleString()}`,
+        amount: directCost,
+        color: '#1890ff'
+      },
+      {
+        step: 3,
+        title: `+ سربار هماهنگی (${(coordination_oh_pct * 100)}%)`,
+        calculation: `${directCost.toLocaleString()} × ${(1 + coordination_oh_pct)}`,
+        amount: withOverhead,
+        color: '#1890ff'
+      },
+      {
+        step: 4,
+        title: `- منسوخی محتوایی (${(relevance_obs_pct * 100)}%)`,
+        calculation: `${withOverhead.toLocaleString()} × ${(1 - relevance_obs_pct)}`,
+        amount: afterRelevanceObs,
+        color: '#faad14'
+      },
+      {
+        step: 5,
+        title: `- عامل سن (${(age_factor_pct * 100)}%)`,
+        calculation: `${afterRelevanceObs.toLocaleString()} × ${(1 - age_factor_pct)}`,
+        amount: afterAgeFactor,
+        color: '#faad14'
+      },
+      {
+        step: 6,
+        title: `- منسوخی فیزیکی (${(physical_obs_pct * 100)}%)`,
+        calculation: `${afterAgeFactor.toLocaleString()} × ${(1 - physical_obs_pct)}`,
+        amount: finalValue,
+        color: '#52c41a',
+        isFinal: true
+      }
+    ];
+
+    return {
+      totalLaborCost,
+      directCost,
+      withOverhead,
+      afterRelevanceObs,
+      afterAgeFactor,
+      finalValue,
+      laborDetails,
+      waterfallSteps,
+      summary: {
+        totalPersonDays: labor_breakdown.reduce((acc, item) => acc + item.person_days, 0),
+        totalRoles: labor_breakdown.length,
+        yearsSinceReview: yearsDiff,
+        monthsSinceReview: monthsDiff,
+        reviewDate: last_review_date
+      }
+    };
+  };
+
+  // ==================== useEffect ====================
+  useEffect(() => {
+    try {
+      setLoading(true);
+      const result = calculateRPCM(step3Data);
+      setCalculationResult(result);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ==================== Render ====================
+  if (loading) {
+    return <div className="loading">⏳ در حال محاسبه...</div>;
+  }
+
+  if (error) {
+    return <Alert type="error" message="خطا در محاسبه" description={error} />;
+  }
+
+  const {
+    totalLaborCost,
+    directCost,
+    withOverhead,
+    afterRelevanceObs,
+    afterAgeFactor,
+    finalValue,
+    laborDetails,
+    waterfallSteps,
+    summary
+  } = calculationResult;
+
+  // ستون‌های جدول نیروی کار
+  const laborColumns = [
+    { title: 'نقش', dataIndex: 'role', key: 'role' },
+    { title: 'نفر-روز', dataIndex: 'person_days', key: 'person_days' },
+    { title: 'نرخ روزانه', dataIndex: 'daily_rate', key: 'daily_rate', render: (val) => val.toLocaleString() },
+    { title: 'هزینه نیروی کار', dataIndex: 'laborCost', key: 'laborCost', render: (val) => val.toLocaleString() }
+  ];
+
+  // ستون‌های Waterfall
+  const waterfallColumns = [
+    { title: 'مرحله', dataIndex: 'step', key: 'step' },
+    { title: 'شرح', dataIndex: 'title', key: 'title' },
+    { title: 'محاسبه', dataIndex: 'calculation', key: 'calculation' },
+    { 
+      title: 'مقدار (IRR)', 
+      dataIndex: 'amount', 
+      key: 'amount',
+      render: (val, record) => (
+        <strong style={{ color: record.isFinal ? '#52c41a' : record.color }}>
+          {val.toLocaleString()}
+        </strong>
+      )
+    }
+  ];
+
+  return (
+    <div className="calculation-engine m06-rpcm">
+      
+      {/* Header */}
+      <div className="engine-header">
+        <h2>📄 STEP 4: موتور محاسبه - RPCM</h2>
+        <p className="method-subtitle">روش هزینه بازتولید (Reproduction Cost Method)</p>
+        <div className="badge-container">
+          <span className="badge">📋 مناسب برای ۲۲ دارایی (اسناد)</span>
+          <span className="badge confidence">سطح اطمینان: ۹۰%</span>
+        </div>
+      </div>
+
+      {/* Input Summary */}
+      <Card title="📥 خلاصه ورودی‌ها" className="input-summary">
+        <div className="input-grid">
+          <div className="input-item">
+            <span>تعداد نقش‌ها:</span>
+            <strong>{summary.totalRoles} نقش</strong>
+          </div>
+          <div className="input-item">
+            <span>کل نفر-روز:</span>
+            <strong>{summary.totalPersonDays} نفر-روز</strong>
+          </div>
+          <div className="input-item">
+            <span>سربار هماهنگی:</span>
+            <strong>{(step3Data.coordination_oh_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>منسوخی محتوایی:</span>
+            <strong>{(step3Data.relevance_obs_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>عامل سن:</span>
+            <strong>{(step3Data.age_factor_pct * 100)}%</strong>
+          </div>
+          <div className="input-item">
+            <span>منسوخی فیزیکی:</span>
+            <strong>{step3Data.physical_obs_pct * 100}%</strong>
+          </div>
+        </div>
+      </Card>
+
+      {/* Document Age Info */}
+      <Card 
+        title="📅 اطلاعات سن سند" 
+        className="age-info"
+        extra={<Tag icon={<CalendarOutlined />} color="blue">{summary.reviewDate}</Tag>}
+      >
+        <div className="age-grid">
+          <div className="age-item">
+            <span>تاریخ آخرین بازنگری:</span>
+            <strong>{summary.reviewDate}</strong>
+          </div>
+          <div className="age-item">
+            <span>سن سند:</span>
+            <strong>{summary.monthsSinceReview.toFixed(0)} ماه</strong>
+          </div>
+          <div className="age-item">
+            <span>معادل سال:</span>
+            <strong>{summary.yearsSinceReview.toFixed(1)} سال</strong>
+          </div>
+          <div className="age-item highlight">
+            <span>عامل سن محاسبه‌شده:</span>
+            <strong>{(step3Data.age_factor_pct * 100)}%</strong>
+          </div>
+        </div>
+      </Card>
+
+      {/* Labor Breakdown Table */}
+      <Card title="👥 جزئیات نیروی کار" className="labor-table">
+        <Table 
+          dataSource={laborDetails}
+          columns={laborColumns}
+          pagination={false}
+          rowKey="role"
+          size="middle"
+          bordered
+          summary={() => (
+            <Table.Summary fixed>
+              <Table.Summary.Row>
+                <Table.Summary.Cell index={0} colSpan={3} align="left">
+                  <strong>جمع کل هزینه نیروی کار</strong>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} align="right">
+                  <strong>{totalLaborCost.toLocaleString()} IRR</strong>
+                </Table.Summary.Cell>
+              </Table.Summary.Row>
+            </Table.Summary>
+          )}
+        />
+        <div className="direct-cost">
+          <span>هزینه مستقیم بازتولید:</span>
+          <strong>{step3Data.direct_repro_cost.toLocaleString()} IRR</strong>
+        </div>
+      </Card>
+
+      {/* Waterfall Table */}
+      <Card title="📊 جدول آبشار محاسباتی (Waterfall)" className="waterfall-table">
+        <Table 
+          dataSource={waterfallSteps}
+          columns={waterfallColumns}
+          pagination={false}
+          rowKey="step"
+          size="middle"
+          bordered
+          rowClassName={(record) => record.isFinal ? 'final-row' : ''}
+        />
+      </Card>
+
+      {/* Results Summary */}
+      <div className="results-grid">
+        
+        <Card title="📈 خلاصه مراحل محاسبه" className="result-card">
+          <div className="result-item">
+            <span>هزینه مستقیم نیروی کار:</span>
+            <strong>{totalLaborCost.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>هزینه مستقیم کل:</span>
+            <strong>{directCost.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>با سربار هماهنگی (۱۲%):</span>
+            <strong>{withOverhead.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>پس از منسوخی محتوایی (۱۵%):</span>
+            <strong>{afterRelevanceObs.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>پس از عامل سن (۶.۷%):</span>
+            <strong>{afterAgeFactor.toLocaleString()} IRR</strong>
+          </div>
+          <div className="result-item">
+            <span>منسوخی فیزیکی:</span>
+            <strong>{(step3Data.physical_obs_pct * 100)}% (ثابت برای اسناد)</strong>
+          </div>
+        </Card>
+
+        <Card title="🎯 ارزش نهایی" className="result-card highlight">
+          <div className="final-value">
+            <div className="value-number">{finalValue.toLocaleString()} IRR</div>
+            <div className="value-label">ارزش برآوردی</div>
+            <Progress 
+              percent={90} 
+              status="active" 
+              strokeColor="#52c41a"
+              format={() => 'سطح اطمینان: ۹۰%'}
+            />
+          </div>
+        </Card>
+
+      </div>
+
+      {/* Notes */}
+      <Alert
+        message="✅ نکات مهم"
+        description={
+          <div>
+            <p>• منسوخی محتوایی از ارزیابی کیفی محاسبه می‌شود (امتیاز ۳.۷۵/۵.۰)</p>
+            <p>• عامل سن از تاریخ آخرین بازنگری محاسبه می‌شود (هر سال ۱.۳۳% منسوخی)</p>
+            <p>• منسوخی فیزیکی برای اسناد همیشه ۰% در نظر گرفته می‌شود</p>
+            <p>• این روش برای اسناد، آیین‌نامه‌ها و دستورالعمل‌ها استفاده می‌شود</p>
+          </div>
+        }
+        type="info"
+        showIcon
+        className="notes-alert"
+      />
+
+      {/* Action Buttons */}
+      <div className="action-buttons">
+        <Space>
+          <Button icon={<FileExcelOutlined />}>📥 خروجی Excel</Button>
+          <Button icon={<FilePdfOutlined />}>📥 خروجی PDF</Button>
+          <Button type="primary" onClick={() => goToStep5()}>➡️ ادامه به STEP 5</Button>
+        </Space>
+      </div>
+
+    </div>
+  );
+};
+
+export default M06_RPCM_Engine;
+📊 خلاصه خروجی STEP 4 برای ۳ روش
+روش	ارزش نمونه	سطح اطمینان	محدوده تغییرات
+M-04 WWM	۴۸.۹ میلیون IRR	۸۲%	-۴۹.۷% / +۶۰.۳%
+M-05 RCM	۱,۰۰۳.۹ میلیون IRR	۹۱%	-۲۸.۵% / +۲۱.۱%
+M-06 RPCM	۴۲۶ میلیون IRR	۹۰%	-۱۸.۳% / +۲۰.۰%
+🗄️ ساختار دیتابیس STEP 4
+sql
+-- جدول نتایج STEP 4
+CREATE TABLE valuation_step4_results (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    case_id VARCHAR(20) NOT NULL UNIQUE,
+    method_id VARCHAR(5) NOT NULL,
+    
+    -- نتیجه نهایی
+    final_value DECIMAL(20,2) NOT NULL,
+    confidence_level DECIMAL(5,4) DEFAULT 0,
+    qc_score INT DEFAULT 0,
+    
+    -- اطلاعات محاسبه (JSON)
+    calculation_details JSON NOT NULL,  -- شامل waterfall, جدول محاسبات, summary
+    
+    -- وضعیت
+    step4_status ENUM('DRAFT', 'CALCULATED', 'APPROVED') DEFAULT 'DRAFT',
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (case_id) REFERENCES valuation_cases(case_id)
+);
+🎯 جمع‌بندی STEP 4
+#	مورد	توضیح
+۱	ورودی	داده‌های STEP 3 (کاربر قبلاً وارد کرده)
+۲	محاسبه	سیستم با فرمول‌های اختصاصی روش محاسبه می‌کند
+۳	خروجی	ارزش نهایی + جدول Waterfall + خلاصه
+۴	کاربر	فقط نتیجه را می‌بیند و خروجی می‌گیرد
