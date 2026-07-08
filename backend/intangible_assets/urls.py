@@ -34,3 +34,8 @@ urlpatterns = [
     # 🔥 API جدید برای تشخیص AssetType
     path('detect-asset-type/<str:asset_uid>/', DetectAssetTypeView.as_view(), name='detect_asset_type'),
 ]
+
+from .valuation_case_views import ValuationCaseViewSet
+
+# ثبت ValuationCase در router
+router.register(r'valuation-cases', ValuationCaseViewSet, basename='valuation-case')

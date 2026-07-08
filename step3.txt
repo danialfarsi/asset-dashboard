@@ -1,0 +1,970 @@
+سلام تیم توسعه!
+
+این مستندات کامل STEP 3 هست که می‌تونید بر اساسش کد بزنید. تمام اطلاعات مورد نیاز برای پیاده‌سازی رو براتون آماده کردم.
+
+🎯 خلاصه STEP 3
+کاربر بعد از STEP 2، باید فیلدهای اختصاصی روش ارزش‌گذاری رو پر کنه.
+هر روش ۹ تا، پنل مخصوص به خودش رو داره.
+
+🏗️ معماری کلی (Frontend - React/Vue)
+jsx
+// App.jsx یا Main Component
+const Step3Container = ({ methodId, caseId, assetId }) => {
+  
+  // بر اساس methodId، پنل مناسب رو رندر کن
+  const renderMethodPanel = () => {
+    switch(methodId) {
+      case 'M-01': return <M01_RfR caseId={caseId} assetId={assetId} />;
+      case 'M-02': return <M02_MEEM caseId={caseId} assetId={assetId} />;
+      case 'M-03': return <M03_DCF caseId={caseId} assetId={assetId} />;
+      case 'M-04': return <M04_WWM caseId={caseId} assetId={assetId} />;
+      case 'M-05': return <M05_RCM caseId={caseId} assetId={assetId} />;
+      case 'M-06': return <M06_RPCM caseId={caseId} assetId={assetId} />;
+      case 'M-07': return <M07_TWC caseId={caseId} assetId={assetId} />;
+      case 'M-08': return <M08_CTM caseId={caseId} assetId={assetId} />;
+      case 'M-09': return <M09_MMM caseId={caseId} assetId={assetId} />;
+      default: return <div>روش نامعتبر</div>;
+    }
+  };
+
+  return (
+    <div className="step3-container">
+      {/* هدر مشترک */}
+      <StepHeader step={3} caseId={caseId} methodId={methodId} />
+      
+      {/* بدنه - پنل اختصاصی روش */}
+      <div className="method-panel">
+        {renderMethodPanel()}
+      </div>
+      
+      {/* فوتر مشترک */}
+      <StepFooter onBack={() => goToStep2()} onContinue={() => goToStep4()} />
+    </div>
+  );
+};
+📋 ۱. پنل M-01 | RfR (Relief-from-Royalty)
+مناسب برای: برندها، علائم تجاری، IPهای قابل لیسانس
+
+jsx
+// M-01_RfR.jsx
+import React, { useState, useEffect } from 'react';
+import { Input, Button, Table, Upload, Tooltip, Alert } from 'antd';
+
+const M01_RfR = ({ caseId, assetId, onValidate, onSave }) => {
+  // state
+  const [formData, setFormData] = useState({
+    royalty_rate: null,           // 0.5% - 10%
+    revenue_attribution: null,    // 0% - 100%
+    revenue_growth_rate: null,    // -10% - 30%
+    forecast_horizon: 5,          // از STEP 2 میاد (3-10)
+    discount_rate: 18,            // از STEP 2 میاد (10%-35%)
+    tax_rate: 25,                 // از STEP 2 میاد (0%-50%)
+    terminal_growth_rate: 5,      // از STEP 2 میاد (x < discount_rate)
+    quality_multiplier: null,     // 0.5 - 1.0 (از ارزیابی کیفی)
+    evidence_benchmark: null,     // فایل آپلودی
+    evidence_revenue: null        // فایل آپلودی
+  });
+
+  const [validation, setValidation] = useState({
+    errors: [],
+    warnings: [],
+    isValid: false
+  });
+
+  // validation rules
+  const validateField = (field, value) => {
+    const rules = {
+      royalty_rate: { min: 0.005, max: 0.10, message: 'نرخ حق‌امتیاز باید بین 0.5% تا 10% باشد' },
+      revenue_attribution: { min: 0, max: 1, message: 'سهم درآمد باید بین 0% تا 100% باشد' },
+      revenue_growth_rate: { min: -0.10, max: 0.30, message: 'نرخ رشد باید بین -10% تا 30% باشد' },
+      forecast_horizon: { min: 3, max: 10, message: 'افق پیش‌بینی باید بین 3 تا 10 سال باشد' },
+      discount_rate: { min: 0.10, max: 0.35, message: 'نرخ تنزیل باید بین 10% تا 35% باشد' },
+      tax_rate: { min: 0, max: 0.50, message: 'نرخ مالیات باید بین 0% تا 50% باشد' },
+      terminal_growth_rate: { 
+        custom: (val) => val < formData.discount_rate, 
+        message: 'نرخ رشد پایانی باید کمتر از نرخ تنزیل باشد' 
+      },
+      quality_multiplier: { min: 0.5, max: 1.0, message: 'ضریب کیفیت باید بین 0.5 تا 1.0 باشد' }
+    };
+    
+    const rule = rules[field];
+    if (!rule) return true;
+    
+    if (rule.custom) return rule.custom(value);
+    if (value < rule.min || value > rule.max) return false;
+    return true;
+  };
+
+  // handle change
+  const handleChange = (field, value) => {
+    const newData = { ...formData, [field]: value };
+    setFormData(newData);
+    
+    // validate on change
+    const isValid = validateField(field, value);
+    if (!isValid) {
+      setValidation(prev => ({
+        ...prev,
+        errors: [...prev.errors, { field, message: rules[field].message }]
+      }));
+    }
+  };
+
+  // render
+  return (
+    <div className="method-panel m01-rfr">
+      <h2>M-01: روش رهایی از حق امتیاز (RfR)</h2>
+      <p className="method-description">
+        این روش برای ارزش‌گذاری برندها، علائم تجاری و IPهای قابل لیسانس استفاده می‌شود.
+      </p>
+
+      <div className="form-grid">
+        {/* 1. Royalty Rate */}
+        <div className="form-group">
+          <label>
+            ۱. نرخ حق‌امتیاز (Royalty Rate)
+            <Tooltip title="نرخ حق‌امتیاز بازار برای صنعت مربوطه">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.1"
+            suffix="%"
+            value={formData.royalty_rate * 100}
+            onChange={(e) => handleChange('royalty_rate', e.target.value / 100)}
+            placeholder="مثلاً 4.0"
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۰.۵% - ۱۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+
+        {/* 2. Revenue Attribution */}
+        <div className="form-group">
+          <label>
+            ۲. سهم درآمد منتسب (Revenue Attribution)
+            <Tooltip title="سهم درآمدی که به این دارایی منتسب می‌شود">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="1"
+            suffix="%"
+            value={formData.revenue_attribution * 100}
+            onChange={(e) => handleChange('revenue_attribution', e.target.value / 100)}
+            placeholder="مثلاً 80"
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۰% - ۱۰۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+          <Button className="explain-btn" size="small">📝 توضیح مبنا</Button>
+        </div>
+
+        {/* 3. Revenue Growth Rate */}
+        <div className="form-group">
+          <label>
+            ۳. نرخ رشد درآمد (Revenue Growth Rate)
+            <Tooltip title="نرخ رشد سالانه درآمد پیش‌بینی شده">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.1"
+            suffix="%"
+            value={formData.revenue_growth_rate * 100}
+            onChange={(e) => handleChange('revenue_growth_rate', e.target.value / 100)}
+            placeholder="مثلاً 8.0"
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: -۱۰% - ۳۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+
+        {/* 4. Forecast Horizon (از STEP 2) */}
+        <div className="form-group readonly">
+          <label>
+            ۴. افق پیش‌بینی (Forecast Horizon)
+            <Tooltip title="از STEP 2 وارد شده است">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="text"
+            value={`${formData.forecast_horizon} سال`}
+            disabled
+            className="readonly-input"
+          />
+          <span className="from-step2">📥 از STEP 2</span>
+        </div>
+
+        {/* 5. Discount Rate (از STEP 2) */}
+        <div className="form-group readonly">
+          <label>
+            ۵. نرخ تنزیل (WACC)
+            <Tooltip title="از STEP 2 وارد شده است">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="text"
+            value={`${formData.discount_rate}%`}
+            disabled
+            className="readonly-input"
+          />
+          <span className="from-step2">📥 از STEP 2</span>
+        </div>
+
+        {/* 6. Tax Rate (از STEP 2) */}
+        <div className="form-group readonly">
+          <label>
+            ۶. نرخ مالیات (Tax Rate)
+            <Tooltip title="از STEP 2 وارد شده است">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="text"
+            value={`${formData.tax_rate}%`}
+            disabled
+            className="readonly-input"
+          />
+          <span className="from-step2">📥 از STEP 2</span>
+        </div>
+
+        {/* 7. Terminal Growth Rate (از STEP 2) */}
+        <div className="form-group readonly">
+          <label>
+            ۷. نرخ رشد پایانی (Terminal Growth)
+            <Tooltip title="از STEP 2 وارد شده است">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="text"
+            value={`${formData.terminal_growth_rate}%`}
+            disabled
+            className="readonly-input"
+          />
+          <span className="from-step2">📥 از STEP 2</span>
+          <span className="condition">شرط: g &lt; WACC ✅</span>
+        </div>
+
+        {/* 8. Quality Multiplier */}
+        <div className="form-group">
+          <label>
+            ۸. ضریب کیفیت (Quality Multiplier)
+            <Tooltip title="از موتور ارزیابی کیفی محاسبه می‌شود">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.01"
+            value={formData.quality_multiplier}
+            onChange={(e) => handleChange('quality_multiplier', parseFloat(e.target.value))}
+            placeholder="مثلاً 0.92"
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۰.۵ - ۱.۰</span>
+            <span className="auto-badge">🤖 خودکار از ارزیابی کیفی</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence Section */}
+      <div className="evidence-section">
+        <h4>📎 شواهد و مدارک</h4>
+        <div className="evidence-grid">
+          <div className="evidence-item">
+            <label>گزارش معیار حق‌امتیاز (Benchmark Report)</label>
+            <Upload>
+              <Button>📤 آپلود فایل</Button>
+            </Upload>
+            {formData.evidence_benchmark && (
+              <span className="uploaded">✅ benchmark_v2.pdf</span>
+            )}
+            <span className="required">* الزامی</span>
+          </div>
+          <div className="evidence-item">
+            <label>فایل درآمد (Revenue File)</label>
+            <Upload>
+              <Button>📤 آپلود فایل</Button>
+            </Upload>
+            {formData.evidence_revenue && (
+              <span className="uploaded">✅ revenue_forecast.xlsx</span>
+            )}
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Validation Status */}
+      <div className="validation-status">
+        <Alert
+          message="وضعیت اعتبارسنجی"
+          description={
+            <div>
+              <div>✅ همه فیلدهای اجباری پر شده‌اند</div>
+              <div>✅ همه مقادیر در محدوده مجاز هستند</div>
+              <div>⚠️ ۰ هشدار | ❌ ۰ خطا</div>
+            </div>
+          }
+          type="success"
+          showIcon
+        />
+      </div>
+
+      {/* Buttons */}
+      <div className="action-buttons">
+        <Button onClick={() => onSave()}>💾 ذخیره پیش‌نویس</Button>
+        <Button onClick={() => onValidate()}>✅ اعتبارسنجی</Button>
+        <Button type="primary" onClick={() => goToStep4()}>➡️ ادامه به STEP 4</Button>
+      </div>
+    </div>
+  );
+};
+
+export default M01_RfR;
+📋 ۲. پنل M-05 | RCM (Replacement Cost Method)
+مناسب برای: نرم‌افزارها، سیستم‌ها، فرآیندهای قابل جایگزینی (پرکاربردترین)
+
+jsx
+// M-05_RCM.jsx
+import React, { useState } from 'react';
+import { Input, Button, Table, Upload, Tooltip, Alert } from 'antd';
+
+const M05_RCM = ({ caseId, assetId, onValidate, onSave }) => {
+  const [formData, setFormData] = useState({
+    labor_breakdown: [
+      { id: 1, role: 'Developer', person_months: 24, monthly_rate: 2000000, overhead_pct: 20 },
+      { id: 2, role: 'Tester', person_months: 12, monthly_rate: 1500000, overhead_pct: 20 }
+    ],
+    material_infra_cost: 150000000,
+    overhead_pct: 20,
+    developer_profit_pct: 15,
+    functional_obs_pct: 10,      // از ارزیابی کیفی
+    economic_obs_pct: 5,
+    evidence_cost: null,
+    evidence_salary: null
+  });
+
+  // اضافه کردن ردیف جدید به جدول نیروی کار
+  const addLaborRow = () => {
+    const newRow = {
+      id: Date.now(),
+      role: '',
+      person_months: 0,
+      monthly_rate: 0,
+      overhead_pct: formData.overhead_pct
+    };
+    setFormData(prev => ({
+      ...prev,
+      labor_breakdown: [...prev.labor_breakdown, newRow]
+    }));
+  };
+
+  // حذف ردیف
+  const removeLaborRow = (id) => {
+    if (formData.labor_breakdown.length <= 1) {
+      alert('حداقل یک ردیف باید وجود داشته باشد');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      labor_breakdown: prev.labor_breakdown.filter(row => row.id !== id)
+    }));
+  };
+
+  // آپدیت سلول جدول
+  const updateLaborRow = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      labor_breakdown: prev.labor_breakdown.map(row => 
+        row.id === id ? { ...row, [field]: value } : row
+      )
+    }));
+  };
+
+  // ستون‌های جدول
+  const laborColumns = [
+    { title: 'نقش', dataIndex: 'role', key: 'role' },
+    { title: 'نفر-ماه', dataIndex: 'person_months', key: 'person_months' },
+    { title: 'نرخ ماهانه (IRR)', dataIndex: 'monthly_rate', key: 'monthly_rate' },
+    { title: 'سربار (%)', dataIndex: 'overhead_pct', key: 'overhead_pct' },
+    { title: 'عملیات', key: 'actions' }
+  ];
+
+  // محاسبه خودکار هزینه کل
+  const calculateTotalCost = () => {
+    let total = 0;
+    formData.labor_breakdown.forEach(row => {
+      const laborCost = row.person_months * row.monthly_rate;
+      const withOverhead = laborCost * (1 + row.overhead_pct / 100);
+      total += withOverhead;
+    });
+    total += formData.material_infra_cost || 0;
+    return total;
+  };
+
+  return (
+    <div className="method-panel m05-rcm">
+      <h2>M-05: روش هزینه جایگزینی (RCM)</h2>
+      <p className="method-description">
+        این روش برای ارزش‌گذاری نرم‌افزارها، سیستم‌ها و فرآیندهای قابل جایگزینی استفاده می‌شود.
+        <span className="badge">⭐ پرکاربردترین روش (۳۵ دارایی)</span>
+      </p>
+
+      <div className="form-grid">
+        {/* 1. Labor Breakdown Table */}
+        <div className="form-group full-width">
+          <label>
+            ۱. جدول نیروی کار (Labor Breakdown)
+            <Tooltip title="نیروی کار مورد نیاز برای بازسازی دارایی">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Table 
+            dataSource={formData.labor_breakdown}
+            columns={laborColumns}
+            pagination={false}
+            size="small"
+          />
+          <Button onClick={addLaborRow} type="dashed">➕ افزودن ردیف</Button>
+          <div className="field-meta">
+            <span className="required">* حداقل ۱ ردیف الزامی</span>
+          </div>
+        </div>
+
+        {/* 2. Material/Infra Cost */}
+        <div className="form-group">
+          <label>
+            ۲. هزینه مواد/زیرساخت (Material/Infra Cost)
+            <Tooltip title="هزینه مواد و زیرساخت مورد نیاز">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            suffix="IRR"
+            value={formData.material_infra_cost}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              material_infra_cost: parseFloat(e.target.value) 
+            }))}
+            placeholder="مثلاً 150,000,000"
+          />
+          <span className="optional">اختیاری</span>
+        </div>
+
+        {/* 3. Overhead */}
+        <div className="form-group">
+          <label>
+            ۳. سربار (Overhead)
+            <Tooltip title="درصد سربار بر هزینه مستقیم">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.overhead_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              overhead_pct: parseFloat(e.target.value) 
+            }))}
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۲۰% - ۵۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+
+        {/* 4. Developer Profit */}
+        <div className="form-group">
+          <label>
+            ۴. سود توسعه‌دهنده (Developer Profit)
+            <Tooltip title="سود مورد انتظار توسعه‌دهنده">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.developer_profit_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              developer_profit_pct: parseFloat(e.target.value) 
+            }))}
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۱۰% - ۳۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+
+        {/* 5. Functional Obsolescence */}
+        <div className="form-group">
+          <label>
+            ۵. منسوخی کارکردی (Functional Obsolescence)
+            <Tooltip title="از ارزیابی کیفی محاسبه می‌شود">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.functional_obs_pct}
+            disabled
+            className="readonly-input"
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۰% - ۶۰%</span>
+            <span className="auto-badge">🤖 خودکار از ارزیابی کیفی</span>
+          </div>
+        </div>
+
+        {/* 6. Economic Obsolescence */}
+        <div className="form-group">
+          <label>
+            ۶. منسوخی اقتصادی (Economic Obsolescence)
+            <Tooltip title="منسوخی ناشی از عوامل اقتصادی">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.economic_obs_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              economic_obs_pct: parseFloat(e.target.value) 
+            }))}
+          />
+          <div className="field-meta">
+            <span className="range">محدوده: ۰% - ۴۰%</span>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary Card */}
+      <div className="summary-card">
+        <h4>📊 خلاصه محاسبه</h4>
+        <div className="summary-grid">
+          <div className="summary-item">
+            <span>هزینه مستقیم نیروی کار:</span>
+            <strong>{calculateTotalCost().toLocaleString()} IRR</strong>
+          </div>
+          <div className="summary-item">
+            <span>با سربار ({formData.overhead_pct}%):</span>
+            <strong>{(calculateTotalCost() * (1 + formData.overhead_pct/100)).toLocaleString()} IRR</strong>
+          </div>
+          <div className="summary-item">
+            <span>با سود توسعه‌دهنده ({formData.developer_profit_pct}%):</span>
+            <strong>{(calculateTotalCost() * (1 + formData.overhead_pct/100) * (1 + formData.developer_profit_pct/100)).toLocaleString()} IRR</strong>
+          </div>
+          <div className="summary-item highlight">
+            <span>ارزش نهایی (پس از منسوخی):</span>
+            <strong>{(calculateTotalCost() * (1 + formData.overhead_pct/100) * (1 + formData.developer_profit_pct/100) * (1 - formData.functional_obs_pct/100) * (1 - formData.economic_obs_pct/100)).toLocaleString()} IRR</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence */}
+      <div className="evidence-section">
+        <h4>📎 شواهد و مدارک</h4>
+        <div className="evidence-grid">
+          <div className="evidence-item">
+            <label>برآورد هزینه (Cost Estimation)</label>
+            <Upload>
+              <Button>📤 آپلود فایل</Button>
+            </Upload>
+            <span className="required">* الزامی</span>
+          </div>
+          <div className="evidence-item">
+            <label>نرخ‌نامه دستمزد (Salary Benchmark)</label>
+            <Upload>
+              <Button>📤 آپلود فایل</Button>
+            </Upload>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Validation Status */}
+      <div className="validation-status">
+        <Alert
+          message="✅ همه فیلدهای اجباری پر شده‌اند"
+          type="success"
+          showIcon
+        />
+      </div>
+    </div>
+  );
+};
+
+export default M05_RCM;
+📋 ۳. پنل M-08 | CTM (Comparable Transactions Method)
+مناسب برای: دارایی‌هایی با معاملات مشابه در بازار
+
+jsx
+// M-08_CTM.jsx
+import React, { useState } from 'react';
+import { Input, Button, Table, Upload, Tooltip, Alert } from 'antd';
+
+const M08_CTM = ({ caseId, assetId, onValidate, onSave }) => {
+  const [formData, setFormData] = useState({
+    comparable_deals: [
+      { id: 1, deal_name: 'Deal A', deal_date: '1403-01-15', deal_value: 110000000, deal_size: 1.2 },
+      { id: 2, deal_name: 'Deal B', deal_date: '1403-06-20', deal_value: 120000000, deal_size: 1.5 },
+      { id: 3, deal_name: 'Deal C', deal_date: '1404-02-10', deal_value: 130000000, deal_size: 1.3 }
+    ],
+    time_adjustment_pct: 3.0,
+    geo_adjustment_pct: 2.0,
+    quality_adjustment_pct: 0.0,
+    evidence_deals: null,
+    evidence_market: null
+  });
+
+  // محاسبه خودکار مجموع تعدیل‌ها
+  const calculateTotalAdjustment = () => {
+    return formData.time_adjustment_pct + formData.geo_adjustment_pct + formData.quality_adjustment_pct;
+  };
+
+  // محاسبه میانگین ارزش معاملات
+  const calculateAverageDealValue = () => {
+    if (formData.comparable_deals.length === 0) return 0;
+    const sum = formData.comparable_deals.reduce((acc, deal) => acc + deal.deal_value, 0);
+    return sum / formData.comparable_deals.length;
+  };
+
+  // محاسبه ارزش نهایی
+  const calculateFinalValue = () => {
+    const avg = calculateAverageDealValue();
+    const adjustment = 1 + (calculateTotalAdjustment() / 100);
+    return avg * adjustment;
+  };
+
+  return (
+    <div className="method-panel m08-ctm">
+      <h2>M-08: روش معاملات مشابه (CTM)</h2>
+      <p className="method-description">
+        این روش برای دارایی‌هایی که معاملات مشابه در بازار دارند استفاده می‌شود.
+      </p>
+
+      <div className="form-grid">
+        {/* 1. Comparable Deals Table */}
+        <div className="form-group full-width">
+          <label>
+            ۱. لیست معاملات مشابه (Comparable Deals)
+            <Tooltip title="حداقل ۳ معامله مشابه باید وارد شود">
+              <span className="info-icon">ⓘ</span>
+            </Tooltip>
+          </label>
+          <Table 
+            dataSource={formData.comparable_deals}
+            columns={[
+              { title: 'نام معامله', dataIndex: 'deal_name' },
+              { title: 'تاریخ', dataIndex: 'deal_date' },
+              { title: 'ارزش (IRR)', dataIndex: 'deal_value' },
+              { title: 'اندازه', dataIndex: 'deal_size' }
+            ]}
+            pagination={false}
+            size="small"
+          />
+          <Button type="dashed">➕ افزودن معامله</Button>
+          <div className="field-meta">
+            <span className="required">* حداقل ۳ ردیف الزامی</span>
+          </div>
+        </div>
+
+        {/* 2. Time Adjustment */}
+        <div className="form-group">
+          <label>
+            ۲. تعدیل زمانی/تورمی (Time Adjustment)
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.time_adjustment_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              time_adjustment_pct: parseFloat(e.target.value) 
+            }))}
+          />
+        </div>
+
+        {/* 3. Geographic Adjustment */}
+        <div className="form-group">
+          <label>
+            ۳. تعدیل جغرافیایی (Geographic Adjustment)
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.geo_adjustment_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              geo_adjustment_pct: parseFloat(e.target.value) 
+            }))}
+          />
+        </div>
+
+        {/* 4. Quality Adjustment */}
+        <div className="form-group">
+          <label>
+            ۴. تعدیل کیفیت (Quality Adjustment)
+          </label>
+          <Input 
+            type="number"
+            step="0.5"
+            suffix="%"
+            value={formData.quality_adjustment_pct}
+            onChange={(e) => setFormData(prev => ({ 
+              ...prev, 
+              quality_adjustment_pct: parseFloat(e.target.value) 
+            }))}
+          />
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="summary-card">
+        <h4>📊 خلاصه محاسبه</h4>
+        <div className="summary-grid">
+          <div className="summary-item">
+            <span>میانگین ارزش معاملات:</span>
+            <strong>{calculateAverageDealValue().toLocaleString()} IRR</strong>
+          </div>
+          <div className="summary-item">
+            <span>مجموع تعدیل‌ها:</span>
+            <strong>{calculateTotalAdjustment()}%</strong>
+          </div>
+          <div className="summary-item highlight">
+            <span>ارزش نهایی:</span>
+            <strong>{calculateFinalValue().toLocaleString()} IRR</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Evidence */}
+      <div className="evidence-section">
+        <h4>📎 شواهد و مدارک</h4>
+        <div className="evidence-grid">
+          <div className="evidence-item">
+            <label>جزئیات معاملات (Deal Details)</label>
+            <Upload><Button>📤 آپلود فایل</Button></Upload>
+            <span className="required">* الزامی</span>
+          </div>
+          <div className="evidence-item">
+            <label>منبع بازار (Market Source)</label>
+            <Upload><Button>📤 آپلود فایل</Button></Upload>
+            <span className="required">* الزامی</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default M08_CTM;
+📋 ۴. پنل‌های باقیمانده (ساختار خلاصه)
+M-02 | MEEM (Multi-Period Excess Earnings)
+jsx
+// فیلدهای کلیدی
+const M02_MEEM = () => (
+  <div>
+    <Input label="EBIT Attributable" />
+    <Table label="CAC Table" columns={['Asset Name', 'Value', 'Return Rate']} />
+    <Input label="Attrition Rate" />
+    {/* Discount Rate, Tax Rate, Terminal Growth از STEP 2 */}
+  </div>
+);
+M-03 | DCF (Discounted Cash Flow)
+jsx
+// فیلدهای کلیدی
+const M03_DCF = () => (
+  <div>
+    <Table label="FCF by Year" columns={['Year', 'FCF Amount']} />
+    <Table label="CapEx by Year" optional />
+    <Table label="Δ Working Capital" optional />
+    <Input label="Intangible Share" />
+    {/* Discount Rate, Tax Rate, Terminal Growth از STEP 2 */}
+  </div>
+);
+M-04 | WWM (With-and-Without Method)
+jsx
+// فیلدهای کلیدی
+const M04_WWM = () => (
+  <div>
+    <Table label="'With Asset' FCF" />
+    <Table label="'Without Asset' FCF" />
+    <Input label="Ramp-up Period" />
+    <Table label="Expert Sign-off" columns={['Expert Name', 'Signature']} />
+    {/* Discount Rate, Tax Rate از STEP 2 */}
+  </div>
+);
+M-06 | RPCM (Reproduction Cost Method)
+jsx
+// فیلدهای کلیدی
+const M06_RPCM = () => (
+  <div>
+    <Table label="Labor Breakdown" columns={['Role', 'Person-Days', 'Daily Rate']} />
+    <Input label="Direct Reproduction Cost" />
+    <Input label="Coordination Overhead" />
+    <Input label="Relevance Obsolescence" autoFromQuality />
+    <Input label="Age Factor" autoFromDate />
+    <DatePicker label="Last Review Date" />
+  </div>
+);
+M-07 | TWC (Trained Workforce Cost)
+jsx
+// فیلدهای کلیدی
+const M07_TWC = () => (
+  <div>
+    <Table label="Team Composition" columns={['Role', 'Headcount', 'Recruit Cost', 'Train Cost']} />
+    <Input label="Ramp-up Duration (months)" />
+    <Input label="Productivity Loss %" />
+  </div>
+);
+M-09 | MMM (Market Multiple Method)
+jsx
+// فیلدهای کلیدی
+const M09_MMM = () => (
+  <div>
+    <Input label="Base Metric Value" />
+    <Input label="Market Multiple" />
+    <Input label="Control Premium" />
+    <Input label="Marketability Discount" />
+    <Input label="Intangible Share" />
+  </div>
+);
+🗄️ ساختار دیتابیس STEP 3
+sql
+-- جدول اصلی STEP 3
+CREATE TABLE valuation_step3 (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    case_id VARCHAR(20) NOT NULL UNIQUE,
+    asset_id VARCHAR(10) NOT NULL,
+    method_id VARCHAR(5) NOT NULL,
+    
+    -- JSON برای ذخیره فیلدهای اختصاصی هر روش
+    method_inputs JSON NOT NULL,
+    
+    -- وضعیت
+    validation_status ENUM('DRAFT', 'VALIDATED', 'APPROVED') DEFAULT 'DRAFT',
+    validation_errors INT DEFAULT 0,
+    validation_warnings INT DEFAULT 0,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (case_id) REFERENCES valuation_cases(case_id),
+    FOREIGN KEY (asset_id) REFERENCES assets(asset_id)
+);
+
+-- جدول شواهد STEP 3
+CREATE TABLE valuation_step3_evidence (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    case_id VARCHAR(20) NOT NULL,
+    file_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,
+    evidence_type VARCHAR(50) NOT NULL,
+    method_id VARCHAR(5) NOT NULL,
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (case_id) REFERENCES valuation_cases(case_id)
+);
+🧩 کامپوننت مشترک هدر STEP 3
+jsx
+// StepHeader.jsx
+const StepHeader = ({ step, caseId, methodId, assetName }) => (
+  <div className="step-header">
+    <div className="progress-bar">
+      <span className={step >= 1 ? 'active' : ''}>STEP 1 ✓</span>
+      <span className={step >= 2 ? 'active' : ''}>STEP 2 ✓</span>
+      <span className={step >= 3 ? 'active' : ''}>STEP 3 ●</span>
+      <span className={step >= 4 ? 'active' : ''}>STEP 4 ○</span>
+      <span className={step >= 5 ? 'active' : ''}>STEP 5 ○</span>
+      <span className={step >= 6 ? 'active' : ''}>STEP 6 ○</span>
+      <span className={step >= 7 ? 'active' : ''}>STEP 7 ○</span>
+    </div>
+    <div className="case-info">
+      <span>Case ID: {caseId}</span>
+      <span>|</span>
+      <span>Asset: {assetName}</span>
+      <span>|</span>
+      <span>Method: {methodId}</span>
+    </div>
+  </div>
+);
+🧩 کامپوننت مشترک فوتر STEP 3
+jsx
+// StepFooter.jsx
+const StepFooter = ({ onBack, onContinue, onSave, onValidate }) => (
+  <div className="step-footer">
+    <Button onClick={onBack}>← بازگشت به STEP 2</Button>
+    <Button onClick={onSave}>💾 ذخیره پیش‌نویس</Button>
+    <Button onClick={onValidate}>✅ اعتبارسنجی</Button>
+    <Button type="primary" onClick={onContinue}>➡️ ادامه به STEP 4</Button>
+  </div>
+);
+📝 فایل routes یا mapping
+jsx
+// methodPanelMapping.js
+export const METHOD_PANELS = {
+  'M-01': lazy(() => import('./panels/M01_RfR')),
+  'M-02': lazy(() => import('./panels/M02_MEEM')),
+  'M-03': lazy(() => import('./panels/M03_DCF')),
+  'M-04': lazy(() => import('./panels/M04_WWM')),
+  'M-05': lazy(() => import('./panels/M05_RCM')),
+  'M-06': lazy(() => import('./panels/M06_RPCM')),
+  'M-07': lazy(() => import('./panels/M07_TWC')),
+  'M-08': lazy(() => import('./panels/M08_CTM')),
+  'M-09': lazy(() => import('./panels/M09_MMM'))
+};
+✅ API Endpoints پیشنهادی
+Method	Endpoint	توضیح
+GET	/api/step3/:caseId	دریافت داده‌های STEP 3
+POST	/api/step3/:caseId	ذخیره داده‌های STEP 3
+PUT	/api/step3/:caseId	بروزرسانی داده‌های STEP 3
+POST	/api/step3/:caseId/validate	اعتبارسنجی داده‌ها
+GET	/api/step3/:caseId/fields/:methodId	دریافت فیلدهای اختصاصی روش
+📦 خلاصه فایل‌های مورد نیاز
+text
+src/
+├── pages/
+│   └── Step3/
+│       ├── index.jsx              # کامپوننت اصلی
+│       ├── StepHeader.jsx         # هدر مشترک
+│       ├── StepFooter.jsx         # فوتر مشترک
+│       ├── panels/
+│       │   ├── M01_RfR.jsx
+│       │   ├── M02_MEEM.jsx
+│       │   ├── M03_DCF.jsx
+│       │   ├── M04_WWM.jsx
+│       │   ├── M05_RCM.jsx        # ⭐ پرکاربردترین
+│       │   ├── M06_RPCM.jsx
+│       │   ├── M07_TWC.jsx
+│       │   ├── M08_CTM.jsx
+│       │   └── M09_MMM.jsx
+│       ├── hooks/
+│       │   └── useStep3.js        # هوک مدیریت state و validation
+│       └── styles/
+│           └── step3.css
+├── services/
+│   └── step3Service.js            # API calls
+└── config/
+    └── methodFields.js            # پیکربندی فیلدهای هر روش
