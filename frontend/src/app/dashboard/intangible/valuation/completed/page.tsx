@@ -62,9 +62,32 @@ export default function CompletedValuationsPage() {
       console.log('📥 دریافت همه دارایی‌های ارزیابی شده...');
       
       const allValuations = await fetchAllValuations('completed');
+      console.log(`📋 ${allValuations.length} ارزیابی کامل دریافت شد`);
+      
+      // 🔥 گروه‌بندی بر اساس asset_id و انتخاب آخرین ارزیابی هر دارایی
+      const latestByAsset = new Map();
+      
+      for (const val of allValuations) {
+        const assetId = val.asset;
+        const existing = latestByAsset.get(assetId);
+        
+        // اگر قبلاً این دارایی رو نداشتیم، اضافه کن
+        if (!existing) {
+          latestByAsset.set(assetId, val);
+        } else {
+          // اگر ارزیابی جدیدتر است، جایگزین کن
+          if (new Date(val.evaluated_at) > new Date(existing.evaluated_at)) {
+            latestByAsset.set(assetId, val);
+          }
+        }
+      }
+      
+      // تبدیل به آرایه
+      const latestValuations = Array.from(latestByAsset.values());
+      console.log(`✅ ${latestValuations.length} آخرین ارزیابی هر دارایی انتخاب شد`);
       
       const summaries = await Promise.all(
-        allValuations.map(async (val: any) => {
+        latestValuations.map(async (val: any) => {
           try {
             const { data: summary } = await api.get(`/intangible/asset-valuations/${val.id}/summary/`);
             return { 
@@ -89,7 +112,7 @@ export default function CompletedValuationsPage() {
       }));
       
       setValuations(ranked);
-      console.log(`✅ ${ranked.length} ارزیابی دریافت شد`);
+      console.log(`✅ ${ranked.length} دارایی ارزیابی شده نمایش داده شد`);
       
     } catch (error) {
       console.error('❌ Error fetching completed valuations:', error);
@@ -121,8 +144,6 @@ export default function CompletedValuationsPage() {
       
       console.log('🔄 شروع ارزیابی مجدد برای assetId:', assetId);
       
-      // 🔥 به جای DELETE، یک ارزیابی جدید با status='draft' ایجاد کن
-      // اول asset_type رو از دارایی بگیر
       const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
       const assetTypeId = assetData.asset_type?.id || 1;
       
@@ -137,7 +158,6 @@ export default function CompletedValuationsPage() {
       setShowConfirmModal(false);
       setPendingRevaluate(null);
       
-      // 🔥 رفتن به صفحه ارزیابی با پارامتر new=true
       router.push(`/dashboard/intangible/valuation/${assetId}?new=true`);
       
     } catch (error: any) {
@@ -252,7 +272,6 @@ export default function CompletedValuationsPage() {
               
               return (
                 <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden relative">
-                  {/* رنک ثابت در گوشه */}
                   <div className={`absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full shadow-sm border ${rankColor} z-10`}>
                     <Hash className="w-3 h-3" />
                     <span className="text-xs font-bold">{val.rank}</span>

@@ -192,13 +192,32 @@ class ScreeningTemplate(models.Model):
     condition_3_controllable = models.BooleanField(default=True)
     condition_4_value_creating = models.BooleanField(default=True)
     
-    # 🔥 فیلد AssetType اضافه شد
+    # 🔥 فیلد AssetType
     asset_type = models.ForeignKey(
         'AssetType',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='screening_templates'
+    )
+    
+    # 🔥 فیلد روش ارزش‌گذاری
+    valuation_method = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        choices=[
+            ('M-01', 'M-01 - Relief from Royalty'),
+            ('M-02', 'M-02 - Discounted Cash Flow'),
+            ('M-03', 'M-03 - Replacement Cost Method'),
+            ('M-04', 'M-04 - Weighted Weighted Method'),
+            ('M-05', 'M-05 - Multi-Period Excess Earnings'),
+            ('M-06', 'M-06 - Replacement Cost Method (Adjusted)'),
+            ('M-07', 'M-07 - Total Weighted Cost'),
+            ('M-08', 'M-08 - Cost to Market'),
+            ('M-09', 'M-09 - Market Multiple Method'),
+        ],
+        help_text='روش اصلی ارزش‌گذاری برای این دارایی'
     )
     
     def __str__(self):

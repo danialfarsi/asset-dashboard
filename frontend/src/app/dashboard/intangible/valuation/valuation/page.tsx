@@ -1,35 +1,43 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { fetchAllValuations } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
-import { 
-  Award, 
-  Search,
-  Eye,
-  BarChart3,
-  TrendingUp,
-  DollarSign,
-  PieChart,
-  Target,
-  Building2,
-  User,
-  Calendar
-} from 'lucide-react';
+import { SkeletonLoader } from '@/components/ui/skeleton-loader';
+import { ValuationStepper } from '@/components/valuation/ValuationStepper';
+import { Step1_SelectAsset } from '@/components/valuation/steps/Step1_SelectAsset';
+import { Step2_InputData } from '@/components/valuation/steps/Step2_InputData';
+import { Step3_Parameters } from '@/components/valuation/steps/Step3_Parameters';
+import { Step4_Calculation } from '@/components/valuation/steps/Step4_Calculation';
+import { Step5_QualityControl } from '@/components/valuation/steps/Step5_QualityControl';
+import { Step6_Sensitivity } from '@/components/valuation/steps/Step6_Sensitivity';
+import { Step7_Report } from '@/components/valuation/steps/Step7_Report';
+import { ArrowLeft, Save } from 'lucide-react';
 
-interface ValuationSummary {
+interface Asset {
   id: number;
-  asset: string;
-  asset_id: number;
+  asset_name: string;
   asset_uid: string;
-  status: string;
+  asset_type?: { id: number; code: string; name: string };
+  description: string;
+  created_at: string;
+  created_by_name?: string;
+}
+
+interface ValuationMethod {
+  id: string;
+  name: string;
+  description: string;
+  recommended: boolean;
+}
+
+interface ValuationData {
+  id: number;
   final_score: number;
   weighted_score: number;
   strategic_score: number;
@@ -37,90 +45,171 @@ interface ValuationSummary {
   operational_score: number;
   market_score: number;
   risk_score: number;
-  total_questions: number;
+  status: string;
   answered_questions: number;
+  total_questions: number;
 }
 
-export default function ValuationValuationPage() {
+const STEPS = [
+  { id: 1, label: 'انتخاب دارایی\nو روش' },
+  { id: 2, label: 'داده پایه' },
+  { id: 3, label: 'پارامترهای\nاختصاصی' },
+  { id: 4, label: 'موتور\nمحاسبه' },
+  { id: 5, label: 'کنترل کیفیت\n(QC)' },
+  { id: 6, label: 'حساسیت/\nسناریو' },
+  { id: 7, label: 'گزارش و تایید\nنهایی' },
+];
+
+const VALUATION_METHODS: ValuationMethod[] = [
+  { id: 'M-01', name: 'روش بازار (Market Approach)', description: 'مقایسه با معاملات مشابه', recommended: false },
+  { id: 'M-02', name: 'روش درآمد (Income Approach)', description: 'تنزیل جریان نقدی', recommended: false },
+  { id: 'M-03', name: 'روش هزینه جایگزینی (Replacement Cost)', description: 'هزینه بازسازی دارایی معادل', recommended: true },
+  { id: 'M-04', name: 'روش هزینه بازتولید (Reproduction Cost)', description: 'هزینه بازتولید دقیق دارایی', recommended: false },
+  { id: 'M-05', name: 'روش چندگانه (Multi-Period Excess Earnings)', description: 'سود مازاد چنددوره‌ای', recommended: false },
+];
+
+export default function ValuationPage() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const [valuations, setValuations] = useState<ValuationSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string>('M-03');
+  const [isMethodConfirmed, setIsMethodConfirmed] = useState(false);
+  const [valuationData, setValuationData] = useState<ValuationData | null>(null);
+  const [formData, setFormData] = useState({
+    assetId: '',
+    name: '',
+    description: '',
+    developmentStage: '',
+    initialRelease: '',
+    usefulLife: '',
+    jurisdiction: '',
+    associatedCosts: '',
+    stakeholders: '',
+  });
 
   useEffect(() => {
-    fetchValuations();
+    fetchAssets();
   }, []);
 
-  const fetchValuations = async () => {
+  const fetchAssets = async () => {
     try {
       setLoading(true);
-      
       const allValuations = await fetchAllValuations('completed');
       
-      const summaries = await Promise.all(
-        allValuations.map(async (val: any) => {
-          try {
-            const { data: summary } = await api.get(`/intangible/asset-valuations/${val.id}/summary/`);
-            return { 
-              ...summary, 
-              id: val.id, 
-              asset_id: val.asset,
-              weighted_score: summary.weighted_score || summary.final_score
-            };
-          } catch (e) {
-            return null;
-          }
-        })
-      );
+      const assetPromises = allValuations.map(async (val: any) => {
+        try {
+          const { data } = await api.get(`/intangible/screened-assets/${val.asset}/`);
+          return {
+            id: data.id,
+            asset_name: data.asset_name,
+            asset_uid: data.asset_uid,
+            asset_type: data.asset_type,
+            description: data.description || '',
+            created_at: data.created_at,
+            created_by_name: data.created_by_name || 'نامشخص',
+          };
+        } catch {
+          return null;
+        }
+      });
       
-      const sorted = summaries
-        .filter(s => s !== null)
-        .sort((a, b) => (b?.weighted_score || 0) - (a?.weighted_score || 0));
+      const results = await Promise.all(assetPromises);
+      const validAssets = results.filter((a): a is Asset => a !== null);
+      setAssets(validAssets);
       
-      setValuations(sorted);
+      if (validAssets.length > 0) {
+        setSelectedAsset(validAssets[0]);
+        setFormData(prev => ({
+          ...prev,
+          assetId: validAssets[0].asset_uid,
+          name: validAssets[0].asset_name,
+          description: validAssets[0].description || '',
+        }));
+      }
     } catch (error) {
-      console.error('Error fetching valuations:', error);
+      console.error('Error fetching assets:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 4) return 'text-emerald-600';
-    if (score >= 3) return 'text-amber-600';
-    return 'text-red-600';
+  const handleAssetSelect = async (assetId: string) => {
+    const asset = assets.find(a => a.asset_uid === assetId);
+    if (asset) {
+      setSelectedAsset(asset);
+      setFormData(prev => ({
+        ...prev,
+        assetId: asset.asset_uid,
+        name: asset.asset_name,
+        description: asset.description || '',
+      }));
+      
+      // دریافت آخرین ارزیابی برای این دارایی
+      try {
+        const allValuations = await fetchAllValuations('completed');
+        const assetValuations = allValuations.filter((v: any) => v.asset === asset.id);
+        if (assetValuations.length > 0) {
+          const latest = assetValuations.sort((a: any, b: any) => 
+            new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime()
+          )[0];
+          
+          const { data: summary } = await api.get(`/intangible/asset-valuations/${latest.id}/summary/`);
+          setValuationData({
+            id: latest.id,
+            final_score: summary.final_score || 0,
+            weighted_score: summary.weighted_score || summary.final_score || 0,
+            strategic_score: summary.strategic_score || 0,
+            technical_score: summary.technical_score || 0,
+            operational_score: summary.operational_score || 0,
+            market_score: summary.market_score || 0,
+            risk_score: summary.risk_score || 0,
+            status: latest.status,
+            answered_questions: summary.answered_questions || 0,
+            total_questions: summary.total_questions || 23,
+          });
+        } else {
+          setValuationData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching valuation data:', error);
+        setValuationData(null);
+      }
+    }
   };
 
-  const getScoreLabel = (score: number) => {
-    if (score >= 4) return 'عالی';
-    if (score >= 3) return 'خوب';
-    if (score >= 2) return 'متوسط';
-    return 'ضعیف';
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const getScoreEmoji = (score: number) => {
-    if (score >= 4) return '🌟';
-    if (score >= 3) return '👍';
-    if (score >= 2) return '📊';
-    return '⚠️';
+  const goToStep = (step: number) => {
+    if (step >= 1 && step <= STEPS.length) {
+      setCurrentStep(step);
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    try {
-      return new Date(dateString).toLocaleDateString('fa-IR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch { return dateString; }
+  const nextStep = () => {
+    if (currentStep < STEPS.length) {
+      setCurrentStep(currentStep + 1);
+    }
   };
 
-  const filteredValuations = valuations.filter(v =>
-    v.asset?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.asset_uid?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const isStepComplete = (step: number): boolean => {
+    if (step === 1) return !!selectedAsset;
+    if (step === 2) {
+      return !!formData.name && !!formData.description && !!formData.developmentStage;
+    }
+    if (step === 3) return isMethodConfirmed;
+    return true;
+  };
 
   if (loading) {
     return (
@@ -130,178 +219,117 @@ export default function ValuationValuationPage() {
     );
   }
 
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <Step1_SelectAsset
+            assets={assets}
+            selectedAsset={selectedAsset}
+            selectedMethod={selectedMethod}
+            onAssetSelect={handleAssetSelect}
+            onMethodSelect={setSelectedMethod}
+            onNext={nextStep}
+            methods={VALUATION_METHODS}
+          />
+        );
+      case 2:
+        return (
+          <Step2_InputData
+            formData={formData}
+            onInputChange={handleInputChange}
+            onNext={nextStep}
+            onPrev={prevStep}
+            selectedAsset={selectedAsset}
+            valuationData={valuationData}
+            assetId={selectedAsset?.id}
+          />
+        );
+      case 3:
+        return (
+          <Step3_Parameters
+            selectedMethod={selectedMethod}
+            isMethodConfirmed={isMethodConfirmed}
+            onMethodConfirm={setIsMethodConfirmed}
+            onMethodSelect={setSelectedMethod}
+            onNext={nextStep}
+            onPrev={prevStep}
+            methods={VALUATION_METHODS}
+          />
+        );
+      case 4:
+        return (
+          <Step4_Calculation
+            onNext={nextStep}
+            onPrev={prevStep}
+            formData={formData}
+            selectedMethod={selectedMethod}
+            methods={VALUATION_METHODS}
+          />
+        );
+      case 5:
+        return (
+          <Step5_QualityControl
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        );
+      case 6:
+        return (
+          <Step6_Sensitivity
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        );
+      case 7:
+        return (
+          <Step7_Report
+            onPrev={prevStep}
+            selectedMethod={selectedMethod}
+            methods={VALUATION_METHODS}
+            formData={formData}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* هدر */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-dark-green">ارزش‌گذاری دارایی‌ها</h1>
-          <p className="text-sm text-gray-500">
-            تحلیل و ارزش‌گذاری مالی دارایی‌های نامشهود
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-dark-green">ارزش‌گذاری دارایی</h1>
+            <p className="text-sm text-gray-500">ارزش‌گذاری مالی دارایی‌های نامشهود</p>
+          </div>
         </div>
-        <div className="text-sm text-gray-500">
-          <span className="font-bold text-dark-green">{valuations.length}</span> دارایی ارزش‌گذاری شده
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="flex items-center gap-1">
+            <Save className="w-4 h-4" />
+            ذخیره پیش‌نویس
+          </Button>
         </div>
       </div>
 
-      {/* جستجو */}
-      <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          placeholder="جستجو در دارایی‌ها..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pr-10 pl-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green"
-        />
-      </div>
+      {/* استپر */}
+      <ValuationStepper
+        steps={STEPS}
+        currentStep={currentStep}
+        onStepClick={goToStep}
+        isStepComplete={isStepComplete}
+      />
 
-      {/* آمار کلی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <DollarSign className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">میانگین ارزش</p>
-              <p className="text-sm font-bold text-dark-green">
-                {(valuations.reduce((acc, v) => acc + v.weighted_score, 0) / (valuations.length || 1)).toFixed(2)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Award className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">بالاترین ارزش</p>
-              <p className="text-sm font-bold text-emerald-600">
-                {Math.max(...valuations.map(v => v.weighted_score), 0).toFixed(2)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-purple-50 rounded-lg">
-              <Target className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">پایین‌ترین ارزش</p>
-              <p className="text-sm font-bold text-red-600">
-                {Math.min(...valuations.map(v => v.weighted_score), 0).toFixed(2)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-amber-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">تعداد کل</p>
-              <p className="text-sm font-bold text-dark-green">{valuations.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* لیست دارایی‌ها */}
-      {filteredValuations.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <Award className="w-16 h-16 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-medium">هیچ دارایی ارزش‌گذاری شده‌ای یافت نشد</p>
-          <p className="text-sm mt-1">پس از تکمیل ارزیابی، دارایی‌ها در اینجا نمایش داده می‌شوند</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredValuations.map((val) => {
-            const displayScore = val.weighted_score || val.final_score;
-            
-            return (
-              <Card key={val.id} className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{val.asset || 'نامشخص'}</p>
-                      <p className="text-xs text-gray-400">{val.asset_uid || 'بدون کد'}</p>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      displayScore >= 4 ? 'bg-emerald-100 text-emerald-800' :
-                      displayScore >= 3 ? 'bg-amber-100 text-amber-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
-                      {getScoreEmoji(displayScore)} {getScoreLabel(displayScore)}
-                    </div>
-                  </div>
-
-                  <div className="text-center py-3 bg-gray-50 rounded-lg">
-                    <p className="text-xs text-gray-500">ارزش نهایی</p>
-                    <p className={`text-3xl font-bold ${getScoreColor(displayScore)}`}>
-                      {displayScore?.toFixed(2) || '0.00'}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-1">از ۵ (وزنی)</p>
-                  </div>
-
-                  <div className="grid grid-cols-5 gap-1 text-center">
-                    <div className="p-1 bg-blue-50 rounded">
-                      <p className="text-[10px] text-gray-500">استراتژیک</p>
-                      <p className="text-xs font-bold text-blue-600">{val.strategic_score?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className="p-1 bg-purple-50 rounded">
-                      <p className="text-[10px] text-gray-500">فنی</p>
-                      <p className="text-xs font-bold text-purple-600">{val.technical_score?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className="p-1 bg-amber-50 rounded">
-                      <p className="text-[10px] text-gray-500">عملیاتی</p>
-                      <p className="text-xs font-bold text-amber-600">{val.operational_score?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className="p-1 bg-green-50 rounded">
-                      <p className="text-[10px] text-gray-500">بازار</p>
-                      <p className="text-xs font-bold text-green-600">{val.market_score?.toFixed(2) || '0.00'}</p>
-                    </div>
-                    <div className="p-1 bg-red-50 rounded">
-                      <p className="text-[10px] text-gray-500">ریسک</p>
-                      <p className="text-xs font-bold text-red-600">{val.risk_score?.toFixed(2) || '0.00'}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>پاسخ داده شده: {val.answered_questions || 0}/{val.total_questions || 23}</span>
-                    <span>{val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5">
-                    <div
-                      className="bg-dark-green h-1.5 rounded-full transition-all"
-                      style={{ width: `${val.total_questions > 0 ? Math.round(((val.answered_questions || 0) / (val.total_questions || 23)) * 100) : 0}%` }}
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                    <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                      <Button variant="outline" size="sm" className="w-full flex items-center gap-1 text-xs">
-                        <Eye className="w-3 h-3" />
-                        مشاهده دارایی
-                      </Button>
-                    </Link>
-                    <Link href={`/dashboard/intangible/valuation/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                      <Button size="sm" className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 text-xs">
-                        <BarChart3 className="w-3 h-3" />
-                        مشاهده ارزیابی
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      {/* محتوای مرحله */}
+      <Card className="border-0 shadow-lg">
+        <CardContent className="p-6">
+          {renderStep()}
+        </CardContent>
+      </Card>
     </PageTransition>
   );
 }

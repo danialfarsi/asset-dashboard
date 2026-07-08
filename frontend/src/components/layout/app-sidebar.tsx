@@ -73,7 +73,7 @@ const stageNavItems = [
     children: stage2Children
   },
   { 
-    label: 'مرحله ۳: ارزیابی و ارزش گذاری', 
+    label: 'مرحله ۳: ارزیابی', 
     href: '/dashboard/intangible/stage3', 
     icon: BarChart3,
     children: stage3Children

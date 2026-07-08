@@ -5,7 +5,6 @@ import {
   File, 
   Download, 
   Search, 
-  Filter, 
   Mic, 
   FileText, 
   GitBranch, 
@@ -13,12 +12,12 @@ import {
   Eye,
   ChevronDown,
   ChevronUp,
-  Award,
-  Calendar
+  Layers
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import api from '@/lib/api';
+import { fetchAllValuations } from '@/lib/api-utils';
 
 interface EvidenceItem {
   id: number;
@@ -31,11 +30,15 @@ interface EvidenceItem {
   file_url: string;
   file_name: string;
   uploaded_at: string;
+  valuation_id: number;
+  valuation_status: string;
+  valuation_score: number;
+  valuation_date: string;
 }
 
 interface AssetEvidenceProps {
   assetId: number;
-  valuationId: number;
+  valuationId?: number;
 }
 
 const EVIDENCE_ICONS = {
@@ -53,59 +56,92 @@ const EVIDENCE_TYPES = [
   { key: 'database', label: 'پایگاه داده', icon: Database },
 ];
 
-export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
+export function AssetEvidence({ assetId }: AssetEvidenceProps) {
   const [evidences, setEvidences] = useState<EvidenceItem[]>([]);
   const [filteredEvidences, setFilteredEvidences] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [selectedValuation, setSelectedValuation] = useState<number | 'all'>('all');
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [valuations, setValuations] = useState<{ id: number; score: number; date: string }[]>([]);
 
   useEffect(() => {
     fetchEvidences();
-  }, [assetId, valuationId]);
+  }, [assetId]);
 
   useEffect(() => {
     filterEvidences();
-  }, [evidences, searchTerm, selectedType]);
+  }, [evidences, searchTerm, selectedType, selectedValuation]);
 
   const fetchEvidences = async () => {
     try {
       setLoading(true);
       
-      const { data } = await api.get(`/intangible/asset-valuations/${valuationId}/`);
-      const answers = data.answers || [];
+      // دریافت همه ارزیابی‌های completed این دارایی
+      const allValuations = await fetchAllValuations();
+      const assetValuations = allValuations
+        .filter((v: any) => v.asset === assetId && v.status === 'completed')
+        .sort((a: any, b: any) => new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime());
+      
+      // ذخیره لیست ارزیابی‌ها برای فیلتر
+      const valList = assetValuations.map((v: any) => ({
+        id: v.id,
+        score: v.final_score || 0,
+        date: v.evaluated_at,
+      }));
+      setValuations(valList);
+      
+      // 🔥 پیش‌فرض: آخرین ارزیابی
+      if (valList.length > 0 && selectedValuation === 'all') {
+        setSelectedValuation(valList[0].id);
+      }
       
       const evidenceList: EvidenceItem[] = [];
       
-      answers.forEach((answer: any) => {
-        const types = [
-          { key: 'interview', url: answer.evidence_interview },
-          { key: 'document', url: answer.evidence_document },
-          { key: 'process', url: answer.evidence_process },
-          { key: 'database', url: answer.evidence_database },
-        ];
-        
-        types.forEach(({ key, url }) => {
-          if (url) {
-            evidenceList.push({
-              id: answer.id,
-              question_id: answer.question,
-              question_code: answer.question_code || 'نامشخص',
-              question_text: answer.question_text || 'سوال بدون متن',
-              dimension: answer.dimension_name || 'نامشخص',
-              score: answer.score || 0,
-              type: key as any,
-              file_url: url,
-              file_name: url.split('/').pop() || 'فایل',
-              uploaded_at: answer.updated_at || new Date().toISOString(),
+      // برای هر ارزیابی، شواهدش رو بگیر
+      for (const v of assetValuations) {
+        try {
+          const { data } = await api.get(`/intangible/asset-valuations/${v.id}/`);
+          const answers = data.answers || [];
+          
+          answers.forEach((answer: any) => {
+            const types = [
+              { key: 'interview', url: answer.evidence_interview },
+              { key: 'document', url: answer.evidence_document },
+              { key: 'process', url: answer.evidence_process },
+              { key: 'database', url: answer.evidence_database },
+            ];
+            
+            types.forEach(({ key, url }) => {
+              if (url) {
+                evidenceList.push({
+                  id: answer.id,
+                  question_id: answer.question,
+                  question_code: answer.question_code || 'نامشخص',
+                  question_text: answer.question_text || 'سوال بدون متن',
+                  dimension: answer.dimension_name || 'نامشخص',
+                  score: answer.score || 0,
+                  type: key as any,
+                  file_url: url,
+                  file_name: url.split('/').pop() || 'فایل',
+                  uploaded_at: answer.updated_at || new Date().toISOString(),
+                  valuation_id: v.id,
+                  valuation_status: v.status,
+                  valuation_score: v.final_score || 0,
+                  valuation_date: v.evaluated_at || new Date().toISOString(),
+                });
+              }
             });
-          }
-        });
-      });
+          });
+        } catch (e) {
+          console.error(`Error fetching valuation ${v.id}:`, e);
+        }
+      }
       
       setEvidences(evidenceList);
       setFilteredEvidences(evidenceList);
+      
     } catch (error) {
       console.error('Error fetching evidences:', error);
     } finally {
@@ -116,10 +152,17 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
   const filterEvidences = () => {
     let filtered = [...evidences];
     
+    // فیلتر بر اساس نوع
     if (selectedType !== 'all') {
       filtered = filtered.filter(e => e.type === selectedType);
     }
     
+    // فیلتر بر اساس ارزیابی
+    if (selectedValuation !== 'all') {
+      filtered = filtered.filter(e => e.valuation_id === selectedValuation);
+    }
+    
+    // فیلتر بر اساس جستجو
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(e => 
@@ -133,7 +176,7 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
     setFilteredEvidences(filtered);
   };
 
-  const toggleExpand = (id: number) => {
+  const toggleExpand = (id: string) => {
     setExpandedItems(prev => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -187,10 +230,6 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
 
   const totalFiles = evidences.length;
   const uniqueQuestions = new Set(evidences.map(e => e.question_id)).size;
-  const typeCounts = evidences.reduce((acc, e) => {
-    acc[e.type] = (acc[e.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
 
   if (loading) {
     return (
@@ -232,22 +271,19 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-400">
-            {Object.entries(typeCounts).map(([type, count]) => {
-              const info = getTypeInfo(type);
-              const Icon = info.icon;
-              return (
-                <span key={type} className="flex items-center gap-1">
-                  <Icon className="w-3 h-3" />
-                  {count}
-                </span>
-              );
-            })}
+            {valuations.length > 0 && (
+              <span className="flex items-center gap-1">
+                <Layers className="w-3 h-3" />
+                {valuations.length} ارزیابی
+              </span>
+            )}
           </div>
         </div>
 
         {/* فیلترها */}
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          {/* جستجو */}
+          <div className="relative flex-1 min-w-[150px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
@@ -257,6 +293,8 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
               className="w-full pr-10 pl-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-dark-green text-sm"
             />
           </div>
+
+          {/* فیلتر نوع */}
           <div className="flex flex-wrap gap-1">
             {EVIDENCE_TYPES.map((type) => {
               const isActive = selectedType === type.key;
@@ -281,6 +319,36 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
           </div>
         </div>
 
+        {/* فیلتر ارزیابی */}
+        {valuations.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-400">ارزیابی:</span>
+            <button
+              onClick={() => setSelectedValuation('all')}
+              className={`px-3 py-1 rounded-lg text-xs transition-all ${
+                selectedValuation === 'all'
+                  ? 'bg-dark-green text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              همه
+            </button>
+            {valuations.map((v, index) => (
+              <button
+                key={v.id}
+                onClick={() => setSelectedValuation(v.id)}
+                className={`px-3 py-1 rounded-lg text-xs transition-all ${
+                  selectedValuation === v.id
+                    ? 'bg-dark-green text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                ارزیابی #{valuations.length - index} ({v.score.toFixed(2)})
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* لیست شواهد */}
         <div className="space-y-2 max-h-[500px] overflow-y-auto">
           {filteredEvidences.length === 0 ? (
@@ -291,16 +359,19 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
             filteredEvidences.map((evidence) => {
               const typeInfo = getTypeInfo(evidence.type);
               const Icon = typeInfo.icon;
-              const isExpanded = expandedItems.has(evidence.id);
+              const uniqueId = `${evidence.id}-${evidence.type}-${evidence.valuation_id}`;
+              const isExpanded = expandedItems.has(uniqueId);
+              const valuationIndex = valuations.findIndex(v => v.id === evidence.valuation_id);
+              const valNumber = valuationIndex !== -1 ? valuations.length - valuationIndex : '?';
 
               return (
                 <div
-                  key={`${evidence.id}-${evidence.type}`}
+                  key={uniqueId}
                   className="border rounded-lg hover:shadow-md transition-all"
                 >
                   <div 
                     className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50"
-                    onClick={() => toggleExpand(evidence.id)}
+                    onClick={() => toggleExpand(uniqueId)}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className={`p-2 rounded-full ${typeInfo.bg} ${typeInfo.color}`}>
@@ -316,6 +387,9 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
                             {evidence.dimension}
                           </span>
                           {getScoreBadge(evidence.score)}
+                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                            ارزیابی #{valNumber}
+                          </span>
                         </div>
                         <p className="text-xs text-gray-500 truncate">
                           {evidence.question_text}
@@ -323,9 +397,6 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-gray-400 hidden sm:block">
-                        {typeInfo.label}
-                      </span>
                       <a
                         href={evidence.file_url}
                         download
@@ -353,6 +424,16 @@ export function AssetEvidence({ assetId, valuationId }: AssetEvidenceProps) {
                         <div>
                           <p className="text-xs text-gray-400">تاریخ آپلود</p>
                           <p className="text-xs">{formatDate(evidence.uploaded_at)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">ارزیابی</p>
+                          <p className="text-xs font-medium">
+                            #{valNumber} (امتیاز: {evidence.valuation_score.toFixed(2)})
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-400">نوع شواهد</p>
+                          <p className="text-xs">{typeInfo.label}</p>
                         </div>
                         <div className="md:col-span-2">
                           <p className="text-xs text-gray-400">متن سوال</p>

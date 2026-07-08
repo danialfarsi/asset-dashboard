@@ -89,7 +89,6 @@ export function ValuationHistory({ assetId, assetName }: ValuationHistoryProps) 
       const allValuations = await fetchAllValuations();
       console.log('📋 کل ارزیابی‌ها:', allValuations.length);
       
-      // 🔥 فیلتر ارزیابی‌های این دارایی و فقط completed/verified
       const assetValuations = allValuations
         .filter((v: any) => v.asset === assetId && (v.status === 'completed' || v.status === 'verified'))
         .sort((a: any, b: any) => new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime());
@@ -183,7 +182,8 @@ export function ValuationHistory({ assetId, assetName }: ValuationHistoryProps) 
   };
 
   const handleViewValuation = (valuationId: number) => {
-    router.push(`/dashboard/intangible/valuation/${assetId}`);
+    // ✅ رفتن به صفحه مشاهده ارزیابی با ID
+    router.push(`/dashboard/intangible/valuation/view/${valuationId}`);
   };
 
   const displayedHistory = expanded ? history : history.slice(0, 5);
