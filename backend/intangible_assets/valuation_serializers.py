@@ -3,6 +3,7 @@ from .valuation_models import (
     AssetType, ValuationDimension, ValuationQuestion,
     ValuationScoreGuide, AssetValuation, ValuationAnswer
 )
+from .valuation_step4_models import ValuationStep4
 from .models import ScreenedAsset
 
 
@@ -84,3 +85,10 @@ class AssetValuationCreateSerializer(serializers.ModelSerializer):
         
         valuation.calculate_final_score()
         return valuation
+
+
+# 🔥 Serializer برای STEP 4
+class ValuationStep4Serializer(serializers.ModelSerializer):
+    class Meta:
+        model = ValuationStep4
+        fields = '__all__'

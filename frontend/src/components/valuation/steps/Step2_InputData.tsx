@@ -1,49 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Building2, 
-  Calendar, 
-  User, 
-  FileText,
-  Upload,
-  Download,
-  X,
-  Eye,
-  PieChart,
-  TrendingUp,
-  Target,
-  Shield,
-  BarChart3,
-  Activity,
-  Award,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Layers,
-  FolderOpen,
-  DollarSign,
-  Percent,
-  Calendar as CalendarIcon,
-  Link as LinkIcon,
-  Tag,
-  FileCheck,
-  AlertTriangle
+  ChevronLeft, ChevronRight, Building2, Calendar, User, FileText,
+  Upload, Download, X, Eye, PieChart, TrendingUp, Target, Shield,
+  BarChart3, Activity, Award, AlertCircle, CheckCircle, Clock,
+  Layers, FolderOpen, DollarSign, Percent, Calendar as CalendarIcon,
+  Link as LinkIcon, Tag, FileCheck, AlertTriangle, Save, Loader2
 } from 'lucide-react';
 import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  Tooltip
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, Tooltip
 } from 'recharts';
 import api from '@/lib/api';
 import { fetchAllValuations } from '@/lib/api-utils';
@@ -68,6 +39,7 @@ interface Step2Props {
   assetId?: number;
   onFormDataUpdate?: (data: any) => void;
   valuationMethod?: string;
+  valuationCaseId?: number;
 }
 
 interface UploadedFile {
@@ -85,7 +57,7 @@ interface UploadedFile {
 }
 
 // ============================================
-// 🔥 مقادیر پیش‌فرض و گزینه‌ها
+// گزینه‌ها
 // ============================================
 const CATEGORY_OPTIONS = [
   { value: 'strategic', label: 'استراتژیک' },
@@ -176,7 +148,8 @@ export function Step2_InputData({
   valuationData,
   assetId,
   onFormDataUpdate,
-  valuationMethod
+  valuationMethod,
+  valuationCaseId
 }: Step2Props) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -189,6 +162,9 @@ export function Step2_InputData({
   const [availableAssets, setAvailableAssets] = useState<any[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
   const [validationRules, setValidationRules] = useState<any>(null);
+  const [savingToDb, setSavingToDb] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [valuationForm, setValuationForm] = useState({
     category: 'operational',
@@ -210,16 +186,20 @@ export function Step2_InputData({
     expert_note: '',
   });
 
+  // ============================================
+  // بارگذاری داده‌ها از دیتابیس و localStorage
+  // ============================================
   useEffect(() => {
     if (assetId) {
       fetchEvidenceFiles();
       fetchAvailableAssets();
       fetchValidationRules();
-      loadSavedData();
+      loadFromLocalStorage();
+      loadFromDatabase();
     }
-  }, [assetId]);
+  }, [assetId, valuationCaseId]);
 
-  const loadSavedData = async () => {
+  const loadFromLocalStorage = () => {
     try {
       const saved = localStorage.getItem(`valuation_form_${assetId}`);
       if (saved) {
@@ -227,27 +207,201 @@ export function Step2_InputData({
         setValuationForm(prev => ({ ...prev, ...parsed }));
         if (parsed.assumptions) setAssumptions(parsed.assumptions);
         if (parsed.linkedAssets) setLinkedAssets(parsed.linkedAssets);
+        if (parsed.evidenceTags) setEvidenceTags(parsed.evidenceTags);
+        console.log('📥 بارگذاری از localStorage:', parsed);
       }
     } catch (error) {
-      console.error('Error loading saved data:', error);
+      console.error('Error loading from localStorage:', error);
     }
   };
 
-  const saveFormData = () => {
+  const loadFromDatabase = async () => {
+    if (!valuationCaseId) return;
+    
     try {
-      const data = {
-        ...valuationForm,
-        assumptions,
-        linkedAssets,
+      const { data } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
+      
+      // بروزرسانی فرم با داده‌های دیتابیس
+      setValuationForm(prev => ({
+        ...prev,
+        category: data.category || prev.category,
+        business_unit: data.business_unit || prev.business_unit,
+        lifecycle_stage: data.lifecycle_stage || prev.lifecycle_stage,
+        quality_override_reason: data.quality_override_reason || '',
+        currency: data.currency || prev.currency,
+        inflation_basis: data.inflation_basis || prev.inflation_basis,
+        tax_rate: data.tax_rate || prev.tax_rate,
+        discount_rate: data.discount_rate || prev.discount_rate,
+        forecast_horizon: data.forecast_horizon || prev.forecast_horizon,
+        terminal_growth_rate: data.terminal_growth_rate || prev.terminal_growth_rate,
+        current_revenue: data.current_revenue || prev.current_revenue,
+        useful_life: data.useful_life || prev.useful_life,
+        source_reliability: data.source_reliability || prev.source_reliability,
+        overlap_risk_level: data.overlap_risk_level || prev.overlap_risk_level,
+        overlap_type: data.overlap_type || prev.overlap_type,
+        review_status: data.review_status || prev.review_status,
+        expert_note: data.expert_note || '',
+      }));
+      
+      // بارگذاری فرضیات از دیتابیس
+      if (data.assumptions) {
+        setAssumptions(data.assumptions.map((a: any) => ({
+          text: a.assumption_text,
+          tag: a.assumption_tag,
+          critical: a.assumption_critical,
+        })));
+      }
+      
+      // بارگذاری وابستگی‌ها از دیتابیس
+      if (data.linked_assets) {
+        setLinkedAssets(data.linked_assets);
+      }
+      
+      console.log('📥 بارگذاری از دیتابیس:', data);
+    } catch (error) {
+      console.error('Error loading from database:', error);
+    }
+  };
+
+// ============================================
+// 🔥 ذخیره‌سازی در دیتابیس
+// ============================================
+const saveToDatabase = useCallback(async (data: any) => {
+  if (!valuationCaseId) {
+    console.warn('⚠️ valuationCaseId موجود نیست');
+    return;
+  }
+  
+  try {
+    setSavingToDb(true);
+    setSaveError(null);
+    
+    console.log('📤 شروع ذخیره‌سازی در دیتابیس...');
+    console.log('📤 داده‌های ارسالی:', data);
+    
+    // 🔥 تبدیل هوشمند درصد به اعشار
+    const taxRate = Number(data.tax_rate);
+    const discountRate = Number(data.discount_rate);
+    const terminalGrowth = Number(data.terminal_growth_rate);
+    
+    const payload = {
+      category: data.category || 'operational',
+      business_unit: data.business_unit || 'واحد مرکزی',
+      lifecycle_stage: data.lifecycle_stage || 'growth',
+      quality_override_reason: data.quality_override_reason || '',
+      currency: data.currency || 'IRR',
+      inflation_basis: data.inflation_basis || 'cost',
+      
+      // 🔥 اگر مقدار > 1 باشه یعنی درصد هست و باید تقسیم بشه
+      tax_rate: taxRate > 1 ? taxRate / 100 : taxRate,
+      discount_rate: discountRate > 1 ? discountRate / 100 : discountRate,
+      forecast_horizon: Number(data.forecast_horizon) || 5,
+      terminal_growth_rate: terminalGrowth > 1 ? terminalGrowth / 100 : terminalGrowth,
+      current_revenue: Number(data.current_revenue) || 500000000000,
+      useful_life: Number(data.useful_life) || 5,
+      source_reliability: data.source_reliability || 'high',
+      overlap_risk_level: data.overlap_risk_level || 'medium',
+      overlap_type: data.overlap_type || 'revenue',
+      review_status: data.review_status || 'pending',
+      expert_note: data.expert_note || '',
+    };
+    
+    console.log('📤 ۱. ذخیره فیلدهای اصلی:', payload);
+    await api.patch(`/intangible/valuation-cases/${valuationCaseId}/`, payload);
+    
+    // 🔥 ۲. ذخیره فرضیات (Assumptions)
+    if (data.assumptions && data.assumptions.length > 0) {
+      console.log('📤 ۲. ذخیره فرضیات:', data.assumptions);
+      const assumptionsPayload = {
+        assumptions: data.assumptions.map((a: any) => ({
+          assumption_text: a.text,
+          assumption_tag: a.tag,
+          assumption_critical: a.critical,
+        }))
       };
+      
+      await api.post(
+        `/intangible/valuation-cases/${valuationCaseId}/sync_assumptions/`,
+        assumptionsPayload
+      );
+      console.log('✅ فرضیات ذخیره شدند');
+    }
+    
+    // 🔥 ۳. ذخیره وابستگی‌ها (Linked Assets)
+    if (data.linkedAssets && data.linkedAssets.length > 0) {
+      console.log('📤 ۳. ذخیره وابستگی‌ها:', data.linkedAssets);
+      await api.patch(
+        `/intangible/valuation-cases/${valuationCaseId}/update_linked_assets/`,
+        { linked_assets: data.linkedAssets }
+      );
+      console.log('✅ وابستگی‌ها ذخیره شدند');
+    }
+    
+    // 🔥 ۴. ذخیره تگ‌های شواهد (Evidence Tags)
+    if (data.evidenceTags && Object.keys(data.evidenceTags).length > 0) {
+      console.log('📤 ۴. ذخیره تگ‌های شواهد:', data.evidenceTags);
+      await api.post(
+        `/intangible/valuation-cases/${valuationCaseId}/sync_evidence_tags/`,
+        { evidence_tags: data.evidenceTags }
+      );
+      console.log('✅ تگ‌های شواهد ذخیره شدند');
+    }
+    
+    setLastSaved(new Date().toLocaleTimeString('fa-IR'));
+    console.log('✅ همه داده‌ها در دیتابیس ذخیره شدند');
+    
+  } catch (error: any) {
+    console.error('❌ خطا در ذخیره دیتابیس:', error);
+    console.error('❌ جزئیات خطا:', error?.response?.data);
+    setSaveError(error?.response?.data?.message || 'خطا در ذخیره دیتابیس');
+  } finally {
+    setSavingToDb(false);
+  }
+}, [valuationCaseId]);
+  // ============================================
+  // ذخیره در localStorage
+  // ============================================
+  const saveToLocalStorage = useCallback((data: any) => {
+    try {
       localStorage.setItem(`valuation_form_${assetId}`, JSON.stringify(data));
       if (onFormDataUpdate) {
         onFormDataUpdate(data);
       }
+      console.log('💾 ذخیره در localStorage');
     } catch (error) {
-      console.error('Error saving form data:', error);
+      console.error('Error saving to localStorage:', error);
     }
-  };
+  }, [assetId, onFormDataUpdate]);
+
+  // ============================================
+  // 🔥 ذخیره همزمان در دیتابیس + localStorage
+  // ============================================
+  const saveFormData = useCallback(() => {
+    const data = {
+      ...valuationForm,
+      assumptions,
+      linkedAssets,
+      evidenceTags,
+    };
+    
+    // همیشه در localStorage ذخیره کن
+    saveToLocalStorage(data);
+    
+    // در دیتابیس ذخیره کن
+    saveToDatabase(data);
+    
+  }, [valuationForm, assumptions, linkedAssets, evidenceTags, saveToLocalStorage, saveToDatabase]);
+
+  // ============================================
+  // Auto-save با debounce
+  // ============================================
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveFormData();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [valuationForm, assumptions, linkedAssets, evidenceTags, saveFormData]);
 
   const fetchValidationRules = async () => {
     try {
@@ -324,20 +478,16 @@ export function Step2_InputData({
 
   const handleValuationChange = (field: string, value: any) => {
     setValuationForm(prev => ({ ...prev, [field]: value }));
-    clearTimeout((window as any)._saveTimeout);
-    (window as any)._saveTimeout = setTimeout(saveFormData, 500);
   };
 
   const handleAddAssumption = () => {
     if (!newAssumption.text.trim()) return;
     setAssumptions(prev => [...prev, { ...newAssumption }]);
     setNewAssumption({ text: '', tag: 'general', critical: false });
-    saveFormData();
   };
 
   const handleRemoveAssumption = (index: number) => {
     setAssumptions(prev => prev.filter((_, i) => i !== index));
-    saveFormData();
   };
 
   const handleToggleLinkedAsset = (assetId: number) => {
@@ -345,7 +495,6 @@ export function Step2_InputData({
       const newList = prev.includes(assetId) 
         ? prev.filter(id => id !== assetId)
         : [...prev, assetId];
-      saveFormData();
       return newList;
     });
   };
@@ -460,10 +609,32 @@ export function Step2_InputData({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span className="w-7 h-7 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold">۲</span>
-        <span>مرحله ۲ از ۷</span>
+      {/* هدر با وضعیت ذخیره */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <span className="w-7 h-7 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold">۲</span>
+          <span>مرحله ۲ از ۷</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          {savingToDb ? (
+            <span className="text-amber-500 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              در حال ذخیره...
+            </span>
+          ) : saveError ? (
+            <span className="text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {saveError}
+            </span>
+          ) : lastSaved ? (
+            <span className="text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              ذخیره شد {lastSaved}
+            </span>
+          ) : null}
+        </div>
       </div>
+      
       <h2 className="text-xl font-bold text-dark-green">داده پایه</h2>
 
       {valuationMethod && (
@@ -481,7 +652,7 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۱: اطلاعات پایه (A) */}
         {/* ======================================== */}
-               <Card className="border-2 border-gray-200 shadow-lg overflow-hidden">
+        <Card className="border-2 border-gray-200 shadow-lg overflow-hidden">
           <div className="bg-gradient-to-r from-dark-green to-dark-green/80 px-5 py-3">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-white/80" />
@@ -520,6 +691,7 @@ export function Step2_InputData({
             </div>
           </CardContent>
         </Card>
+
         {/* ======================================== */}
         {/* بلاک ۲: امتیازات کیفی (B) */}
         {/* ======================================== */}
@@ -1133,15 +1305,29 @@ export function Step2_InputData({
         </Card>
       </div>
 
+      {/* ======================================== */}
+      {/* دکمه‌های ناوبری */}
+      {/* ======================================== */}
       <div className="flex justify-between pt-4 border-t">
         <Button variant="outline" onClick={onPrev} className="flex items-center gap-1">
           <ChevronLeft className="w-4 h-4" />
           قبلی
         </Button>
-        <Button className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1" onClick={handleNext}>
-          ادامه
-          <ChevronRight className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => saveFormData()}
+            disabled={savingToDb}
+            className="flex items-center gap-1"
+          >
+            <Save className="w-4 h-4" />
+            {savingToDb ? 'در حال ذخیره...' : 'ذخیره'}
+          </Button>
+          <Button className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1" onClick={handleNext}>
+            ادامه
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

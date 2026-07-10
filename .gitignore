@@ -39,3 +39,8 @@ Thumbs.db:encryptable
 .coverage
 htmlcov/
 .pytest_cache/
+project_context.txt
+project_dump.txt
+project_info.txt
+*.log
+*.zip

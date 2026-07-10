@@ -1,0 +1,1389 @@
+[
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 562,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "دانش فنی غیرقابل تقلید (Trade Secrets)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 90,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 563,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "فرآیندهای استاندارد (SOPs)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 86,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 564,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پتنت‌ها و حقوق اختراع",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 74,
+    "valuation_method": "M-01"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 565,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "قراردادهای زنجیره تأمین",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 88,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 566,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "بهبود بهره‌وری (ناب/شش‌سیگما)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 86,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 567,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "نرم‌افزار ERP/CRM",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 65,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 568,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "تکنیک‌های کاهش هزینه عملیاتی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 86,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 569,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سیستم تحلیل عملکرد (KPI)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 56,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 570,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "برند ثبت‌شده",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 1,
+    "valuation_method": "M-01"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 571,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پایگاه Lessons Learned",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 25,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 572,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پورتفولیوی مشتریان استراتژیک",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 6,
+    "valuation_method": "M-02"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 573,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "نرم‌افزارهای اختصاصی (کد منبع)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 98,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 574,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "مستندات پروژه‌های اجرایی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 77,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 575,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سیستم مدیریت دانش (KMS)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 71,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 576,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "قراردادهای انحصاری بلندمدت",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 2,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 577,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سیستم مالی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 38,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 578,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پایگاه داده مشتریان (CRM)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 100,
+    "valuation_method": "M-02"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 579,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "مستند خط لوله R&D",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 99,
+    "valuation_method": "M-03"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 580,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "فرمول‌های قیمت‌گذاری اختصاصی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 4,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 581,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "دستورالعمل مدیریت ضایعات",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 94,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 582,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سیستم مدیریت اسناد (DMS)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 58,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 583,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پلتفرم LMS",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 26,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 584,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "مدل‌های پیش‌بینی/شبیه‌سازی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 76,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 585,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "ابزارهای BI",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 41,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 586,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "مدل کسب‌وکار مستند (BMC)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 3,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 587,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "استاندارد مصرف آب/انرژی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 82,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 588,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "گواهینامه ESG (ISO 14001)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 32,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 589,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "ویکی/دانش‌نامه داخلی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 70,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 590,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "تیم‌های پروژه‌ای مستند",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 78,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 591,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "شبکه شراکت‌های استراتژیک (JV/MoU)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 7,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 592,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "الگوریتم‌های قیمت‌گذاری پویا",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 60,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 593,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "پایگاه داده تحلیلی استراتژیک",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 40,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 594,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "زیرساخت Cloud/Server",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 47,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 595,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سند فلسفه و ارزش‌های سازمانی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 75,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 596,
+  "fields": {
+    "organization_type": 1,
+    "item_name": "سیستم بازیافت عملیاتی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 80,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 599,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "دانش فنی/متدولوژی غیرقابل تقلید",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 90,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 609,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "سامانه بازخورد مشتریان",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 67,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 614,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "روش‌های بهبود بهره‌وری",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 86,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 618,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "سیستم مدیریت ارتباط با ذی‌نفعان",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 87,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 619,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "ابزارهای AI/ML",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 39,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 622,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "سیستم مدیریت محتوا (CMS)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 48,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 631,
+  "fields": {
+    "organization_type": 2,
+    "item_name": "Story Brand مستند",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 27,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 632,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "پتنت‌ها و حقوق اختراع ثبت‌شده",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 74,
+    "valuation_method": "M-01"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 636,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "مدل‌های پیش‌بینی/شبیه‌سازی منحصربه‌فرد",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 76,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 639,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "دانش فنی منحصربه‌فرد کارشناسان کلیدی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 20,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 640,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "پروتکل‌های همکاری با دولت/دانشگاه",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 37,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 641,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "شبکه شراکت‌های استراتژیک (MoU/JV)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 7,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 643,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "پایگاه داده Lessons Learned",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 25,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 644,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "پایگاه داده مقالات/تحقیقات",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 81,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 645,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "ابزارهای شبیه‌سازی و مدل‌سازی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 84,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 648,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "برند ثبت‌شده / سبد علائم تجاری",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 1,
+    "valuation_method": "M-01"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 651,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "عضویت در شوراهای ملی/بین‌المللی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 36,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 653,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "پلتفرم LMS (سامانه آموزش)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 26,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 657,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "کتابخانه دیجیتال",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 57,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 658,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "سیستم مالی (Accounting Software)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 38,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 659,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "سیستم تحلیل عملکرد (KPI Dashboards)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 56,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 661,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "نرم‌افزارهای ERP/CRM",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 65,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 662,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "تجربه حل مسائل پیچیده",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 22,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 663,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "دانش ضمنی کارکنان خبره",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 20,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 664,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "قراردادهای همکاری بین شرکتی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 17,
+    "valuation_method": "M-04"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 665,
+  "fields": {
+    "organization_type": 5,
+    "item_name": "فرآیندهای استاندارد بهینه شده (SOPs)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 86,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 669,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "شیوه‌نامه تصمیم‌گیری استراتژیک",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 30,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 673,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "سیستم تحلیل عملکرد",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 56,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 674,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "ابزارهای BI و تحلیل داده",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 41,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 678,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "شهرت تجاری / سرقفلی (Goodwill)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 5,
+    "valuation_method": "M-03"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 681,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "سیستم رهبری تحول",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 28,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 686,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "پایگاه داده مشتریان (CRM Database)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 100,
+    "valuation_method": "M-02"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 687,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "کدهای اخلاقی مصوب",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 31,
+    "valuation_method": "M-06"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 689,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "بهترین شیوه‌های غیررسمی (Best Practices)",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 24,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 695,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "Story Brand مستندشده",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 27,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 696,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "سیستم مدیریت فرهنگ سازمانی",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 55,
+    "valuation_method": "M-05"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 699,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "رتبه‌بندی‌های CSR معتبر",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 35,
+    "valuation_method": "M-09"
+  }
+},
+{
+  "model": "intangible_assets.screeningtemplate",
+  "pk": 700,
+  "fields": {
+    "organization_type": 4,
+    "item_name": "شبکه سفیران برند",
+    "category": "strategic_economic",
+    "default_result": "confirmed",
+    "is_active": true,
+    "order": 0,
+    "description": "",
+    "condition_1_non_physical": true,
+    "condition_2_identifiable": true,
+    "condition_3_controllable": true,
+    "condition_4_value_creating": true,
+    "asset_type": 42,
+    "valuation_method": "M-01"
+  }
+}
+]

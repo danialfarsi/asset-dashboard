@@ -6,20 +6,15 @@ class ValuationStep3(models.Model):
     """
     مدل STEP 3 - پارامترهای اختصاصی روش ارزش‌گذاری
     """
-    # ارتباط با مورد ارزش‌گذاری
     valuation_case = models.OneToOneField(
         ValuationCase, 
         on_delete=models.CASCADE, 
         related_name='step3_data'
     )
     
-    # روش ارزش‌گذاری (تکرار از ValuationCase برای راحتی)
-    method_id = models.CharField(max_length=10)  # M-01 تا M-09
-    
-    # 🔥 داده‌های اختصاصی هر روش به صورت JSON
+    method_id = models.CharField(max_length=10)
     method_inputs = models.JSONField(default=dict, blank=True)
     
-    # وضعیت
     validation_status = models.CharField(
         max_length=20,
         choices=[

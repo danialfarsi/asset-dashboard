@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Upload, X, FileText } from 'lucide-react';
+import { Plus, Trash2, Upload, X, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import api from '@/lib/api';
 
 interface FCFRow {
   id: number;
@@ -22,13 +23,109 @@ interface ExpertSignoff {
 interface M04_WWMProps {
   formData: any;
   onChange: (data: any) => void;
-  fieldsConfig?: any;
+  assetId?: number;
+  valuationCaseId?: number;
+  step2Data?: any;
 }
 
-export function M04_WWM({ formData, onChange }: M04_WWMProps) {
+export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Data }: M04_WWMProps) {
   const [files, setFiles] = useState<Record<string, File>>({});
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
 
-  // 🔥 داده‌های با دارایی
+  // ============================================
+  // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
+  // ============================================
+  useEffect(() => {
+    if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
+      console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
+      
+      const hasExistingData = formData.with_asset_fcf && formData.with_asset_fcf.length > 0;
+      
+      if (!hasExistingData) {
+        console.log('🔄 ریست کردن فرم برای دارایی جدید');
+        setInitialized(false);
+        // ریست کردن فیلدهای اصلی
+        onChange({
+          with_asset_fcf: [{ id: 1, year: 1, amount: 0 }],
+          without_asset_fcf: [{ id: 1, year: 1, amount: 0 }],
+          ramp_up_period: 0,
+          revenue_attribution: 0,
+          revenue_growth_rate: 0,
+          expert_signoffs: [],
+        });
+      }
+      
+      setPrevValuationCaseId(valuationCaseId);
+    }
+  }, [valuationCaseId, formData.with_asset_fcf]);
+
+  // ============================================
+  // مقداردهی اولیه با داده‌های STEP 2
+  // ============================================
+  useEffect(() => {
+    if (step2Data && !initialized) {
+      console.log('📥 دریافت داده‌های STEP 2 برای M04:', step2Data);
+      
+      if (!formData.tax_rate && step2Data.tax_rate) {
+        onChange({
+          tax_rate: step2Data.tax_rate,
+          discount_rate: step2Data.discount_rate,
+          forecast_horizon: step2Data.forecast_horizon,
+          terminal_growth_rate: step2Data.terminal_growth_rate,
+          current_revenue: step2Data.current_revenue,
+          useful_life: step2Data.useful_life,
+          currency: step2Data.currency,
+          source_reliability: step2Data.source_reliability,
+          category: step2Data.category,
+          business_unit: step2Data.business_unit,
+          lifecycle_stage: step2Data.lifecycle_stage,
+        });
+      }
+      setInitialized(true);
+    }
+  }, [step2Data, initialized]);
+
+  // بارگذاری داده‌های ذخیره‌شده
+  useEffect(() => {
+    if (valuationCaseId && initialized) {
+      loadFromDatabase();
+    }
+  }, [valuationCaseId, initialized]);
+
+  const loadFromDatabase = async () => {
+    try {
+      console.log(`📥 بارگذاری داده‌های M04 برای valuationCaseId: ${valuationCaseId}`);
+      
+      const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+      const items = data.results || data || [];
+      
+      if (items.length > 0 && items[0].method_inputs) {
+        const inputs = items[0].method_inputs;
+        const m04Data: any = {};
+        
+        if (inputs.with_asset_fcf) m04Data.with_asset_fcf = inputs.with_asset_fcf;
+        if (inputs.without_asset_fcf) m04Data.without_asset_fcf = inputs.without_asset_fcf;
+        if (inputs.ramp_up_period !== undefined) m04Data.ramp_up_period = inputs.ramp_up_period;
+        if (inputs.revenue_attribution !== undefined) m04Data.revenue_attribution = inputs.revenue_attribution;
+        if (inputs.revenue_growth_rate !== undefined) m04Data.revenue_growth_rate = inputs.revenue_growth_rate;
+        if (inputs.expert_signoffs) m04Data.expert_signoffs = inputs.expert_signoffs;
+        
+        if (Object.keys(m04Data).length > 0) {
+          onChange(m04Data);
+          console.log('📥 داده‌های M04 از دیتابیس بارگذاری شد:', m04Data);
+        }
+      } else {
+        console.log('ℹ️ هیچ داده‌ای برای این valuationCaseId در دیتابیس وجود ندارد');
+      }
+    } catch (error) {
+      console.error('Error loading M04 data:', error);
+    }
+  };
+
   const withAssetRows: FCFRow[] = formData.with_asset_fcf || [
     { id: 1, year: 1, amount: 0 },
     { id: 2, year: 2, amount: 0 },
@@ -37,7 +134,6 @@ export function M04_WWM({ formData, onChange }: M04_WWMProps) {
     { id: 5, year: 5, amount: 0 },
   ];
 
-  // 🔥 داده‌های بدون دارایی
   const withoutAssetRows: FCFRow[] = formData.without_asset_fcf || [
     { id: 1, year: 1, amount: 0 },
     { id: 2, year: 2, amount: 0 },
@@ -46,7 +142,6 @@ export function M04_WWM({ formData, onChange }: M04_WWMProps) {
     { id: 5, year: 5, amount: 0 },
   ];
 
-  // 🔥 تأیید خبرگان
   const expertSignoffs: ExpertSignoff[] = formData.expert_signoffs || [];
 
   const handleChange = (field: string, value: any) => {
@@ -145,16 +240,96 @@ export function M04_WWM({ formData, onChange }: M04_WWMProps) {
     handleChange(field, null);
   };
 
+  // ============================================
+  // 🔥 ذخیره در دیتابیس
+  // ============================================
+  const saveToDatabase = async () => {
+    if (!valuationCaseId) {
+      console.warn('⚠️ valuationCaseId موجود نیست');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setSaveError(null);
+
+      const payload = {
+        valuation_case: valuationCaseId,
+        method_id: 'M-04',
+        method_inputs: {
+          with_asset_fcf: withAssetRows,
+          without_asset_fcf: withoutAssetRows,
+          ramp_up_period: formData.ramp_up_period || 0,
+          revenue_attribution: formData.revenue_attribution || 0,
+          revenue_growth_rate: formData.revenue_growth_rate || 0,
+          expert_signoffs: expertSignoffs,
+          scenario_report: formData.scenario_report || null,
+          expert_approval: formData.expert_approval || null,
+        },
+      };
+
+      console.log('📤 ذخیره M04 در دیتابیس:', payload);
+      
+      const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+      const items = existing.results || existing || [];
+      
+      let response;
+      if (items.length > 0) {
+        const step3Id = items[0].id;
+        response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      } else {
+        response = await api.post('/intangible/valuation-step3/', payload);
+      }
+
+      setLastSaved(new Date().toLocaleTimeString('fa-IR'));
+      console.log('✅ M04 در دیتابیس ذخیره شد:', response.data);
+    } catch (error: any) {
+      console.error('❌ خطا در ذخیره M04:', error);
+      setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Auto-save با debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveToDatabase();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [formData, withAssetRows, withoutAssetRows, expertSignoffs]);
+
   return (
     <div className="space-y-6">
-      {/* توضیحات */}
-      <div className="bg-teal-50 p-4 rounded-lg border border-teal-200">
-        <p className="text-sm text-teal-700">
-          🔹 روش با و بدون دارایی (WWM) - تفاوت ارزش دارایی را با مقایسه سناریوهای با و بدون دارایی محاسبه می‌کند.
-          <span className="inline-block mr-2 px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full text-xs font-medium">
-            ⭐ ۱۱ دارایی
-          </span>
-        </p>
+      {/* هدر با وضعیت ذخیره */}
+      <div className="flex items-center justify-between">
+        <div className="bg-teal-50 p-4 rounded-lg border border-teal-200 flex-1">
+          <p className="text-sm text-teal-700">
+            🔹 روش با و بدون دارایی (WWM) - تفاوت ارزش دارایی را با مقایسه سناریوهای با و بدون دارایی محاسبه می‌کند.
+            <span className="inline-block mr-2 px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full text-xs font-medium">
+              ⭐ ۱۱ دارایی
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs mr-4">
+          {saving ? (
+            <span className="text-amber-500 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              در حال ذخیره...
+            </span>
+          ) : saveError ? (
+            <span className="text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {saveError}
+            </span>
+          ) : lastSaved ? (
+            <span className="text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              ذخیره شد {lastSaved}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -322,7 +497,7 @@ export function M04_WWM({ formData, onChange }: M04_WWMProps) {
       {/* ======================================== */}
       {/* پارامترهای اضافی */}
       {/* ======================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1">
           <Label className="text-sm font-medium flex items-center gap-1">
             دوره رشد (ماه) <span className="text-red-500">*</span>
@@ -366,22 +541,6 @@ export function M04_WWM({ formData, onChange }: M04_WWMProps) {
             />
             <span className="text-sm text-gray-400">%</span>
           </div>
-        </div>
-      </div>
-
-      {/* ======================================== */}
-      {/* فیلدهای از STEP 2 */}
-      {/* ======================================== */}
-      <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div>
-          <p className="text-xs text-gray-400">نرخ تنزیل</p>
-          <p className="text-sm font-medium">۱۸%</p>
-          <p className="text-[10px] text-gray-400">📥 از STEP 2</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">نرخ مالیات</p>
-          <p className="text-sm font-medium">۲۵%</p>
-          <p className="text-[10px] text-gray-400">📥 از STEP 2</p>
         </div>
       </div>
 

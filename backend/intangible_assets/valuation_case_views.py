@@ -22,6 +22,10 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = ValuationCase.objects.all()
         
+        asset_id = self.request.query_params.get('asset')
+        if asset_id:
+            queryset = queryset.filter(asset_id=asset_id)
+        
         if user.role == 'super_admin':
             return queryset
         elif user.role == 'org_admin':
@@ -51,6 +55,76 @@ class ValuationCaseViewSet(viewsets.ModelViewSet):
             serializer.save(valuation_case=valuation_case)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    # ============================================
+    # 🔥 ۱. مدیریت فرضیات (Assumptions) - همگام‌سازی کامل
+    # ============================================
+    @action(detail=True, methods=['post'])
+    def sync_assumptions(self, request, pk=None):
+        valuation_case = self.get_object()
+        assumptions_data = request.data.get('assumptions', [])
+        
+        # حذف همه فرضیات قبلی
+        valuation_case.assumptions.all().delete()
+        
+        # ایجاد فرضیات جدید
+        created = []
+        for ass_data in assumptions_data:
+            serializer = ValuationAssumptionSerializer(data=ass_data)
+            if serializer.is_valid():
+                serializer.save(valuation_case=valuation_case)
+                created.append(serializer.data)
+        
+        return Response({
+            'message': f'{len(created)} فرضیه همگام‌سازی شدند',
+            'assumptions': created
+        }, status=status.HTTP_200_OK)
+    
+    # ============================================
+    # 🔥 ۲. مدیریت وابستگی‌ها (Linked Assets)
+    # ============================================
+    @action(detail=True, methods=['patch'])
+    def update_linked_assets(self, request, pk=None):
+        valuation_case = self.get_object()
+        linked_assets = request.data.get('linked_assets', [])
+        
+        valuation_case.linked_assets.set(linked_assets)
+        valuation_case.save()
+        
+        return Response({
+            'message': 'وابستگی‌ها بروزرسانی شدند',
+            'linked_assets': list(valuation_case.linked_assets.values_list('id', flat=True))
+        }, status=status.HTTP_200_OK)
+    
+    # ============================================
+    # 🔥 ۳. مدیریت تگ‌های شواهد (Evidence Tags)
+    # ============================================
+    @action(detail=True, methods=['post'])
+    def sync_evidence_tags(self, request, pk=None):
+        valuation_case = self.get_object()
+        evidence_tags = request.data.get('evidence_tags', {})
+        
+        # حذف تگ‌های قبلی
+        valuation_case.evidence_tags.all().delete()
+        
+        # ایجاد تگ‌های جدید
+        created = []
+        for file_field, tag in evidence_tags.items():
+            if tag:
+                tag_obj = ValuationEvidenceTag.objects.create(
+                    valuation_case=valuation_case,
+                    file_field=file_field,
+                    tag=tag
+                )
+                created.append({
+                    'file_field': tag_obj.file_field,
+                    'tag': tag_obj.tag
+                })
+        
+        return Response({
+            'message': f'{len(created)} تگ شواهد همگام‌سازی شدند',
+            'evidence_tags': created
+        }, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def submit(self, request, pk=None):

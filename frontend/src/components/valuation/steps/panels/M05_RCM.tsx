@@ -3,8 +3,9 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Upload, X, Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import { Plus, Trash2, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 interface LaborRow {
   id: number;
@@ -17,16 +18,108 @@ interface LaborRow {
 interface M05_RCMProps {
   formData: any;
   onChange: (data: any) => void;
-  fieldsConfig?: any;
+  assetId?: number;
+  valuationCaseId?: number;
+  step2Data?: any;
 }
 
-export function M05_RCM({ formData, onChange }: M05_RCMProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
-  
-  const laborRows: LaborRow[] = formData.labor_breakdown || [
-    { id: 1, role: 'توسعه‌دهنده', person_months: 24, monthly_rate: 2000000, overhead_pct: 20 },
-    { id: 2, role: 'تست‌کننده', person_months: 12, monthly_rate: 1500000, overhead_pct: 20 },
-  ];
+export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Data }: M05_RCMProps) {
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
+
+  // ============================================
+  // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
+  // ============================================
+  useEffect(() => {
+    // اگه valuationCaseId تغییر کرده
+    if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
+      console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
+      
+      // چک کن که آیا داده‌ای برای این دارایی جدید وجود داره
+      const hasExistingData = formData.labor_breakdown && formData.labor_breakdown.length > 0;
+      
+      // اگه داده‌ای وجود نداشته باشه (ارزش‌گذاری جدید)
+      if (!hasExistingData) {
+        console.log('🔄 ریست کردن فرم برای دارایی جدید');
+        setInitialized(false);
+      }
+      
+      setPrevValuationCaseId(valuationCaseId);
+    }
+  }, [valuationCaseId, formData.labor_breakdown]);
+
+  // ============================================
+  // مقداردهی اولیه با داده‌های STEP 2
+  // ============================================
+  useEffect(() => {
+    if (step2Data && !initialized) {
+      console.log('📥 دریافت داده‌های STEP 2 برای M05:', step2Data);
+      
+      if (!formData.tax_rate && step2Data.tax_rate) {
+        onChange({
+          tax_rate: step2Data.tax_rate,
+          discount_rate: step2Data.discount_rate,
+          forecast_horizon: step2Data.forecast_horizon,
+          terminal_growth_rate: step2Data.terminal_growth_rate,
+          current_revenue: step2Data.current_revenue,
+          useful_life: step2Data.useful_life,
+          currency: step2Data.currency,
+          source_reliability: step2Data.source_reliability,
+          category: step2Data.category,
+          business_unit: step2Data.business_unit,
+          lifecycle_stage: step2Data.lifecycle_stage,
+        });
+      }
+      setInitialized(true);
+    }
+  }, [step2Data, initialized]);
+
+  // ============================================
+  // بارگذاری از دیتابیس
+  // ============================================
+  useEffect(() => {
+    if (valuationCaseId && initialized) {
+      loadFromDatabase();
+    }
+  }, [valuationCaseId, initialized]);
+
+  const loadFromDatabase = async () => {
+    try {
+      console.log(`📥 بارگذاری داده‌های M05 برای valuationCaseId: ${valuationCaseId}`);
+      
+      const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+      const items = data.results || data || [];
+      
+      if (items.length > 0 && items[0].method_inputs) {
+        const inputs = items[0].method_inputs;
+        
+        const m05Data: any = {};
+        if (inputs.labor_breakdown) m05Data.labor_breakdown = inputs.labor_breakdown;
+        if (inputs.material_infra_cost !== undefined) m05Data.material_infra_cost = inputs.material_infra_cost;
+        if (inputs.overhead_pct !== undefined) m05Data.overhead_pct = inputs.overhead_pct;
+        if (inputs.developer_profit_pct !== undefined) m05Data.developer_profit_pct = inputs.developer_profit_pct;
+        if (inputs.economic_obs_pct !== undefined) m05Data.economic_obs_pct = inputs.economic_obs_pct;
+        if (inputs.functional_obs_pct !== undefined) m05Data.functional_obs_pct = inputs.functional_obs_pct;
+        
+        if (Object.keys(m05Data).length > 0) {
+          onChange(m05Data);
+          console.log('📥 داده‌های M05 از دیتابیس بارگذاری شد:', m05Data);
+        }
+      } else {
+        console.log('ℹ️ هیچ داده‌ای برای این valuationCaseId در دیتابیس وجود ندارد');
+      }
+    } catch (error) {
+      console.error('Error loading M05 data:', error);
+    }
+  };
+
+  // ============================================
+  // داده‌های فرم
+  // ============================================
+  const laborRows: LaborRow[] = formData.labor_breakdown || [];
 
   const handleChange = (field: string, value: any) => {
     onChange({ [field]: value });
@@ -58,11 +151,14 @@ export function M05_RCM({ formData, onChange }: M05_RCMProps) {
     handleChange('labor_breakdown', laborRows.filter(row => row.id !== id));
   };
 
+  // ============================================
+  // محاسبات
+  // ============================================
   const calculateTotalCost = () => {
     let total = 0;
     laborRows.forEach(row => {
       const laborCost = row.person_months * row.monthly_rate;
-      const withOverhead = laborCost * (1 + row.overhead_pct / 100);
+      const withOverhead = laborCost * (1 + (row.overhead_pct || 0) / 100);
       total += withOverhead;
     });
     total += formData.material_infra_cost || 0;
@@ -71,25 +167,143 @@ export function M05_RCM({ formData, onChange }: M05_RCMProps) {
 
   const calculateFinalValue = () => {
     const total = calculateTotalCost();
-    const withOverhead = total * (1 + (formData.overhead_pct || 20) / 100);
-    const withProfit = withOverhead * (1 + (formData.developer_profit_pct || 15) / 100);
+    const overhead = (formData.overhead_pct || 20) / 100;
+    const profit = (formData.developer_profit_pct || 15) / 100;
     const functionalObs = (formData.functional_obs_pct || 0) / 100;
     const economicObs = (formData.economic_obs_pct || 0) / 100;
+    
+    const withOverhead = total * (1 + overhead);
+    const withProfit = withOverhead * (1 + profit);
     return withProfit * (1 - functionalObs) * (1 - economicObs);
+  };
+
+  // ============================================
+  // ذخیره در دیتابیس
+  // ============================================
+  const saveToDatabase = async () => {
+    if (!valuationCaseId) {
+      console.warn('⚠️ valuationCaseId موجود نیست');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setSaveError(null);
+
+      const methodInputs = {
+        tax_rate: formData.tax_rate || step2Data?.tax_rate || 25,
+        discount_rate: formData.discount_rate || step2Data?.discount_rate || 18,
+        forecast_horizon: formData.forecast_horizon || step2Data?.forecast_horizon || 5,
+        terminal_growth_rate: formData.terminal_growth_rate || step2Data?.terminal_growth_rate || 5,
+        current_revenue: formData.current_revenue || step2Data?.current_revenue || 500000000000,
+        useful_life: formData.useful_life || step2Data?.useful_life || 5,
+        currency: formData.currency || step2Data?.currency || 'IRR',
+        source_reliability: formData.source_reliability || step2Data?.source_reliability || 'high',
+        category: formData.category || step2Data?.category || 'operational',
+        business_unit: formData.business_unit || step2Data?.business_unit || 'واحد مرکزی',
+        lifecycle_stage: formData.lifecycle_stage || step2Data?.lifecycle_stage || 'growth',
+        
+        labor_breakdown: laborRows,
+        material_infra_cost: formData.material_infra_cost || 0,
+        overhead_pct: formData.overhead_pct || 20,
+        developer_profit_pct: formData.developer_profit_pct || 15,
+        functional_obs_pct: formData.functional_obs_pct || 0,
+        economic_obs_pct: formData.economic_obs_pct || 0,
+      };
+
+      const payload = {
+        valuation_case: valuationCaseId,
+        method_id: 'M-05',
+        method_inputs: methodInputs,
+      };
+
+      console.log('📤 ذخیره M05 در دیتابیس:', payload);
+      
+      const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+      const items = existing.results || existing || [];
+      
+      let response;
+      if (items.length > 0) {
+        const step3Id = items[0].id;
+        response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      } else {
+        response = await api.post('/intangible/valuation-step3/', payload);
+      }
+
+      setLastSaved(new Date().toLocaleTimeString('fa-IR'));
+      console.log('✅ M05 در دیتابیس ذخیره شد:', response.data);
+    } catch (error: any) {
+      console.error('❌ خطا در ذخیره M05:', error);
+      setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Auto-save
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveToDatabase();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [formData, laborRows]);
+
+  // ============================================
+  // نمایش داده‌های STEP 2
+  // ============================================
+  const displayStep2Data = () => {
+    const data = formData.tax_rate ? formData : step2Data;
+    if (!data) return null;
+    
+    return (
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
+        <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP 2:</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
+          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate}%</span></div>
+          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate}%</span></div>
+          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{data.forecast_horizon} سال</span></div>
+          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{data.current_revenue?.toLocaleString()}</span></div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
-        <p className="text-sm text-emerald-700">
-          🔹 این روش برای ارزش‌گذاری نرم‌افزارها، سیستم‌ها و فرآیندهای قابل جایگزینی استفاده می‌شود.
-          <span className="inline-block mr-2 px-2 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-xs font-medium">
-            ⭐ پرکاربردترین روش
-          </span>
-        </p>
+      {/* هدر */}
+      <div className="flex items-center justify-between">
+        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 flex-1">
+          <p className="text-sm text-emerald-700">
+            🔹 روش هزینه جایگزینی (RCM) - ارزش‌گذاری بر اساس هزینه بازسازی دارایی معادل.
+            <span className="inline-block mr-2 px-2 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-xs font-medium">
+              ⭐ پرکاربردترین روش (۳۵ دارایی)
+            </span>
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs mr-4">
+          {saving ? (
+            <span className="text-amber-500 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              در حال ذخیره...
+            </span>
+          ) : saveError ? (
+            <span className="text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {saveError}
+            </span>
+          ) : lastSaved ? (
+            <span className="text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              ذخیره شد {lastSaved}
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      {/* Labor Breakdown Table */}
+      {displayStep2Data()}
+
+      {/* جدول نیروی کار */}
       <div className="space-y-2">
         <Label className="text-sm font-medium flex items-center gap-1">
           جدول نیروی کار <span className="text-red-500">*</span>
@@ -163,6 +377,7 @@ export function M05_RCM({ formData, onChange }: M05_RCMProps) {
         <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
       </div>
 
+      {/* پارامترها */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label className="text-sm font-medium">هزینه مواد/زیرساخت</Label>
@@ -239,24 +454,24 @@ export function M05_RCM({ formData, onChange }: M05_RCMProps) {
         </div>
       </div>
 
-      {/* Summary Card */}
+      {/* خلاصه */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
             <p className="text-xs text-gray-400">هزینه مستقیم</p>
-            <p className="text-sm font-bold text-dark-green">{calculateTotalCost().toLocaleString()}</p>
+            <p className="text-sm font-bold text-dark-green">{Math.round(calculateTotalCost()).toLocaleString()}</p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
             <p className="text-xs text-gray-400">با سربار</p>
             <p className="text-sm font-bold text-dark-green">
-              {(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100)).toLocaleString()}
+              {Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100)).toLocaleString()}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
             <p className="text-xs text-gray-400">با سود</p>
             <p className="text-sm font-bold text-dark-green">
-              {(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100) * (1 + (formData.developer_profit_pct || 15) / 100)).toLocaleString()}
+              {Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100) * (1 + (formData.developer_profit_pct || 15) / 100)).toLocaleString()}
             </p>
           </div>
           <div className="p-2 bg-dark-green/5 rounded-lg border border-dark-green/20">

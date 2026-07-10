@@ -75,18 +75,18 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
             if len(parts) > 1:
                 item_name = parts[1].strip()
         
-        # 🔥 پیدا کردن AssetType از ScreeningTemplate
+        # 🔥 پیدا کردن AssetType و valuation_method از ScreeningTemplate
         asset_type = None
+        valuation_method = None
+        
         try:
             template = ScreeningTemplate.objects.get(
                 item_name=item_name,
                 is_active=True
             )
             asset_type = template.asset_type
+            valuation_method = template.valuation_method  # 🔥 این خط رو اضافه کن
         except ScreeningTemplate.DoesNotExist:
-            pass
-        except AttributeError:
-            # اگر فیلد asset_type وجود نداشت
             pass
         
         # تولید کد
@@ -97,11 +97,12 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         
         asset_uid = generate_asset_uid(category, item_name, existing_count)
         
-        # ذخیره با asset_type
+        # ذخیره با asset_type و valuation_method
         serializer.save(
             created_by=user,
             asset_uid=asset_uid,
-            asset_type=asset_type
+            asset_type=asset_type,
+            valuation_method=valuation_method  # 🔥 این خط رو اضافه کن
         )
 
     @action(detail=False, methods=['get'])

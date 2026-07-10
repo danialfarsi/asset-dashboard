@@ -27,6 +27,7 @@ interface Asset {
   description: string;
   created_at: string;
   created_by_name?: string;
+  valuation_method?: string;
 }
 
 interface ValuationMethod {
@@ -34,20 +35,6 @@ interface ValuationMethod {
   name: string;
   description: string;
   recommended: boolean;
-}
-
-interface ValuationData {
-  id: number;
-  final_score: number;
-  weighted_score: number;
-  strategic_score: number;
-  technical_score: number;
-  operational_score: number;
-  market_score: number;
-  risk_score: number;
-  status: string;
-  answered_questions: number;
-  total_questions: number;
 }
 
 const STEPS = [
@@ -61,11 +48,15 @@ const STEPS = [
 ];
 
 const VALUATION_METHODS: ValuationMethod[] = [
-  { id: 'M-01', name: 'روش بازار (Market Approach)', description: 'مقایسه با معاملات مشابه', recommended: false },
-  { id: 'M-02', name: 'روش درآمد (Income Approach)', description: 'تنزیل جریان نقدی', recommended: false },
-  { id: 'M-03', name: 'روش هزینه جایگزینی (Replacement Cost)', description: 'هزینه بازسازی دارایی معادل', recommended: true },
-  { id: 'M-04', name: 'روش هزینه بازتولید (Reproduction Cost)', description: 'هزینه بازتولید دقیق دارایی', recommended: false },
-  { id: 'M-05', name: 'روش چندگانه (Multi-Period Excess Earnings)', description: 'سود مازاد چنددوره‌ای', recommended: false },
+  { id: 'M-01', name: 'RfR - Relief from Royalty', description: 'روش رهایی از حق امتیاز', recommended: false },
+  { id: 'M-02', name: 'MEEM - Multi-Period Excess Earnings', description: 'روش سود مازاد چنددوره‌ای', recommended: false },
+  { id: 'M-03', name: 'DCF - Discounted Cash Flow', description: 'روش تنزیل جریان نقدی', recommended: true },
+  { id: 'M-04', name: 'WWM - With-and-Without Method', description: 'روش با و بدون دارایی', recommended: false },
+  { id: 'M-05', name: 'RCM - Replacement Cost Method', description: 'روش هزینه جایگزینی', recommended: false },
+  { id: 'M-06', name: 'RPCM - Reproduction Cost Method', description: 'روش هزینه بازتولید', recommended: false },
+  { id: 'M-07', name: 'TWC - Trained Workforce Cost', description: 'روش هزینه نیروی کار آموزش‌دیده', recommended: false },
+  { id: 'M-08', name: 'CTM - Comparable Transactions Method', description: 'روش معاملات مشابه', recommended: false },
+  { id: 'M-09', name: 'MMM - Market Multiple Method', description: 'روش ضریب بازار', recommended: false },
 ];
 
 export default function ValuationPage() {
@@ -77,8 +68,8 @@ export default function ValuationPage() {
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>('M-03');
   const [isMethodConfirmed, setIsMethodConfirmed] = useState(false);
-  const [valuationData, setValuationData] = useState<ValuationData | null>(null);
-  const [valuationCaseId, setValuationCaseId] = useState<number | null>(null);
+  const [valuationData, setValuationData] = useState<any>(null);
+  const [valuationCaseId, setValuationCaseId] = useState<number | undefined>(undefined);
   const [formData, setFormData] = useState({
     assetId: '',
     name: '',
@@ -119,17 +110,36 @@ export default function ValuationPage() {
       });
       
       const results = await Promise.all(assetPromises);
-      const validAssets = results.filter((a): a is Asset => a !== null);
+      const validAssets: Asset[] = results
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .map((item) => ({
+          id: item.id,
+          asset_name: item.asset_name,
+          asset_uid: item.asset_uid,
+          asset_type: item.asset_type,
+          description: item.description,
+          created_at: item.created_at,
+          created_by_name: item.created_by_name,
+          valuation_method: item.valuation_method,
+        }));
+      
       setAssets(validAssets);
       
       if (validAssets.length > 0) {
-        setSelectedAsset(validAssets[0]);
+        const firstAsset = validAssets[0];
+        setSelectedAsset(firstAsset);
         setFormData(prev => ({
           ...prev,
-          assetId: validAssets[0].asset_uid,
-          name: validAssets[0].asset_name,
-          description: validAssets[0].description || '',
+          assetId: firstAsset.asset_uid,
+          name: firstAsset.asset_name,
+          description: firstAsset.description || '',
         }));
+        
+        if (firstAsset.valuation_method) {
+          setSelectedMethod(firstAsset.valuation_method);
+          console.log('✅ روش دارایی (از دیتابیس):', firstAsset.valuation_method);
+        }
+        await createValuationCase(firstAsset.id);
       }
     } catch (error) {
       console.error('Error fetching assets:', error);
@@ -138,9 +148,35 @@ export default function ValuationPage() {
     }
   };
 
+  const createValuationCase = async (assetId: number) => {
+    try {
+      const { data } = await api.get(`/intangible/valuation-cases/?asset=${assetId}`);
+      const items = data.results || data || [];
+      
+      if (items.length > 0) {
+        setValuationCaseId(items[0].id);
+        console.log('✅ ValuationCase موجود:', items[0].id);
+      } else {
+        const response = await api.post('/intangible/valuation-cases/', {
+          asset: assetId,
+          category: 'operational',
+          business_unit: 'واحد مرکزی',
+          status: 'draft',
+        });
+        setValuationCaseId(response.data.id);
+        console.log('✅ ValuationCase جدید ایجاد شد:', response.data.id);
+      }
+    } catch (error) {
+      console.error('Error creating valuation case:', error);
+    }
+  };
+
   const handleAssetSelect = async (assetId: string) => {
     const asset = assets.find(a => a.asset_uid === assetId);
     if (asset) {
+      console.log('🔍 دارایی انتخاب شد:', asset);
+      console.log('🔍 روش دارایی (valuation_method):', asset.valuation_method);
+      
       setSelectedAsset(asset);
       setFormData(prev => ({
         ...prev,
@@ -148,6 +184,16 @@ export default function ValuationPage() {
         name: asset.asset_name,
         description: asset.description || '',
       }));
+      
+      if (asset.valuation_method) {
+        setSelectedMethod(asset.valuation_method);
+        console.log('✅ روش دارایی انتخاب شد:', asset.valuation_method);
+      } else {
+        console.log('⚠️ دارایی روش ندارد، استفاده از پیش‌فرض M-03');
+        setSelectedMethod('M-03');
+      }
+      
+      await createValuationCase(asset.id);
       
       try {
         const allValuations = await fetchAllValuations('completed');
@@ -158,19 +204,7 @@ export default function ValuationPage() {
           )[0];
           
           const { data: summary } = await api.get(`/intangible/asset-valuations/${latest.id}/summary/`);
-          setValuationData({
-            id: latest.id,
-            final_score: summary.final_score || 0,
-            weighted_score: summary.weighted_score || summary.final_score || 0,
-            strategic_score: summary.strategic_score || 0,
-            technical_score: summary.technical_score || 0,
-            operational_score: summary.operational_score || 0,
-            market_score: summary.market_score || 0,
-            risk_score: summary.risk_score || 0,
-            status: latest.status,
-            answered_questions: summary.answered_questions || 0,
-            total_questions: summary.total_questions || 23,
-          });
+          setValuationData(summary);
         } else {
           setValuationData(null);
         }
@@ -178,6 +212,8 @@ export default function ValuationPage() {
         console.error('Error fetching valuation data:', error);
         setValuationData(null);
       }
+    } else {
+      console.error('❌ دارایی با این شناسه پیدا نشد:', assetId);
     }
   };
 
@@ -244,26 +280,28 @@ export default function ValuationPage() {
             selectedAsset={selectedAsset}
             valuationData={valuationData}
             assetId={selectedAsset?.id}
+            valuationMethod={selectedMethod}
+            valuationCaseId={valuationCaseId}  // 🔥 این خط رو اضافه کن
           />
         );
       case 3:
         return (
           <Step3_Parameters
-            assetId={selectedAsset?.id}  // 🔥 اضافه شد
-            valuationCaseId={valuationCaseId}  // 🔥 اضافه شد
+            assetId={selectedAsset?.id}
+            valuationCaseId={valuationCaseId}
             onNext={nextStep}
             onPrev={prevStep}
-            onSave={(data) => console.log('Saved:', data)}
+            methodId={selectedAsset?.valuation_method || selectedMethod || 'M-03'}
           />
         );
       case 4:
         return (
           <Step4_Calculation
+            valuationCaseId={valuationCaseId}
+            methodId={selectedAsset?.valuation_method || selectedMethod || 'M-03'}
+            assetId={selectedAsset?.id}
             onNext={nextStep}
             onPrev={prevStep}
-            formData={formData}
-            selectedMethod={selectedMethod}
-            methods={VALUATION_METHODS}
           />
         );
       case 5:
@@ -296,7 +334,6 @@ export default function ValuationPage() {
 
   return (
     <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* هدر */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -315,7 +352,6 @@ export default function ValuationPage() {
         </div>
       </div>
 
-      {/* استپر */}
       <ValuationStepper
         steps={STEPS}
         currentStep={currentStep}
@@ -323,7 +359,6 @@ export default function ValuationPage() {
         isStepComplete={isStepComplete}
       />
 
-      {/* محتوای مرحله */}
       <Card className="border-0 shadow-lg">
         <CardContent className="p-6">
           {renderStep()}

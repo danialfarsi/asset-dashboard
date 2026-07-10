@@ -58,6 +58,7 @@ class ValuationCaseSerializer(serializers.ModelSerializer):
             'review_status', 'review_status_label',
             'expert_note',
             'assumptions',
+            'evidence_tags',  # 🔥 این خط رو اضافه کردم
             'valuation_method',
             'status', 'final_score',
             'created_by', 'created_at', 'updated_at'

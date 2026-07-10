@@ -302,3 +302,6 @@ from .valuation_models import (
     InflationBasis, SourceReliability, OverlapRiskLevel,
     OverlapType, ReviewStatus, AssumptionTag, EvidenceTag
 )
+
+# ============ مدل‌های STEP 4 ============
+from .valuation_step4_models import ValuationStep4
