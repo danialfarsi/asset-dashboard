@@ -600,7 +600,7 @@ export default function ValuationPage() {
                       onClick={() => toggleEvidence(question.id)}
                       className="text-xs text-dark-green hover:text-dark-green/70 flex items-center gap-1"
                     >
-                      {showEvidenceUpload ? '🙈 بستن آپلود شواهد' : '📎 آپلود شواهد'}
+                      {showEvidenceUpload ? ' بستن آپلود شواهد' : '📎 آپلود شواهد'}
                     </button>
                   </div>
                 )}

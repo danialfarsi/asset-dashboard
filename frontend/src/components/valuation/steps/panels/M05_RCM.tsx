@@ -34,14 +34,11 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
   // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
   // ============================================
   useEffect(() => {
-    // اگه valuationCaseId تغییر کرده
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
       console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
       
-      // چک کن که آیا داده‌ای برای این دارایی جدید وجود داره
       const hasExistingData = formData.labor_breakdown && formData.labor_breakdown.length > 0;
       
-      // اگه داده‌ای وجود نداشته باشه (ارزش‌گذاری جدید)
       if (!hasExistingData) {
         console.log('🔄 ریست کردن فرم برای دارایی جدید');
         setInitialized(false);
@@ -250,6 +247,22 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
   }, [formData, laborRows]);
 
   // ============================================
+  // تبدیل اعداد به فارسی
+  // ============================================
+  const toPersianNumber = (num: number) => {
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  };
+
+  const formatPersianNumber = (num: number) => {
+    if (!num && num !== 0) return '۰';
+    const parts = Math.round(num).toString().split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    return integerPart.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  };
+
+  // ============================================
   // نمایش داده‌های STEP 2
   // ============================================
   const displayStep2Data = () => {
@@ -257,27 +270,26 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     if (!data) return null;
     
     return (
-      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs font-[family-name:var(--font-vazir)]">
         <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP 2:</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate}%</span></div>
-          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate}%</span></div>
-          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{data.forecast_horizon} سال</span></div>
-          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{data.current_revenue?.toLocaleString()}</span></div>
+          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{toPersianNumber(data.tax_rate)}%</span></div>
+          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{toPersianNumber(data.discount_rate)}%</span></div>
+          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon)} سال</span></div>
+          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{formatPersianNumber(data.current_revenue)}</span></div>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]">
       {/* هدر */}
       <div className="flex items-center justify-between">
         <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 flex-1">
           <p className="text-sm text-emerald-700">
             🔹 روش هزینه جایگزینی (RCM) - ارزش‌گذاری بر اساس هزینه بازسازی دارایی معادل.
             <span className="inline-block mr-2 px-2 py-0.5 bg-emerald-200 text-emerald-800 rounded-full text-xs font-medium">
-              ⭐ پرکاربردترین روش (۳۵ دارایی)
             </span>
           </p>
         </div>
@@ -326,7 +338,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
                     <Input
                       value={row.role}
                       onChange={(e) => updateLaborRow(row.id, 'role', e.target.value)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="نقش"
                     />
                   </td>
@@ -335,7 +347,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
                       type="number"
                       value={row.person_months || ''}
                       onChange={(e) => updateLaborRow(row.id, 'person_months', parseFloat(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="۰"
                     />
                   </td>
@@ -344,7 +356,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
                       type="number"
                       value={row.monthly_rate || ''}
                       onChange={(e) => updateLaborRow(row.id, 'monthly_rate', parseFloat(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="۰"
                     />
                   </td>
@@ -353,7 +365,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
                       type="number"
                       value={row.overhead_pct || ''}
                       onChange={(e) => updateLaborRow(row.id, 'overhead_pct', parseFloat(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="۲۰"
                     />
                   </td>
@@ -370,11 +382,11 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1">
+        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
           <Plus className="w-4 h-4" />
           افزودن ردیف
         </Button>
-        <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
+        <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
       </div>
 
       {/* پارامترها */}
@@ -385,8 +397,8 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
             type="number"
             value={formData.material_infra_cost || ''}
             onChange={(e) => handleChange('material_infra_cost', parseFloat(e.target.value) || 0)}
-            placeholder="مثلاً 150,000,000"
-            className="focus:ring-2 focus:ring-emerald-500"
+            placeholder="مثلاً ۱۵۰,۰۰۰,۰۰۰"
+            className="focus:ring-2 focus:ring-emerald-500 font-[family-name:var(--font-vazir)]"
           />
         </div>
         <div className="space-y-1">
@@ -399,10 +411,10 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
               step="0.5"
               value={formData.overhead_pct || ''}
               onChange={(e) => handleChange('overhead_pct', parseFloat(e.target.value) || 0)}
-              className="focus:ring-2 focus:ring-emerald-500"
+              className="focus:ring-2 focus:ring-emerald-500 font-[family-name:var(--font-vazir)]"
               placeholder="۲۰"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
         <div className="space-y-1">
@@ -415,10 +427,10 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
               step="0.5"
               value={formData.developer_profit_pct || ''}
               onChange={(e) => handleChange('developer_profit_pct', parseFloat(e.target.value) || 0)}
-              className="focus:ring-2 focus:ring-emerald-500"
+              className="focus:ring-2 focus:ring-emerald-500 font-[family-name:var(--font-vazir)]"
               placeholder="۱۵"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
         <div className="space-y-1">
@@ -429,11 +441,11 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
               step="0.5"
               value={formData.functional_obs_pct || ''}
               disabled
-              className="bg-gray-50 focus:ring-2 focus:ring-emerald-500"
+              className="bg-gray-50 focus:ring-2 focus:ring-emerald-500 font-[family-name:var(--font-vazir)]"
               placeholder="۰"
             />
-            <span className="text-sm text-gray-400">%</span>
-            <span className="text-xs text-emerald-600">🤖 خودکار</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
+            <span className="text-xs text-emerald-600 font-[family-name:var(--font-vazir)]">🤖 خودکار</span>
           </div>
         </div>
         <div className="space-y-1">
@@ -446,37 +458,37 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
               step="0.5"
               value={formData.economic_obs_pct || ''}
               onChange={(e) => handleChange('economic_obs_pct', parseFloat(e.target.value) || 0)}
-              className="focus:ring-2 focus:ring-emerald-500"
+              className="focus:ring-2 focus:ring-emerald-500 font-[family-name:var(--font-vazir)]"
               placeholder="۰"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
       </div>
 
       {/* خلاصه */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
+        <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">هزینه مستقیم</p>
-            <p className="text-sm font-bold text-dark-green">{Math.round(calculateTotalCost()).toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه مستقیم</p>
+            <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatPersianNumber(Math.round(calculateTotalCost()))}</p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">با سربار</p>
-            <p className="text-sm font-bold text-dark-green">
-              {Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100)).toLocaleString()}
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">با سربار</p>
+            <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+              {formatPersianNumber(Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100)))}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">با سود</p>
-            <p className="text-sm font-bold text-dark-green">
-              {Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100) * (1 + (formData.developer_profit_pct || 15) / 100)).toLocaleString()}
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">با سود</p>
+            <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+              {formatPersianNumber(Math.round(calculateTotalCost() * (1 + (formData.overhead_pct || 20) / 100) * (1 + (formData.developer_profit_pct || 15) / 100)))}
             </p>
           </div>
           <div className="p-2 bg-dark-green/5 rounded-lg border border-dark-green/20">
-            <p className="text-xs text-gray-400">ارزش نهایی</p>
-            <p className="text-lg font-bold text-dark-green">{Math.round(calculateFinalValue()).toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش نهایی</p>
+            <p className="text-lg font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatPersianNumber(Math.round(calculateFinalValue()))}</p>
           </div>
         </div>
       </div>

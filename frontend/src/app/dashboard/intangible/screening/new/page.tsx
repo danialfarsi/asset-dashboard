@@ -236,12 +236,11 @@ export default function NewScreeningPage() {
 
   const totalAssets = Object.values(assetEntries).reduce((sum, entries) => sum + entries.length, 0);
 
-  // آیکون مناسب برای نوع سازمان
   const OrgIcon = orgIcons[orgType as keyof typeof orgIcons] || Building2;
 
   return (
-    <div dir="rtl" className="space-y-6 pb-20">
-      <div className="flex items-center justify-between">
+    <div dir="rtl" className="space-y-6 pb-32">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="p-1 rounded-lg hover:bg-gray-100">
             <ArrowRight className="w-5 h-5 text-gray-500" />
@@ -259,7 +258,7 @@ export default function NewScreeningPage() {
       {/* نمایش نوع سازمان */}
       <Card className="border-blue-200 bg-blue-50/50">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="p-2 bg-blue-100 rounded-lg">
               <OrgIcon className="w-6 h-6 text-blue-600" />
             </div>
@@ -309,7 +308,7 @@ export default function NewScreeningPage() {
                         className="mt-1"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium">{item.item_name}</span>
                           {getResultBadge(item.default_result)}
                         </div>
@@ -363,17 +362,26 @@ export default function NewScreeningPage() {
         ))
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg">
-        <div className="max-w-4xl mx-auto flex gap-3">
+      {/* ======================================== */}
+      {/* فوتر با دکمه‌های واکنش‌گرا - اصلاح شده */}
+      {/* ======================================== */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-50">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-3">
           <Button 
             onClick={handleSubmit} 
             disabled={totalAssets === 0 || submitting}
-            className="flex-1"
+            className="w-full sm:flex-1 order-2 sm:order-1"
           >
             <Save className="w-4 h-4 ml-2" />
             {submitting ? 'در حال ثبت...' : `ثبت ${totalAssets} دارایی`}
           </Button>
-          <Button variant="outline" onClick={() => router.back()}>انصراف</Button>
+          <Button 
+            variant="outline" 
+            onClick={() => router.back()}
+            className="w-full sm:w-auto order-1 sm:order-2"
+          >
+            انصراف
+          </Button>
         </div>
       </div>
     </div>

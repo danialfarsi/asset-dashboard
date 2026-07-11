@@ -187,12 +187,12 @@ export default function CompletedValuationsPage() {
   const getScoreLabel = (score: number) => {
     if (score >= 4) return 'عالی';
     if (score >= 3) return 'خوب';
-    if (score >= 2) return 'متوسط';
+    if (score >= 2) return 'قابل قبول';
     return 'ضعیف';
   };
 
   const getScoreEmoji = (score: number) => {
-    if (score >= 4) return '🌟';
+    if (score >= 4) return '🌟🌟';
     if (score >= 3) return '👍';
     if (score >= 2) return '📊';
     return '⚠️';
@@ -330,15 +330,18 @@ export default function CompletedValuationsPage() {
                       />
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                      <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                        <Button variant="outline" size="sm" className="w-full flex items-center gap-1 text-xs">
+                    {/* ======================================== */}
+                    {/* دکمه‌های واکنش‌گرا - با grid و responsive */}
+                    {/* ======================================== */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t">
+                      <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="w-full">
+                        <Button variant="outline" size="sm" className="w-full flex items-center justify-center gap-1 text-xs">
                           <Eye className="w-3 h-3" />
                           مشاهده دارایی
                         </Button>
                       </Link>
-                      <Link href={`/dashboard/intangible/valuation/${val.asset_id}`} className="flex-1 min-w-[80px]">
-                        <Button size="sm" className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 text-xs">
+                      <Link href={`/dashboard/intangible/valuation/${val.asset_id}`} className="w-full">
+                        <Button size="sm" className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center justify-center gap-1 text-xs">
                           <BarChart3 className="w-3 h-3" />
                           مشاهده ارزیابی
                         </Button>
@@ -346,7 +349,7 @@ export default function CompletedValuationsPage() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="flex-1 min-w-[80px] border-amber-400 text-amber-600 hover:bg-amber-50 flex items-center gap-1 text-xs"
+                        className="w-full border-amber-400 text-amber-600 hover:bg-amber-50 flex items-center justify-center gap-1 text-xs"
                         onClick={() => {
                           if (val.asset_id) {
                             handleRevaluateClick(val.asset_id, val.asset || '');

@@ -36,6 +36,12 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
 
+  // تبدیل عدد به فارسی
+  const toPersianNumber = (num: number) => {
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  };
+
   // ============================================
   // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
   // ============================================
@@ -300,15 +306,35 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return () => clearTimeout(timer);
   }, [formData, withAssetRows, withoutAssetRows, expertSignoffs]);
 
+  // ============================================
+  // 🔥 نمایش داده‌های STEP 2 به فارسی
+  // ============================================
+  const displayStep2Data = () => {
+    const data = formData.tax_rate ? formData : step2Data;
+    if (!data) return null;
+    
+    return (
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
+        <p className="font-medium text-blue-700 mb-1 font-[family-name:var(--font-vazir)]">📥 داده‌های ورودی از STEP 2:</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1 font-[family-name:var(--font-vazir)]">
+          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate}%</span></div>
+          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate}%</span></div>
+          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon)} سال</span></div>
+          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{toPersianNumber(data.current_revenue?.toLocaleString())}</span></div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]">
       {/* هدر با وضعیت ذخیره */}
       <div className="flex items-center justify-between">
         <div className="bg-teal-50 p-4 rounded-lg border border-teal-200 flex-1">
           <p className="text-sm text-teal-700">
-            🔹 روش با و بدون دارایی (WWM) - تفاوت ارزش دارایی را با مقایسه سناریوهای با و بدون دارایی محاسبه می‌کند.
+            🔹 روش با و بدون دارایی (WWM) 
             <span className="inline-block mr-2 px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full text-xs font-medium">
-              ⭐ ۱۱ دارایی
+              
             </span>
           </p>
         </div>
@@ -332,6 +358,9 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
+      {/* نمایش داده‌های STEP 2 به فارسی */}
+      {displayStep2Data()}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* ======================================== */}
         {/* ستون چپ: با دارایی */}
@@ -345,7 +374,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               <thead>
                 <tr className="bg-teal-50">
                   <th className="border p-2 text-right">سال</th>
-                  <th className="border p-2 text-right">مبلغ FCF (IRR)</th>
+                  <th className="border p-2 text-right">مبلغ FCF (ریال)</th>
                   <th className="border p-2 text-center">عملیات</th>
                 </tr>
               </thead>
@@ -362,7 +391,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           );
                           handleChange('with_asset_fcf', newRows);
                         }}
-                        className="h-8 text-sm border-0 focus:ring-1"
+                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                         placeholder="سال"
                       />
                     </td>
@@ -376,7 +405,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           );
                           handleChange('with_asset_fcf', newRows);
                         }}
-                        className="h-8 text-sm border-0 focus:ring-1"
+                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                         placeholder="۰"
                       />
                     </td>
@@ -405,12 +434,12 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               const newRow: FCFRow = { id: Date.now(), year: maxYear + 1, amount: 0 };
               handleChange('with_asset_fcf', [...withAssetRows, newRow]);
             }}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
           >
             <Plus className="w-4 h-4" />
             افزودن ردیف
           </Button>
-          <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
+          <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
         </div>
 
         {/* ======================================== */}
@@ -425,7 +454,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               <thead>
                 <tr className="bg-teal-50">
                   <th className="border p-2 text-right">سال</th>
-                  <th className="border p-2 text-right">مبلغ FCF (IRR)</th>
+                  <th className="border p-2 text-right">مبلغ FCF (ریال)</th>
                   <th className="border p-2 text-center">عملیات</th>
                 </tr>
               </thead>
@@ -442,7 +471,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           );
                           handleChange('without_asset_fcf', newRows);
                         }}
-                        className="h-8 text-sm border-0 focus:ring-1"
+                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                         placeholder="سال"
                       />
                     </td>
@@ -456,7 +485,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           );
                           handleChange('without_asset_fcf', newRows);
                         }}
-                        className="h-8 text-sm border-0 focus:ring-1"
+                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                         placeholder="۰"
                       />
                     </td>
@@ -485,12 +514,12 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               const newRow: FCFRow = { id: Date.now(), year: maxYear + 1, amount: 0 };
               handleChange('without_asset_fcf', [...withoutAssetRows, newRow]);
             }}
-            className="flex items-center gap-1"
+            className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
           >
             <Plus className="w-4 h-4" />
             افزودن ردیف
           </Button>
-          <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
+          <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
         </div>
       </div>
 
@@ -507,7 +536,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
             value={formData.ramp_up_period || ''}
             onChange={(e) => handleChange('ramp_up_period', parseInt(e.target.value) || 0)}
             placeholder="مثلاً ۱۲"
-            className="focus:ring-2 focus:ring-teal-500"
+            className="focus:ring-2 focus:ring-teal-500 font-[family-name:var(--font-vazir)]"
           />
         </div>
         <div className="space-y-1">
@@ -521,9 +550,9 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               value={formData.revenue_attribution || ''}
               onChange={(e) => handleChange('revenue_attribution', parseFloat(e.target.value) || 0)}
               placeholder="مثلاً ۸۰"
-              className="focus:ring-2 focus:ring-teal-500"
+              className="focus:ring-2 focus:ring-teal-500 font-[family-name:var(--font-vazir)]"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
         <div className="space-y-1">
@@ -537,9 +566,9 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
               value={formData.revenue_growth_rate || ''}
               onChange={(e) => handleChange('revenue_growth_rate', parseFloat(e.target.value) || 0)}
               placeholder="مثلاً ۸"
-              className="focus:ring-2 focus:ring-teal-500"
+              className="focus:ring-2 focus:ring-teal-500 font-[family-name:var(--font-vazir)]"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
       </div>
@@ -548,19 +577,25 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       {/* خلاصه محاسبه */}
       {/* ======================================== */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
+        <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">جمع FCF با دارایی</p>
-            <p className="text-sm font-bold text-teal-600">{calculateTotalWith().toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">جمع FCF با دارایی</p>
+            <p className="text-sm font-bold text-teal-600 font-[family-name:var(--font-vazir)]">
+              {toPersianNumber(calculateTotalWith().toLocaleString())}
+            </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">جمع FCF بدون دارایی</p>
-            <p className="text-sm font-bold text-red-500">{calculateTotalWithout().toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">جمع FCF بدون دارایی</p>
+            <p className="text-sm font-bold text-red-500 font-[family-name:var(--font-vazir)]">
+              {toPersianNumber(calculateTotalWithout().toLocaleString())}
+            </p>
           </div>
           <div className="p-2 bg-teal-50 rounded-lg border border-teal-200">
-            <p className="text-xs text-gray-400">ارزش افزایشی</p>
-            <p className="text-lg font-bold text-teal-700">{calculateIncrementalValue().toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش افزایشی</p>
+            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">
+              {toPersianNumber(calculateIncrementalValue().toLocaleString())}
+            </p>
           </div>
         </div>
       </div>
@@ -569,11 +604,11 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       {/* تأیید خبرگان */}
       {/* ======================================== */}
       <div className="space-y-3 pt-4 border-t">
-        <Label className="text-sm font-medium">تأیید خبرگان (اختیاری)</Label>
+        <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">تأیید خبرگان (اختیاری)</Label>
         {expertSignoffs.length === 0 ? (
           <div className="text-center py-4 text-gray-400 border-2 border-dashed rounded-lg">
-            <p className="text-sm">هیچ خبره‌ای ثبت نشده است</p>
-            <p className="text-xs">برای افزودن خبره روی دکمه کلیک کنید</p>
+            <p className="text-sm font-[family-name:var(--font-vazir)]">هیچ خبره‌ای ثبت نشده است</p>
+            <p className="text-xs font-[family-name:var(--font-vazir)]">برای افزودن خبره روی دکمه کلیک کنید</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -584,20 +619,20 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                     value={signoff.expert_name}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'expert_name', e.target.value)}
                     placeholder="نام خبره"
-                    className="h-8 text-sm"
+                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
                   />
                   <Input
                     type="date"
                     value={signoff.signature_date}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
                   />
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removeExpertSignoff(signoff.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 hover:text-red-700 font-[family-name:var(--font-vazir)]"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -609,7 +644,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
           variant="outline"
           size="sm"
           onClick={addExpertSignoff}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
         >
           <Plus className="w-4 h-4" />
           افزودن خبره
@@ -620,13 +655,13 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       {/* شواهد */}
       {/* ======================================== */}
       <div className="space-y-3 pt-4 border-t">
-        <p className="text-sm font-medium">📎 شواهد و مدارک</p>
+        <p className="text-sm font-medium font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="p-3 border-2 border-dashed rounded-lg hover:border-teal-400 transition-colors">
-            <Label className="text-sm">گزارش تحلیل سناریو</Label>
+            <Label className="text-sm font-[family-name:var(--font-vazir)]">گزارش تحلیل سناریو</Label>
             {files.scenario_report ? (
               <div className="flex items-center justify-between mt-2 p-2 bg-teal-50 rounded">
-                <span className="text-sm truncate">{files.scenario_report.name}</span>
+                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.scenario_report.name}</span>
                 <button onClick={() => removeFile('scenario_report')} className="text-red-500 hover:text-red-700">
                   <X className="w-4 h-4" />
                 </button>
@@ -641,7 +676,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                 />
                 <label
                   htmlFor="scenario_report"
-                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800"
+                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800 font-[family-name:var(--font-vazir)]"
                 >
                   <Upload className="w-4 h-4" />
                   آپلود فایل
@@ -650,10 +685,10 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
             )}
           </div>
           <div className="p-3 border-2 border-dashed rounded-lg hover:border-teal-400 transition-colors">
-            <Label className="text-sm">تأییدیه خبرگان</Label>
+            <Label className="text-sm font-[family-name:var(--font-vazir)]">تأییدیه خبرگان</Label>
             {files.expert_approval ? (
               <div className="flex items-center justify-between mt-2 p-2 bg-teal-50 rounded">
-                <span className="text-sm truncate">{files.expert_approval.name}</span>
+                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.expert_approval.name}</span>
                 <button onClick={() => removeFile('expert_approval')} className="text-red-500 hover:text-red-700">
                   <X className="w-4 h-4" />
                 </button>
@@ -668,7 +703,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
                 />
                 <label
                   htmlFor="expert_approval"
-                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800"
+                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800 font-[family-name:var(--font-vazir)]"
                 >
                   <Upload className="w-4 h-4" />
                   آپلود فایل

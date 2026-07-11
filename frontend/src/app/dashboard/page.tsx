@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
-import { NotificationBar } from '@/components/ui/notification-bar';
 import {
   Building2,
   Package,
@@ -90,6 +89,31 @@ interface RecentAsset {
   department_name: string;
   description: string;
 }
+
+// 🔥 تبدیل عدد به فارسی
+const toPersianNumber = (num: number | string): string => {
+  if (num === undefined || num === null) return '۰';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const str = String(num);
+  return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+// 🔥 تبدیل عدد با کاما به فارسی
+const toPersianNumberWithComma = (num: number): string => {
+  if (!num && num !== 0) return '۰';
+  const formatted = num.toLocaleString();
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return formatted.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+// 🔥 تبدیل درصد به فارسی
+const toPersianPercent = (num: number): string => {
+  if (!num && num !== 0) return '۰٪';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const str = Math.round(num).toString();
+  const persianStr = str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  return persianStr + '٪';
+};
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
@@ -230,7 +254,7 @@ export default function DashboardPage() {
       rejected: 'رد شده',
     };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[result as keyof typeof colors] || 'bg-gray-100'}`}>
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium font-[family-name:var(--font-vazir)] ${colors[result as keyof typeof colors] || 'bg-gray-100'}`}>
         {labels[result as keyof typeof labels] || result}
       </span>
     );
@@ -273,10 +297,10 @@ export default function DashboardPage() {
     return 'شب بخیر 🌙';
   };
 
-  // تابع کمکی برای فرمت درصد
+  // 🔥 فرمت درصد به فارسی
   const formatPercent = (percent: number | undefined) => {
-    if (percent === undefined || isNaN(percent)) return '۰%';
-    return `${(percent * 100).toFixed(0)}%`;
+    if (percent === undefined || isNaN(percent)) return '۰٪';
+    return toPersianPercent(percent * 100);
   };
 
   if (loading) {
@@ -287,13 +311,34 @@ export default function DashboardPage() {
     );
   }
 
+  // تابع رندر کارت آمار (برای جلوگیری از تکرار کد)
+  const renderStatCard = (stat: { label: string; value: number; icon: any; color: string }) => {
+    const Icon = stat.icon;
+    return (
+      <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 font-medium font-[family-name:var(--font-vazir)]">{stat.label}</p>
+              <p className={`text-3xl font-bold ${stat.color} mt-1 font-[family-name:var(--font-vazir)]`}>
+                {toPersianNumberWithComma(stat.value)}
+              </p>
+            </div>
+            <div className={`${stat.color.replace('text', 'bg')}/10 p-3 rounded-xl`}>
+              <Icon className={`w-6 h-6 ${stat.color}`} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   // ============================================================
   // 1. DASHBOARD SUPER_ADMIN
   // ============================================================
   if (isSuperAdmin) {
     return (
       <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-        <NotificationBar />
 
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-medium-green to-aqua-green p-8 text-white">
           <div className="absolute inset-0 opacity-10">
@@ -306,13 +351,13 @@ export default function DashboardPage() {
                 <Crown className="w-8 h-8" />
               </div>
               <div>
-                <p className="text-sm text-white/80">{getGreeting()}</p>
-                <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+                <p className="text-sm text-white/80 font-[family-name:var(--font-vazir)]">{getGreeting()}</p>
+                <h1 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-vazir)]">{getFullName()}</h1>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1 font-[family-name:var(--font-vazir)]">
                     <Crown className="w-3 h-3" /> {getRoleDisplay(role)}
                   </span>
-                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30 font-[family-name:var(--font-vazir)]">
                     <Award className="w-3 h-3" /> دسترسی کامل
                   </span>
                 </div>
@@ -320,13 +365,13 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Link href="/dashboard/companies">
-                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white">
+                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white font-[family-name:var(--font-vazir)]">
                   <Building2 className="w-4 h-4 ml-2" />
                   مدیریت شرکت‌ها
                 </Button>
               </Link>
               <Link href="/dashboard/intangible/screening/new">
-                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0 font-[family-name:var(--font-vazir)]">
                   <Search className="w-4 h-4 ml-2" />
                   غربالگری جدید
                 </Button>
@@ -339,69 +384,23 @@ export default function DashboardPage() {
               { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
               { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
               { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
-              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0, icon: TrendingUp },
             ].map((stat, index) => (
               <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-xs text-white/70">{stat.label}</p>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-xs text-white/70 font-[family-name:var(--font-vazir)]">{stat.label}</p>
+                <p className="text-2xl font-bold text-white font-[family-name:var(--font-vazir)]">
+                  {typeof stat.value === 'number' ? toPersianNumberWithComma(stat.value) : stat.value}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p>
-                  <p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p>
-                </div>
-                <div className="bg-dark-green/10 p-3 rounded-xl">
-                  <Package className="w-6 h-6 text-dark-green" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">تأیید شده</p>
-                  <p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p>
-                </div>
-                <div className="bg-emerald-50 p-3 rounded-xl">
-                  <CheckCircle className="w-6 h-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">در انتظار</p>
-                  <p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p>
-                </div>
-                <div className="bg-amber-50 p-3 rounded-xl">
-                  <Clock className="w-6 h-6 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 font-medium">رد شده</p>
-                  <p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p>
-                </div>
-                <div className="bg-red-50 p-3 rounded-xl">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {renderStatCard({ label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package, color: 'text-dark-green' })}
+          {renderStatCard({ label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle, color: 'text-emerald-600' })}
+          {renderStatCard({ label: 'در انتظار', value: stats.pendingAssets, icon: Clock, color: 'text-amber-600' })}
+          {renderStatCard({ label: 'رد شده', value: stats.rejectedAssets, icon: AlertCircle, color: 'text-red-600' })}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -411,8 +410,8 @@ export default function DashboardPage() {
                 <Building2 className="w-6 h-6 text-dark-green" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">شرکت‌ها</p>
-                <p className="text-2xl font-bold text-dark-green">2</p>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">شرکت‌ها</p>
+                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">۲</p>
               </div>
             </CardContent>
           </Card>
@@ -422,8 +421,10 @@ export default function DashboardPage() {
                 <Building className="w-6 h-6 text-medium-green" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">واحدها</p>
-                <p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">واحدها</p>
+                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                  {toPersianNumberWithComma(stats.totalDepartments)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -433,8 +434,10 @@ export default function DashboardPage() {
                 <Users className="w-6 h-6 text-golden-amber" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">کاربران</p>
-                <p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">کاربران</p>
+                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                  {toPersianNumberWithComma(stats.totalUsers)}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -443,7 +446,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+              <CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]">
                 <PieChart className="w-5 h-5 text-dark-green" />
                 توزیع دارایی‌ها
               </CardTitle>
@@ -456,7 +459,7 @@ export default function DashboardPage() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${formatPercent(percent)}`}
+                    label={({ name, percent }) => `${name} ${toPersianPercent((percent || 0) * 100)}`}
                     outerRadius={90}
                     dataKey="value"
                   >
@@ -464,8 +467,8 @@ export default function DashboardPage() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)' }} />
+                  <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
                 </RePieChart>
               </ResponsiveContainer>
             </CardContent>
@@ -473,28 +476,30 @@ export default function DashboardPage() {
 
           <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+              <CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]">
                 <Activity className="w-5 h-5 text-dark-green" />
                 خلاصه عملکرد
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
+              <div className="space-y-4 font-[family-name:var(--font-vazir)]">
                 {[
-                  { label: 'کل دارایی‌ها', value: stats.totalAssets, color: 'dark-green' },
-                  { label: 'تأیید شده', value: stats.verifiedAssets, color: 'emerald-600' },
-                  { label: 'در انتظار', value: stats.pendingAssets, color: 'amber-600' },
-                  { label: 'رد شده', value: stats.rejectedAssets, color: 'red-600' },
+                  { label: 'کل دارایی‌ها', value: stats.totalAssets, color: 'text-dark-green' },
+                  { label: 'تأیید شده', value: stats.verifiedAssets, color: 'text-emerald-600' },
+                  { label: 'در انتظار', value: stats.pendingAssets, color: 'text-amber-600' },
+                  { label: 'رد شده', value: stats.rejectedAssets, color: 'text-red-600' },
                 ].map((item) => (
                   <div key={item.label} className="flex justify-between items-center border-b pb-3">
                     <span className="text-sm text-gray-500">{item.label}</span>
-                    <span className={`text-lg font-bold text-${item.color}`}>{item.value}</span>
+                    <span className={`text-lg font-bold ${item.color}`}>
+                      {toPersianNumberWithComma(item.value)}
+                    </span>
                   </div>
                 ))}
                 <div className="flex justify-between items-center pt-2">
                   <span className="text-sm text-gray-500">نرخ تأیید</span>
                   <span className="text-lg font-bold text-emerald-600">
-                    {stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%
+                    {stats.totalAssets > 0 ? toPersianPercent(Math.round((stats.verifiedAssets / stats.totalAssets) * 100)) : '۰٪'}
                   </span>
                 </div>
               </div>
@@ -504,16 +509,16 @@ export default function DashboardPage() {
 
         <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2 text-dark-green">
+            <CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]">
               <Clock className="w-5 h-5 text-dark-green" />
               آخرین فعالیت‌ها
             </CardTitle>
             <Link href="/dashboard/intangible/assets">
-              <Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button>
+              <Button variant="ghost" size="sm" className="text-dark-green font-[family-name:var(--font-vazir)]">مشاهده همه</Button>
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 font-[family-name:var(--font-vazir)]">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
                   <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
@@ -546,7 +551,6 @@ export default function DashboardPage() {
   if (isOrgAdmin) {
     return (
       <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-        <NotificationBar />
 
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-aqua-green to-medium-green p-8 text-white">
           <div className="absolute inset-0 opacity-10">
@@ -559,13 +563,13 @@ export default function DashboardPage() {
                 <Building2 className="w-8 h-8" />
               </div>
               <div>
-                <p className="text-sm text-white/80">{getGreeting()}</p>
-                <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+                <p className="text-sm text-white/80 font-[family-name:var(--font-vazir)]">{getGreeting()}</p>
+                <h1 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-vazir)]">{getFullName()}</h1>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                  <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1 font-[family-name:var(--font-vazir)]">
                     <User className="w-3 h-3" /> {getRoleDisplay(role)}
                   </span>
-                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                  <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30 font-[family-name:var(--font-vazir)]">
                     <Building2 className="w-3 h-3" /> {user?.organization_name}
                   </span>
                 </div>
@@ -573,13 +577,13 @@ export default function DashboardPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <Link href="/dashboard/departments">
-                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white">
+                <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white font-[family-name:var(--font-vazir)]">
                   <Building className="w-4 h-4 ml-2" />
                   مدیریت واحدها
                 </Button>
               </Link>
               <Link href="/dashboard/intangible/screening/new">
-                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+                <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0 font-[family-name:var(--font-vazir)]">
                   <Search className="w-4 h-4 ml-2" />
                   غربالگری جدید
                 </Button>
@@ -592,95 +596,85 @@ export default function DashboardPage() {
               { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
               { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
               { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
-              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+              { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0, icon: TrendingUp },
             ].map((stat, index) => (
               <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <p className="text-xs text-white/70">{stat.label}</p>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="text-xs text-white/70 font-[family-name:var(--font-vazir)]">{stat.label}</p>
+                <p className="text-2xl font-bold text-white font-[family-name:var(--font-vazir)]">
+                  {typeof stat.value === 'number' ? toPersianNumberWithComma(stat.value) : stat.value}
+                </p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div>
-                <div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div>
-                <div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div>
-                <div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div>
-                <div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div>
-              </div>
-            </CardContent>
-          </Card>
+          {renderStatCard({ label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package, color: 'text-dark-green' })}
+          {renderStatCard({ label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle, color: 'text-emerald-600' })}
+          {renderStatCard({ label: 'در انتظار', value: stats.pendingAssets, icon: Clock, color: 'text-amber-600' })}
+          {renderStatCard({ label: 'رد شده', value: stats.rejectedAssets, icon: AlertCircle, color: 'text-red-600' })}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-dark-green/10 p-3 rounded-xl"><Building className="w-6 h-6 text-dark-green" /></div>
-              <div><p className="text-sm text-gray-500">واحدها</p><p className="text-2xl font-bold text-dark-green">{stats.totalDepartments}</p></div>
+              <div>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">واحدها</p>
+                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                  {toPersianNumberWithComma(stats.totalDepartments)}
+                </p>
+              </div>
             </CardContent>
           </Card>
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-aqua-green/20 p-3 rounded-xl"><Users className="w-6 h-6 text-medium-green" /></div>
-              <div><p className="text-sm text-gray-500">کاربران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div>
+              <div>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">کاربران</p>
+                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                  {toPersianNumberWithComma(stats.totalUsers)}
+                </p>
+              </div>
             </CardContent>
           </Card>
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div>
-              <div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div>
+              <div>
+                <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">نرخ تأیید</p>
+                <p className="text-2xl font-bold text-emerald-600 font-[family-name:var(--font-vazir)]">
+                  {stats.totalAssets > 0 ? toPersianPercent(Math.round((stats.verifiedAssets / stats.totalAssets) * 100)) : '۰٪'}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={280}>
                 <RePieChart>
-                  <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${formatPercent(percent)}`} outerRadius={90} dataKey="value">
+                  <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${toPersianPercent((percent || 0) * 100)}`} outerRadius={90} dataKey="value">
                     {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                   </Pie>
-                  <Tooltip /><Legend />
+                  <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)' }} />
+                  <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
                 </RePieChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
           <Card className="border-0 shadow-sm">
-            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{stats.verifiedAssets}</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{stats.pendingAssets}</span></div>
-                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{stats.rejectedAssets}</span></div>
-                <div className="flex justify-between items-center pt-2"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</span></div>
+              <div className="space-y-4 font-[family-name:var(--font-vazir)]">
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.totalAssets)}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{toPersianNumberWithComma(stats.verifiedAssets)}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{toPersianNumberWithComma(stats.pendingAssets)}</span></div>
+                <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{toPersianNumberWithComma(stats.rejectedAssets)}</span></div>
+                <div className="flex justify-between items-center pt-2"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? toPersianPercent(Math.round((stats.verifiedAssets / stats.totalAssets) * 100)) : '۰٪'}</span></div>
               </div>
             </CardContent>
           </Card>
@@ -688,11 +682,11 @@ export default function DashboardPage() {
 
         <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
-            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
+            <CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
+            <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green font-[family-name:var(--font-vazir)]">مشاهده همه</Button></Link>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 font-[family-name:var(--font-vazir)]">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
                   <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">
@@ -715,7 +709,6 @@ export default function DashboardPage() {
   // ============================================================
   return (
     <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
-      <NotificationBar />
 
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-aqua-green to-medium-green p-8 text-white">
         <div className="absolute inset-0 opacity-10">
@@ -728,16 +721,16 @@ export default function DashboardPage() {
               <User className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm text-white/80">{getGreeting()}</p>
-              <h1 className="text-2xl md:text-3xl font-bold">{getFullName()}</h1>
+              <p className="text-sm text-white/80 font-[family-name:var(--font-vazir)]">{getGreeting()}</p>
+              <h1 className="text-2xl md:text-3xl font-bold font-[family-name:var(--font-vazir)]">{getFullName()}</h1>
               <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs backdrop-blur-sm border border-white/10 flex items-center gap-1 font-[family-name:var(--font-vazir)]">
                   <User className="w-3 h-3" /> {getRoleDisplay(role)}
                 </span>
-                <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30">
+                <span className="bg-golden-amber/30 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-golden-amber/30 font-[family-name:var(--font-vazir)]">
                   <Building2 className="w-3 h-3" /> {user?.organization_name}
                 </span>
-                <span className="bg-white/20 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-white/20">
+                <span className="bg-white/20 px-3 py-1 rounded-full text-xs flex items-center gap-1 border border-white/20 font-[family-name:var(--font-vazir)]">
                   <Building className="w-3 h-3" /> {user?.department_name}
                 </span>
               </div>
@@ -745,7 +738,7 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/dashboard/intangible/screening/new">
-              <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0">
+              <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0 font-[family-name:var(--font-vazir)]">
                 <Search className="w-4 h-4 ml-2" />
                 غربالگری جدید
               </Button>
@@ -758,89 +751,74 @@ export default function DashboardPage() {
             { label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package },
             { label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle },
             { label: 'در انتظار', value: stats.pendingAssets, icon: Clock },
-            { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? `${Math.round((stats.verifiedAssets / stats.totalAssets) * 100)}%` : '۰%', icon: TrendingUp },
+            { label: 'نرخ تأیید', value: stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0, icon: TrendingUp },
           ].map((stat, index) => (
             <div key={index} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-              <p className="text-xs text-white/70">{stat.label}</p>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-white/70 font-[family-name:var(--font-vazir)]">{stat.label}</p>
+              <p className="text-2xl font-bold text-white font-[family-name:var(--font-vazir)]">
+                {typeof stat.value === 'number' ? toPersianNumberWithComma(stat.value) : stat.value}
+              </p>
             </div>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p><p className="text-3xl font-bold text-dark-green mt-1">{stats.totalAssets}</p></div>
-              <div className="bg-dark-green/10 p-3 rounded-xl"><Package className="w-6 h-6 text-dark-green" /></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-gray-500 font-medium">تأیید شده</p><p className="text-3xl font-bold text-emerald-600 mt-1">{stats.verifiedAssets}</p></div>
-              <div className="bg-emerald-50 p-3 rounded-xl"><CheckCircle className="w-6 h-6 text-emerald-600" /></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-gray-500 font-medium">در انتظار</p><p className="text-3xl font-bold text-amber-600 mt-1">{stats.pendingAssets}</p></div>
-              <div className="bg-amber-50 p-3 rounded-xl"><Clock className="w-6 h-6 text-amber-600" /></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div><p className="text-sm text-gray-500 font-medium">رد شده</p><p className="text-3xl font-bold text-red-600 mt-1">{stats.rejectedAssets}</p></div>
-              <div className="bg-red-50 p-3 rounded-xl"><AlertCircle className="w-6 h-6 text-red-600" /></div>
-            </div>
-          </CardContent>
-        </Card>
+        {renderStatCard({ label: 'کل دارایی‌ها', value: stats.totalAssets, icon: Package, color: 'text-dark-green' })}
+        {renderStatCard({ label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle, color: 'text-emerald-600' })}
+        {renderStatCard({ label: 'در انتظار', value: stats.pendingAssets, icon: Clock, color: 'text-amber-600' })}
+        {renderStatCard({ label: 'رد شده', value: stats.rejectedAssets, icon: AlertCircle, color: 'text-red-600' })}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="bg-dark-green/10 p-3 rounded-xl"><Users className="w-6 h-6 text-dark-green" /></div>
-            <div><p className="text-sm text-gray-500">همکاران</p><p className="text-2xl font-bold text-dark-green">{stats.totalUsers}</p></div>
+            <div>
+              <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">همکاران</p>
+              <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                {toPersianNumberWithComma(stats.totalUsers)}
+              </p>
+            </div>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="bg-golden-amber/20 p-3 rounded-xl"><TrendingUp className="w-6 h-6 text-golden-amber" /></div>
-            <div><p className="text-sm text-gray-500">نرخ تأیید</p><p className="text-2xl font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</p></div>
+            <div>
+              <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">نرخ تأیید</p>
+              <p className="text-2xl font-bold text-emerald-600 font-[family-name:var(--font-vazir)]">
+                {stats.totalAssets > 0 ? toPersianPercent(Math.round((stats.verifiedAssets / stats.totalAssets) * 100)) : '۰٪'}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-0 shadow-sm">
-          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><PieChart className="w-5 h-5 text-dark-green" /> توزیع دارایی‌ها</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={280}>
               <RePieChart>
-                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${formatPercent(percent)}`} outerRadius={90} dataKey="value">
+                <Pie data={chartData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name} ${toPersianPercent((percent || 0) * 100)}`} outerRadius={90} dataKey="value">
                   {chartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />))}
                 </Pie>
-                <Tooltip /><Legend />
+                <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)' }} />
+                <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
               </RePieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
         <Card className="border-0 shadow-sm">
-          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><Activity className="w-5 h-5 text-dark-green" /> خلاصه عملکرد</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{stats.totalAssets}</span></div>
-              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{stats.verifiedAssets}</span></div>
-              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{stats.pendingAssets}</span></div>
-              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{stats.rejectedAssets}</span></div>
-              <div className="flex justify-between items-center pt-2"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0}%</span></div>
+            <div className="space-y-4 font-[family-name:var(--font-vazir)]">
+              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">کل دارایی‌ها</span><span className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.totalAssets)}</span></div>
+              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">تأیید شده</span><span className="text-lg font-bold text-emerald-600">{toPersianNumberWithComma(stats.verifiedAssets)}</span></div>
+              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">در انتظار</span><span className="text-lg font-bold text-amber-600">{toPersianNumberWithComma(stats.pendingAssets)}</span></div>
+              <div className="flex justify-between items-center border-b pb-3"><span className="text-sm text-gray-500">رد شده</span><span className="text-lg font-bold text-red-600">{toPersianNumberWithComma(stats.rejectedAssets)}</span></div>
+              <div className="flex justify-between items-center pt-2"><span className="text-sm text-gray-500">نرخ تأیید</span><span className="text-lg font-bold text-emerald-600">{stats.totalAssets > 0 ? toPersianPercent(Math.round((stats.verifiedAssets / stats.totalAssets) * 100)) : '۰٪'}</span></div>
             </div>
           </CardContent>
         </Card>
@@ -848,11 +826,11 @@ export default function DashboardPage() {
 
       <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2 text-dark-green"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
-          <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green">مشاهده همه</Button></Link>
+          <CardTitle className="text-base flex items-center gap-2 text-dark-green font-[family-name:var(--font-vazir)]"><Clock className="w-5 h-5 text-dark-green" /> آخرین دارایی‌ها</CardTitle>
+          <Link href="/dashboard/intangible/assets"><Button variant="ghost" size="sm" className="text-dark-green font-[family-name:var(--font-vazir)]">مشاهده همه</Button></Link>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 font-[family-name:var(--font-vazir)]">
             {recentAssets.map((asset) => (
               <Link href={`/dashboard/intangible/assets/${asset.id}`} key={asset.id}>
                 <div className="p-4 border rounded-xl hover:shadow-md hover:border-dark-green transition-all cursor-pointer bg-white">

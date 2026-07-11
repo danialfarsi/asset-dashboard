@@ -12,6 +12,7 @@ from .views_asset_type_detection import DetectAssetTypeView
 from .valuation_case_views import ValuationCaseViewSet
 from .valuation_step3_views import ValuationStep3ViewSet
 from .valuation_step4_views import ValuationStep4ViewSet
+from .notification_views import NotificationViewSet
 
 router = DefaultRouter()
 
@@ -35,6 +36,9 @@ router.register(r'valuation-step3', ValuationStep3ViewSet, basename='valuation-s
 
 # STEP 4 routers
 router.register(r'valuation-step4', ValuationStep4ViewSet, basename='valuation-step4')
+
+# 🔥 Notification routers
+router.register(r'notifications', NotificationViewSet, basename='notifications')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -31,22 +31,33 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
 
+  // تبدیل اعداد به فارسی
+  const toPersianNumber = (num: number) => {
+    if (num === undefined || num === null) return '۰';
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  };
+
+  const formatNumber = (num: number) => {
+    if (!num && num !== 0) return '۰';
+    const parts = Math.round(num).toString().split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+    return integerPart.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  };
+
   // ============================================
   // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
   // ============================================
   useEffect(() => {
-    // اگه valuationCaseId تغییر کرده
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
       console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
       
-      // چک کن که آیا داده‌ای برای این دارایی جدید وجود داره
       const hasExistingData = formData.labor_breakdown && formData.labor_breakdown.length > 0;
       
-      // اگه داده‌ای وجود نداشته باشه (ارزش‌گذاری جدید)
       if (!hasExistingData) {
         console.log('🔄 ریست کردن فرم برای دارایی جدید');
         setInitialized(false);
-        // ریست کردن فایل‌ها
         setFiles({});
       }
       
@@ -205,11 +216,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
       setSaving(true);
       setSaveError(null);
 
-      // 🔥 ترکیب داده‌های STEP 2 و M06
       const methodInputs = {
-        // ============================================
-        // 🔥 داده‌های STEP 2 (اجباری برای STEP 4)
-        // ============================================
         tax_rate: Number(formData.tax_rate) || Number(step2Data?.tax_rate) || 25,
         discount_rate: Number(formData.discount_rate) || Number(step2Data?.discount_rate) || 18,
         forecast_horizon: Number(formData.forecast_horizon) || Number(step2Data?.forecast_horizon) || 5,
@@ -222,9 +229,6 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
         business_unit: formData.business_unit || step2Data?.business_unit || 'واحد مرکزی',
         lifecycle_stage: formData.lifecycle_stage || step2Data?.lifecycle_stage || 'growth',
         
-        // ============================================
-        // داده‌های M06
-        // ============================================
         labor_breakdown: laborRows.map(row => ({
           id: row.id,
           role: row.role || '',
@@ -278,7 +282,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
   }, [formData, laborRows]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]">
       {/* هدر با وضعیت ذخیره */}
       <div className="flex items-center justify-between">
         <div className="bg-rose-50 p-4 rounded-lg border border-rose-200 flex-1">
@@ -338,7 +342,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                     <Input
                       value={row.role}
                       onChange={(e) => updateLaborRow(row.id, 'role', e.target.value)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="نقش"
                     />
                   </td>
@@ -347,7 +351,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                       type="number"
                       value={row.person_days || ''}
                       onChange={(e) => updateLaborRow(row.id, 'person_days', Number(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="۰"
                     />
                   </td>
@@ -356,7 +360,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                       type="number"
                       value={row.daily_rate || ''}
                       onChange={(e) => updateLaborRow(row.id, 'daily_rate', Number(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1"
+                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
                       placeholder="۰"
                     />
                   </td>
@@ -373,30 +377,30 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1">
+        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
           <Plus className="w-4 h-4" />
           افزودن ردیف
         </Button>
-        <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
+        <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
       </div>
 
       {/* 2. پارامترها */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             هزینه مستقیم بازتولید <span className="text-red-500">*</span>
           </Label>
           <Input
             type="number"
             value={formData.direct_reproduction_cost || ''}
             onChange={(e) => handleChange('direct_reproduction_cost', Number(e.target.value) || 0)}
-            placeholder="مثلاً 500,000,000"
-            className="focus:ring-2 focus:ring-rose-500"
+            placeholder="مثلاً ۵۰۰,۰۰۰,۰۰۰"
+            className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
           />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium">سربار هماهنگی</Label>
+          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">سربار هماهنگی</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"
@@ -404,61 +408,61 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
               value={formData.coordination_overhead || ''}
               onChange={(e) => handleChange('coordination_overhead', Number(e.target.value) || 0)}
               placeholder="۲۰"
-              className="focus:ring-2 focus:ring-rose-500"
+              className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
             />
-            <span className="text-sm text-gray-400">%</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium">منسوخی مرتبط</Label>
+          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">منسوخی مرتبط</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"
               step="0.5"
               value={formData.relevance_obsolescence || ''}
               disabled
-              className="bg-gray-50 focus:ring-2 focus:ring-rose-500"
+              className="bg-gray-50 focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
               placeholder="۰"
             />
-            <span className="text-sm text-gray-400">%</span>
-            <span className="text-xs text-rose-600">🤖 خودکار</span>
+            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
+            <span className="text-xs text-rose-600 font-[family-name:var(--font-vazir)]">🤖 خودکار</span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium">ضریب سن</Label>
+          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">ضریب سن</Label>
           <Input
             type="number"
             step="0.01"
             value={formData.age_factor || ''}
             onChange={(e) => handleChange('age_factor', Number(e.target.value) || 0)}
             placeholder="۰.۹۰"
-            className="focus:ring-2 focus:ring-rose-500"
+            className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
           />
         </div>
       </div>
 
       {/* 3. Last Review Date */}
       <div className="space-y-1">
-        <Label className="text-sm font-medium">تاریخ آخرین بازنگری</Label>
+        <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">تاریخ آخرین بازنگری</Label>
         <Input
           type="date"
           value={formData.last_review_date || ''}
           onChange={(e) => handleChange('last_review_date', e.target.value)}
-          className="focus:ring-2 focus:ring-rose-500"
+          className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
         />
       </div>
 
       {/* 4. Files */}
       <div className="space-y-3 pt-4 border-t">
-        <p className="text-sm font-medium">📎 شواهد و مدارک</p>
+        <p className="text-sm font-medium font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="p-3 border-2 border-dashed rounded-lg hover:border-rose-400 transition-colors">
-            <Label className="text-sm">گزارش بازتولید</Label>
+            <Label className="text-sm font-[family-name:var(--font-vazir)]">گزارش بازتولید</Label>
             {files.reproduction_report ? (
               <div className="flex items-center justify-between mt-2 p-2 bg-rose-50 rounded">
-                <span className="text-sm truncate">{files.reproduction_report.name}</span>
+                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.reproduction_report.name}</span>
                 <button onClick={() => removeFile('reproduction_report')} className="text-red-500 hover:text-red-700">
                   <X className="w-4 h-4" />
                 </button>
@@ -473,7 +477,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                 />
                 <label
                   htmlFor="reproduction_report"
-                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800"
+                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800 font-[family-name:var(--font-vazir)]"
                 >
                   <Upload className="w-4 h-4" />
                   آپلود فایل
@@ -482,10 +486,10 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
             )}
           </div>
           <div className="p-3 border-2 border-dashed rounded-lg hover:border-rose-400 transition-colors">
-            <Label className="text-sm">مدارک پشتیبان</Label>
+            <Label className="text-sm font-[family-name:var(--font-vazir)]">مدارک پشتیبان</Label>
             {files.supporting_docs ? (
               <div className="flex items-center justify-between mt-2 p-2 bg-rose-50 rounded">
-                <span className="text-sm truncate">{files.supporting_docs.name}</span>
+                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.supporting_docs.name}</span>
                 <button onClick={() => removeFile('supporting_docs')} className="text-red-500 hover:text-red-700">
                   <X className="w-4 h-4" />
                 </button>
@@ -500,7 +504,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                 />
                 <label
                   htmlFor="supporting_docs"
-                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800"
+                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800 font-[family-name:var(--font-vazir)]"
                 >
                   <Upload className="w-4 h-4" />
                   آپلود فایل
@@ -513,27 +517,31 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
 
       {/* Summary Card */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
+        <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">هزینه نیروی کار</p>
-            <p className="text-sm font-bold text-rose-600">{Math.round(calculateTotalLaborCost()).toLocaleString()}</p>
-          </div>
-          <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">هزینه مستقیم</p>
-            <p className="text-sm font-bold text-rose-600">
-              {(Number(formData.direct_reproduction_cost) || 0).toLocaleString()}
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه نیروی کار</p>
+            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
+              {formatNumber(Math.round(calculateTotalLaborCost()))}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400">مجموع مستقیم</p>
-            <p className="text-sm font-bold text-rose-600">
-              {(calculateTotalLaborCost() + (Number(formData.direct_reproduction_cost) || 0)).toLocaleString()}
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه مستقیم</p>
+            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
+              {formatNumber(Number(formData.direct_reproduction_cost) || 0)}
+            </p>
+          </div>
+          <div className="p-2 bg-white rounded-lg border">
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">مجموع مستقیم</p>
+            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
+              {formatNumber(calculateTotalLaborCost() + (Number(formData.direct_reproduction_cost) || 0))}
             </p>
           </div>
           <div className="p-2 bg-rose-50 rounded-lg border border-rose-200">
-            <p className="text-xs text-gray-400">ارزش نهایی</p>
-            <p className="text-lg font-bold text-rose-700">{Math.round(calculateFinalValue()).toLocaleString()}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش نهایی</p>
+            <p className="text-lg font-bold text-rose-700 font-[family-name:var(--font-vazir)]">
+              {formatNumber(Math.round(calculateFinalValue()))}
+            </p>
           </div>
         </div>
       </div>
