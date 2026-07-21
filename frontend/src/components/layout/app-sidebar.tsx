@@ -30,6 +30,8 @@ import {
   ListChecks,
   Award,
   PieChart,
+  Target,          // 🔥 اضافه شد
+  Brain,           // 🔥 اضافه شد
 } from 'lucide-react'
 import {
   Sidebar,
@@ -52,6 +54,7 @@ const mainNavItems = [
 // ============ منوهای مرحله ۲ ============
 const stage2Children = [
   { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new', icon: Search },
+  { label: 'موتور شناسایی', href: '/dashboard/intangible/discovery-wizard', icon: Target },  // 🔥 جدید
   { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
   { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
 ]
@@ -60,7 +63,7 @@ const stage2Children = [
 const stage3Children = [
   { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
   { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
-  { label: 'ارزش‌گذاری', href: '/dashboard/intangible/valuation/valuation', icon: PieChart }, // 🔥 جدید
+  { label: 'ارزش‌گذاری', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
 ]
 
 // ============ منوی مراحل ۱۰ گانه ============
@@ -111,7 +114,8 @@ export function AppSidebar() {
 
   // باز کردن منوها بر اساس مسیر فعلی
   useEffect(() => {
-    if (pathname.includes('/dashboard/intangible/stage2')) {
+    if (pathname.includes('/dashboard/intangible/stage2') || 
+        pathname.includes('/dashboard/intangible/discovery-wizard')) {  // 🔥 اضافه شد
       setIsStagesOpen(true)
       setIsStage2Open(true)
     }

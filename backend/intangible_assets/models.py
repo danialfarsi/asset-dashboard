@@ -305,3 +305,7 @@ from .valuation_models import (
 
 # ============ مدل‌های STEP 4 ============
 from .valuation_step4_models import ValuationStep4
+
+# اضافه کردن فیلد discovery_scores به مدل ScreeningTemplate
+# این فیلد برای ذخیره نمرات موتور شناسایی استفاده می‌شود
+ScreeningTemplate.add_to_class('discovery_scores', models.JSONField(blank=True, null=True, verbose_name='نمرات موتور شناسایی'))
