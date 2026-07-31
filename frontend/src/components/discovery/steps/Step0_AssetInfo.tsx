@@ -1,5 +1,3 @@
-// frontend/src/components/discovery/steps/Step0_AssetInfo.tsx
-
 'use client';
 
 import { useState } from 'react';
@@ -30,7 +28,6 @@ export function Step0_AssetInfo({ assetData, setAssetData, onNext }: Step0_Asset
   const [errors, setErrors] = useState<{ asset_name?: string }>({});
 
   const handleNext = () => {
-    // اعتبارسنجی
     const newErrors: { asset_name?: string } = {};
     if (!assetData.asset_name.trim()) {
       newErrors.asset_name = 'نام دارایی الزامی است';
@@ -87,10 +84,10 @@ export function Step0_AssetInfo({ assetData, setAssetData, onNext }: Step0_Asset
             value={assetData.category}
             onValueChange={(value) => setAssetData({ ...assetData, category: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full bg-white">
               <SelectValue placeholder="انتخاب دسته‌بندی" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white z-50">
               <SelectItem value="strategic_economic">استراتژیک اقتصادی</SelectItem>
               <SelectItem value="strategic_knowledge">استراتژیک دانشی</SelectItem>
               <SelectItem value="operational_economic">عملیاتی اقتصادی</SelectItem>
@@ -104,24 +101,24 @@ export function Step0_AssetInfo({ assetData, setAssetData, onNext }: Step0_Asset
         {/* نوع سازمان */}
         <div>
           <Label htmlFor="organization_type" className="text-sm font-medium">
-            نوع سازمان
+            نوع سازمان <span className="text-red-500">*</span>
           </Label>
           <Select
             value={assetData.organization_type}
             onValueChange={(value) => setAssetData({ ...assetData, organization_type: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full bg-white">
               <SelectValue placeholder="انتخاب نوع سازمان" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white z-50">
               <SelectItem value="manufacturing">تولیدی</SelectItem>
               <SelectItem value="service">خدماتی</SelectItem>
               <SelectItem value="rto">RTO (پژوهش و فناوری)</SelectItem>
               <SelectItem value="holding">هلدینگ</SelectItem>
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-400 mt-1">
-            نوع سازمان بر وزن‌دهی و پیشنهاد قالب تأثیر می‌گذارد.
+          <p className="text-xs text-blue-600 mt-1">
+            ⚠️ نوع سازمان بر وزن‌دهی و پیشنهاد قالب تأثیر می‌گذارد و در ثبت نهایی ذخیره می‌شود.
           </p>
         </div>
 

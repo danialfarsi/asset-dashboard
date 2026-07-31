@@ -3,265 +3,174 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/auth-store'
-import { useState } from 'react'
-import {
-  LayoutDashboard,
-  Package,
-  Search,
-  DollarSign,
-  Shield,
-  Lightbulb,
-  Share2,
-  ShoppingCart,
-  Eye,
-  TrendingUp,
-  FileText,
-  Settings,
-  HelpCircle,
-  ChevronDown,
-  ChevronLeft,
-  ClipboardCheck,
-  CheckCircle,
-  Building2,
-} from 'lucide-react'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarGroup,
-  SidebarGroupLabel,
-} from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
-// منوی اصلی (برای همه کاربران)
-const mainNavItems = [
-  { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'دارایی‌های فیزیکی', href: '/dashboard/assets', icon: Package },
-  { label: 'دارایی‌های کشف شده', href: '/dashboard/intangible/assets', icon: Package },
+interface NavItem {
+  label: string
+  href: string
+  children?: NavItem[]
+}
+
+// منوی اصلی
+const MAIN_MENU: NavItem[] = [
+  { label: 'داشبورد', href: '/dashboard' },
+  { label: 'دارایی‌های فیزیکی', href: '/dashboard/assets' },
+  { label: 'دارایی‌های کشف شده', href: '/dashboard/intangible/assets' },
 ]
 
-// منوی مراحل ۱۰ گانه (برای org_user و super_admin)
-const stageNavItems = [
-  { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
+// منوی مراحل ۱۰ گانه
+const STAGES: NavItem[] = [
+  { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/stage/1' },
   { 
     label: 'مرحله ۲: کشف و شناسایی', 
-    href: '/dashboard/intangible/stage2', 
-    icon: Search,
+    href: '/dashboard/stage/2',
     children: [
-      { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new', icon: Search },
-      { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
-      { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
+      { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new' },
+      { label: 'غربالگری', href: '/dashboard/intangible/screening' },
+      { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list' },
+      { label: 'موتور شناسایی', href: '/dashboard/intangible/discovery-wizard' },
     ]
   },
-  { label: 'مرحله ۳: ارزیابی', href: '/dashboard/intangible/stage3', icon: DollarSign },
-  { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
-  { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
-  { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
-  { label: 'مرحله ۷: بهره‌برداری و تجاری‌سازی', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
-  { label: 'مرحله ۸: پایش و به‌روزرسانی', href: '/dashboard/intangible/stage8', icon: Eye },
-  { label: 'مرحله ۹: بهینه‌سازی و ارتقا', href: '/dashboard/intangible/stage9', icon: TrendingUp },
-  { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/intangible/stage10', icon: FileText },
+  { label: 'مرحله ۳: ارزیابی کیفی', href: '/dashboard/intangible/evaluation/list' },
+  { label: 'مرحله ۴: ارزش‌گذاری مالی', href: '/dashboard/intangible/valuation/valuation' },
+  { label: 'مرحله ۵: حفاظت و امنیت', href: '/dashboard/stage/5' },
+  { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/stage/6' },
+  { label: 'مرحله ۷: بهره‌برداری', href: '/dashboard/stage/7' },
+  { label: 'مرحله ۸: پایش', href: '/dashboard/stage/8' },
+  { label: 'مرحله ۹: بهینه‌سازی', href: '/dashboard/stage/9' },
+  { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/stage/10' },
 ]
 
-// منوی تنظیمات
-const settingsNavItems = [
-  { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings },
-  { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
+// منوی سیستم
+const SYSTEM_MENU: NavItem[] = [
+  { label: 'تنظیمات', href: '/dashboard/settings' },
+  { label: 'راهنما', href: '/dashboard/help' },
+]
+
+// منوی مدیریت (فقط ادمین)
+const ADMIN_MENU: NavItem[] = [
+  { label: 'مدیریت سازمان‌ها', href: '/dashboard/organizations' },
+  { label: 'مدیریت کاربران', href: '/dashboard/users' },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuthStore()
-  const [isStagesOpen, setIsStagesOpen] = useState(true)
-  const [isStage2Open, setIsStage2Open] = useState(true)
-  
   const role = user?.role || 'org_user'
+
+  // تشخیص نقش‌ها
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
 
-  // org_admin: فقط واحدهای تحت مدیریت
+  // اگر org_admin باشد، فقط تنظیمات را نشان بده
   if (isOrgAdmin) {
     return (
-      <Sidebar side="right" dir="rtl" className="w-72">
-        <SidebarHeader className="p-4 border-b">
-          <span className="text-base font-bold text-primary">مدیریت دارایی‌ها</span>
-        </SidebarHeader>
-        <SidebarContent>
-          {/* تنظیمات */}
-          <SidebarGroup>
-            <SidebarGroupLabel>سیستم</SidebarGroupLabel>
-            <SidebarMenu>
-              {settingsNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.href} className="flex items-center gap-3 w-full">
-                        <Icon className="w-4 h-4 shrink-0" />
-                        <span className="text-sm truncate">{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroup>
-        </SidebarContent>
-      </Sidebar>
+      <aside className="w-64 h-screen bg-white border-l border-gray-200 flex-shrink-0 overflow-y-auto">
+        <div className="p-4 border-b border-gray-200">
+          <h1 className="text-lg font-bold text-[#015345]">مدیریت دارایی‌ها</h1>
+        </div>
+        <nav className="p-3">
+          <p className="text-xs text-gray-400 uppercase tracking-wider px-3 mb-2">سیستم</p>
+          {SYSTEM_MENU.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </nav>
+      </aside>
     )
   }
 
   return (
-    <Sidebar side="right" dir="rtl" className="w-72">
-      <SidebarHeader className="p-4 border-b">
-        <span className="text-base font-bold text-primary">مدیریت دارایی‌ها</span>
-      </SidebarHeader>
+    <aside className="w-64 h-screen bg-white border-l border-gray-200 flex-shrink-0 overflow-y-auto">
+      {/* هدر */}
+      <div className="p-4 border-b border-gray-200">
+        <h1 className="text-lg font-bold text-[#015345]">مدیریت دارایی‌ها</h1>
+        <p className="text-xs text-gray-400 mt-0.5">متا پلتفرم</p>
+      </div>
 
-      <SidebarContent>
-        {/* منوی اصلی */}
-        <SidebarGroup>
-          <SidebarGroupLabel>اصلی</SidebarGroupLabel>
-          <SidebarMenu>
-            {mainNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-              return (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href} className="flex items-center gap-3 w-full">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span className="text-sm truncate">{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
+      <nav className="p-3 space-y-6">
+        {/* بخش اصلی */}
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider px-3 mb-2">اصلی</p>
+          {MAIN_MENU.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </div>
 
-        {/* منوی مدیریت مجموعه‌ها - فقط برای super_admin */}
+        {/* بخش مدیریت (فقط super_admin) */}
         {isSuperAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>مدیریت</SidebarGroupLabel>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === '/dashboard/organizations'}>
-                  <Link href="/dashboard/organizations" className="flex items-center gap-3 w-full">
-                    <Building2 className="w-4 h-4 shrink-0" />
-                    <span className="text-sm truncate">مدیریت مجموعه‌ها</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroup>
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wider px-3 mb-2">مدیریت</p>
+            {ADMIN_MENU.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
         )}
 
-        {/* منوی مراحل ۱۰ گانه - برای super_admin و org_user */}
+        {/* بخش چرخه مدیریت (super_admin و org_user) */}
         {(isSuperAdmin || isOrgUser) && (
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              <button
-                onClick={() => setIsStagesOpen(!isStagesOpen)}
-                className="flex items-center justify-between w-full text-right text-xs font-medium"
-              >
-                <span>چرخه مدیریت دارایی‌های نامشهود</span>
-                {isStagesOpen ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronLeft className="w-4 h-4" />
-                )}
-              </button>
-            </SidebarGroupLabel>
-            {isStagesOpen && (
-              <SidebarMenu>
-                {stageNavItems.map((item) => {
-                  const Icon = item.icon
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                  
-                  if (item.children) {
-                    return (
-                      <div key={item.href} className="space-y-0">
-                        <SidebarMenuItem>
-                          <button
-                            onClick={() => setIsStage2Open(!isStage2Open)}
-                            className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg hover:bg-gray-100 ${
-                              isActive ? 'bg-gray-100 font-medium' : ''
-                            }`}
-                          >
-                            <span className="flex items-center gap-3 text-sm">
-                              <Icon className="w-4 h-4 shrink-0 ml-1" />
-                              <span className="truncate">{item.label}</span>
-                            </span>
-                            {isStage2Open ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronLeft className="w-4 h-4" />
-                            )}
-                          </button>
-                        </SidebarMenuItem>
-                        {isStage2Open && (
-                          <div className="mr-6">
-                            {item.children.map((child) => {
-                              const ChildIcon = child.icon
-                              const isChildActive = pathname === child.href || pathname.startsWith(child.href + '/')
-                              return (
-                                <SidebarMenuItem key={child.href}>
-                                  <SidebarMenuButton asChild isActive={isChildActive} className="pr-8">
-                                    <Link href={child.href} className="flex items-center gap-3 w-full">
-                                      <ChildIcon className="w-4 h-4 shrink-0" />
-                                      <span className="text-sm truncate">{child.label}</span>
-                                    </Link>
-                                  </SidebarMenuButton>
-                                </SidebarMenuItem>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )
-                  }
-                  
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton asChild isActive={isActive} className="pr-8">
-                        <Link href={item.href} className="flex items-center gap-3 w-full">
-                          <Icon className="w-4 h-4 shrink-0" />
-                          <span className="text-sm truncate">{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            )}
-          </SidebarGroup>
+          <div>
+            <p className="text-xs text-gray-400 uppercase tracking-wider px-3 mb-2">
+              چرخه مدیریت دارایی‌های نامشهود
+            </p>
+            {STAGES.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
         )}
 
-        {/* تنظیمات */}
-        <SidebarGroup>
-          <SidebarGroupLabel>سیستم</SidebarGroupLabel>
-          <SidebarMenu>
-            {settingsNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = pathname === item.href
-              return (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild isActive={isActive}>
-                    <Link href={item.href} className="flex items-center gap-3 w-full">
-                      <Icon className="w-4 h-4 shrink-0" />
-                      <span className="text-sm truncate">{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            })}
-          </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+        {/* بخش سیستم */}
+        <div>
+          <p className="text-xs text-gray-400 uppercase tracking-wider px-3 mb-2">سیستم</p>
+          {SYSTEM_MENU.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+        </div>
+      </nav>
+    </aside>
+  )
+}
+
+// کامپوننت لینک ناوبری
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+  const hasChildren = item.children && item.children.length > 0
+
+  return (
+    <div className="mb-0.5">
+      <Link
+        href={item.href}
+        className={cn(
+          'block px-3 py-2 rounded-md text-sm transition-all duration-150',
+          'hover:bg-gray-100',
+          isActive
+            ? 'bg-[#015345] text-white hover:bg-[#015345]/90'
+            : 'text-gray-700 hover:text-gray-900'
+        )}
+      >
+        {item.label}
+      </Link>
+
+      {/* زیرمنوها */}
+      {hasChildren && isActive && (
+        <div className="mr-4 mt-0.5 space-y-0.5 border-r-2 border-[#015345]/20 pr-3">
+          {item.children!.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              className={cn(
+                'block px-3 py-1.5 rounded-md text-sm transition-all duration-150',
+                'hover:bg-gray-100',
+                pathname === child.href
+                  ? 'bg-[#015345] text-white hover:bg-[#015345]/90'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              {child.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

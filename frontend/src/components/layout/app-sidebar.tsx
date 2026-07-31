@@ -7,9 +7,7 @@ import { useState, useEffect } from 'react'
 import api from '@/lib/api'
 import {
   LayoutDashboard,
-  Package,
   Search,
-  DollarSign,
   Shield,
   Lightbulb,
   Share2,
@@ -30,8 +28,8 @@ import {
   ListChecks,
   Award,
   PieChart,
-  Target,          // 🔥 اضافه شد
-  Brain,           // 🔥 اضافه شد
+  Target,
+  Sparkles,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -43,43 +41,56 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
 } from '@/components/ui/sidebar'
+import Image from 'next/image'
 
-// ============ منوهای اصلی (مشترک) ============
+// ============ منوهای اصلی ============
 const mainNavItems = [
   { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'دارایی‌های فیزیکی', href: '/dashboard/assets', icon: Package },
-  { label: 'دارایی‌های کشف شده', href: '/dashboard/intangible/assets', icon: Package },
+]
+
+// ============ منوهای مرحله ۱ ============
+const stage1Children = [
+  { label: 'برنامه‌ریزی استراتژیک', href: '/dashboard/intangible/stage1/planning', icon: Target },
+  { label: 'شناسایی نیازها', href: '/dashboard/intangible/stage1/needs', icon: Sparkles },
+  { label: 'تدوین چشم‌انداز', href: '/dashboard/intangible/stage1/vision', icon: Eye },
 ]
 
 // ============ منوهای مرحله ۲ ============
 const stage2Children = [
-  { label: 'فرم کشف دستی', href: '/dashboard/intangible/stage2/discovery/new', icon: Search },
-  { label: 'موتور شناسایی', href: '/dashboard/intangible/discovery-wizard', icon: Target },  // 🔥 جدید
+  { label: 'شناسایی هوشمند دارایی‌ها', href: '/dashboard/intangible/discovery-wizard', icon: Target },
   { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
   { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
 ]
 
-// ============ منوی مرحله ۳: ارزیابی ============
+// ============ منوی مرحله ۳ ============
 const stage3Children = [
   { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
   { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
-  { label: 'ارزش‌گذاری', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
+  { label: 'ارزش‌گذاری دارایی‌ها', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
 ]
 
 // ============ منوی مراحل ۱۰ گانه ============
 const stageNavItems = [
-  { label: 'مرحله ۱: برنامه‌ریزی', href: '/dashboard/intangible/stage1', icon: LayoutDashboard },
+  { 
+    label: 'مرحله ۱: برنامه‌ریزی', 
+    href: '/dashboard/intangible/stage1', 
+    icon: LayoutDashboard,
+    children: stage1Children,
+    id: 'stage1'
+  },
   { 
     label: 'مرحله ۲: کشف و شناسایی', 
     href: '/dashboard/intangible/stage2', 
     icon: Search,
-    children: stage2Children
+    children: stage2Children,
+    id: 'stage2'
   },
   { 
     label: 'مرحله ۳: ارزیابی', 
     href: '/dashboard/intangible/stage3', 
     icon: BarChart3,
-    children: stage3Children
+    children: stage3Children,
+    id: 'stage3'
   },
   { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
   { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
@@ -90,7 +101,7 @@ const stageNavItems = [
   { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/intangible/stage10', icon: FileText },
 ]
 
-// ============ منوهای تنظیمات (مشترک) ============
+// ============ منوهای سیستم ============
 const settingsNavItems = [
   { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings },
   { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
@@ -101,9 +112,8 @@ export function AppSidebar() {
   const { user } = useAuthStore()
   const [departments, setDepartments] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
-  const [isStagesOpen, setIsStagesOpen] = useState(false)
-  const [isStage2Open, setIsStage2Open] = useState(false)
-  const [isStage3Open, setIsStage3Open] = useState(false)
+  const [isStagesOpen, setIsStagesOpen] = useState(true)
+  const [openStage, setOpenStage] = useState<string | null>(null)
   const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)
   const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)
   
@@ -112,17 +122,21 @@ export function AppSidebar() {
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
 
-  // باز کردن منوها بر اساس مسیر فعلی
   useEffect(() => {
-    if (pathname.includes('/dashboard/intangible/stage2') || 
-        pathname.includes('/dashboard/intangible/discovery-wizard')) {  // 🔥 اضافه شد
+    if (pathname.includes('/dashboard/intangible/stage1')) {
       setIsStagesOpen(true)
-      setIsStage2Open(true)
-    }
-    if (pathname.includes('/dashboard/intangible/stage3') || 
-        pathname.includes('/dashboard/intangible/valuation')) {
+      setOpenStage('stage1')
+    } else if (pathname.includes('/dashboard/intangible/stage2') || 
+               pathname.includes('/dashboard/intangible/discovery-wizard') ||
+               pathname.includes('/dashboard/intangible/screening')) {
       setIsStagesOpen(true)
-      setIsStage3Open(true)
+      setOpenStage('stage2')
+    } else if (pathname.includes('/dashboard/intangible/stage3') || 
+               pathname.includes('/dashboard/intangible/valuation')) {
+      setIsStagesOpen(true)
+      setOpenStage('stage3')
+    } else {
+      setOpenStage(null)
     }
   }, [pathname])
 
@@ -155,16 +169,28 @@ export function AppSidebar() {
     }
   }, [user, isOrgAdmin, isSuperAdmin])
 
+  const toggleStage = (stageId: string) => {
+    if (openStage === stageId) {
+      setOpenStage(null)
+    } else {
+      setOpenStage(stageId)
+    }
+  }
+
   const renderMenuItem = (item: any, isChild: boolean = false) => {
     const Icon = item.icon
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
     
     return (
       <SidebarMenuItem key={item.href}>
-        <SidebarMenuButton asChild isActive={isActive} className={isChild ? 'pr-8' : ''}>
+        <SidebarMenuButton asChild isActive={isActive} className={isChild ? 'pr-6' : ''}>
           <Link href={item.href} className="flex items-center gap-3 w-full">
-            <Icon className="w-4 h-4 shrink-0" />
-            <span className="text-sm truncate">{item.label}</span>
+            {/* 🔥 آیکون همیشه خاکستری */}
+            <Icon className="w-4 h-4 shrink-0 text-gray-500" />
+            {/* 🔥 متن همیشه مشکی پررنگ */}
+            <span className={`text-sm ${isActive ? 'font-semibold' : 'font-normal'} text-gray-800`}>
+              {item.label}
+            </span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -173,22 +199,17 @@ export function AppSidebar() {
 
   const renderChildrenItems = (children: any[]) => {
     return (
-      <div className="mr-6">
+      <div className="mr-4 border-r-2 border-gray-200 pr-3 space-y-0">
         {children.map((child: any) => renderMenuItem(child, true))}
       </div>
     )
   }
 
   const renderMainNav = () => {
-    const items = isSuperAdmin 
-      ? mainNavItems.filter(item => item.label === 'داشبورد')
-      : mainNavItems
-    
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>اصلی</SidebarGroupLabel>
         <SidebarMenu>
-          {items.map(item => renderMenuItem(item))}
+          {mainNavItems.map(item => renderMenuItem(item))}
         </SidebarMenu>
       </SidebarGroup>
     )
@@ -199,16 +220,16 @@ export function AppSidebar() {
     
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>
+        <SidebarGroupLabel className="flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-600">چرخه مدیریت</span>
           <button
             onClick={() => setIsStagesOpen(!isStagesOpen)}
-            className="flex items-center justify-between w-full text-right text-xs font-medium"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <span>چرخه مدیریت دارایی‌های نامشهود</span>
             {isStagesOpen ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3 text-gray-400" />
             ) : (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3 text-gray-400" />
             )}
           </button>
         </SidebarGroupLabel>
@@ -217,34 +238,30 @@ export function AppSidebar() {
             {stageNavItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+              const isOpen = openStage === item.id
               
               if (item.children) {
-                const isStage2 = item.label === 'مرحله ۲: کشف و شناسایی'
-                const isStage3 = item.label === 'مرحله ۳: ارزیابی'
-                const isOpen = isStage2 ? isStage2Open : (isStage3 ? isStage3Open : false)
-                const toggleOpen = isStage2 
-                  ? () => setIsStage2Open(!isStage2Open)
-                  : isStage3 
-                    ? () => setIsStage3Open(!isStage3Open)
-                    : () => {}
-                
                 return (
                   <div key={item.href} className="space-y-0">
                     <SidebarMenuItem>
                       <button
-                        onClick={toggleOpen}
-                        className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg hover:bg-gray-100 ${
-                          isActive ? 'bg-gray-100 font-medium' : ''
+                        onClick={() => toggleStage(item.id)}
+                        className={`flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg transition-all ${
+                          isActive ? 'bg-dark-green/10' : 'hover:bg-gray-50'
                         }`}
                       >
                         <span className="flex items-center gap-3 text-sm">
-                          <Icon className="w-4 h-4 shrink-0 ml-1" />
-                          <span className="truncate">{item.label}</span>
+                          {/* 🔥 آیکون همیشه خاکستری */}
+                          <Icon className="w-4 h-4 shrink-0 text-gray-500" />
+                          {/* 🔥 متن همیشه مشکی پررنگ */}
+                          <span className={`text-sm ${isActive ? 'font-semibold' : 'font-normal'} text-gray-800`}>
+                            {item.label}
+                          </span>
                         </span>
                         {isOpen ? (
-                          <ChevronDown className="w-4 h-4" />
+                          <ChevronDown className="w-3 h-3 text-gray-500" />
                         ) : (
-                          <ChevronLeft className="w-4 h-4" />
+                          <ChevronLeft className="w-3 h-3 text-gray-400" />
                         )}
                       </button>
                     </SidebarMenuItem>
@@ -278,16 +295,16 @@ export function AppSidebar() {
     
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>
+        <SidebarGroupLabel className="flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-600">واحدها</span>
           <button
             onClick={() => setIsDepartmentsOpen(!isDepartmentsOpen)}
-            className="flex items-center justify-between w-full text-right text-xs font-medium"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <span>واحدها</span>
             {isDepartmentsOpen ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3 text-gray-400" />
             ) : (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3 text-gray-400" />
             )}
           </button>
         </SidebarGroupLabel>
@@ -313,16 +330,16 @@ export function AppSidebar() {
     
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>
+        <SidebarGroupLabel className="flex items-center justify-between">
+          <span className="text-xs font-medium text-gray-600">شرکت‌ها</span>
           <button
             onClick={() => setIsCompaniesOpen(!isCompaniesOpen)}
-            className="flex items-center justify-between w-full text-right text-xs font-medium"
+            className="p-1 hover:bg-gray-100 rounded"
           >
-            <span>شرکت‌ها</span>
             {isCompaniesOpen ? (
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-3 h-3 text-gray-400" />
             ) : (
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3 text-gray-400" />
             )}
           </button>
         </SidebarGroupLabel>
@@ -338,7 +355,7 @@ export function AppSidebar() {
   const renderSettingsNav = () => {
     return (
       <SidebarGroup>
-        <SidebarGroupLabel>سیستم</SidebarGroupLabel>
+        <SidebarGroupLabel className="text-xs font-medium text-gray-600">سیستم</SidebarGroupLabel>
         <SidebarMenu>
           {settingsNavItems.map(item => renderMenuItem(item))}
         </SidebarMenu>
@@ -347,12 +364,29 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar side="right" dir="rtl" className="w-72">
-      <SidebarHeader className="p-4 border-b bg-dark-green">
-        <span className="text-base font-bold text-white">مدیریت دارایی‌ها</span>
+    <Sidebar side="right" dir="rtl" className="w-72 border-l border-gray-100">
+      {/* ===== HEADER ===== */}
+      <SidebarHeader className="p-5 border-b border-gray-100 bg-gradient-to-br from-dark-green to-medium-green">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="relative">
+            <div className="absolute inset-0 bg-white/20 rounded-xl blur-sm" />
+            <Image 
+              src="/logo.png"
+              alt="متا پلتفرم"
+              width={48}
+              height={48}
+              className="relative rounded-xl object-contain border border-white/20"
+            />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-lg font-bold text-white tracking-tight">مِتا</span>
+            <span className="text-[10px] text-white/70 tracking-wide">پلتفرم دارایی‌های نامشهود</span>
+          </div>
+        </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      {/* ===== CONTENT ===== */}
+      <SidebarContent className="px-3 py-4">
         {renderMainNav()}
         {renderStagesNav()}
         {renderDepartmentsNav()}

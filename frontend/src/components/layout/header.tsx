@@ -31,7 +31,8 @@ export function Header() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <Building2 className="w-6 h-6 text-dark-green" />
-            <span className="text-lg font-bold text-dark-green">متا پلتفرم</span>
+            <span className="text-lg font-bold text-dark-green">پلتفرم مدیریت دارایی‌های نامشهود(متا)
+</span>
           </div>
         </div>
 
