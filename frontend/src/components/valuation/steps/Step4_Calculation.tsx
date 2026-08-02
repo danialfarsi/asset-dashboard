@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import api from '@/lib/api';
 
+import { M01_RfR_Engine } from '../engines/M01_RfR_Engine';
+import { M02_MEEM_Engine } from '../engines/M02_MEEM_Engine';
 import { M04_WWM_Engine } from '../engines/M04_WWM_Engine';
 import { M05_RCM_Engine } from '../engines/M05_RCM_Engine';
 import { M06_RPCM_Engine } from '../engines/M06_RPCM_Engine';
@@ -54,7 +56,7 @@ export function Step4_Calculation({
   }, [valuationCaseId]);
 
   // ============================================
-  // 🔥 چک کردن STEP 3 برای تشخیص تغییرات
+  // چک کردن STEP 3 برای تشخیص تغییرات
   // ============================================
   const checkStep3Version = async () => {
     try {
@@ -67,15 +69,9 @@ export function Step4_Calculation({
         const step3 = items[0];
         const currentUpdatedAt = step3.updated_at || step3.id;
         
-        console.log('📊 STEP 3 updated_at:', currentUpdatedAt);
-        console.log('📊 STEP 4 updated_at:', step4Data?.updated_at || step4Data?.id);
-        console.log('📊 step3UpdatedAt state:', step3UpdatedAt);
-        
-        // اگه STEP 4 وجود داره و محاسبه شده
         if (step4Data && step4Data.step4_status === 'CALCULATED') {
           const step4Version = step4Data.updated_at || step4Data.id;
           
-          // اگه STEP 3 جدیدتر از STEP 4 هست و با state هماهنگ نیست
           if (currentUpdatedAt !== step4Version && currentUpdatedAt !== step3UpdatedAt) {
             console.log('⚠️ STEP 3 تغییر کرده! وضعیت: outdated');
             setStatus('outdated');
@@ -92,9 +88,6 @@ export function Step4_Calculation({
     }
   };
 
-  // ============================================
-  // 🔥 وقتی STEP 4 بارگذاری میشه، STEP 3 رو چک کن
-  // ============================================
   useEffect(() => {
     if (valuationCaseId && step4Data) {
       checkStep3Version();
@@ -150,7 +143,6 @@ export function Step4_Calculation({
         
         if (step4.step4_status === 'CALCULATED') {
           setStatus('calculated');
-          // چک کن outdated هست یا نه
           await checkStep3Version();
         } else {
           setStatus('idle');
@@ -171,7 +163,7 @@ export function Step4_Calculation({
   };
 
   // ============================================
-  // 🔥 تابع محاسبه
+  // تابع محاسبه
   // ============================================
   const handleCalculate = async () => {
     if (!valuationCaseId) {
@@ -184,7 +176,6 @@ export function Step4_Calculation({
       setStatus('calculating');
       setError(null);
       
-      // STEP 4 قدیمی رو حذف کن
       if (step4Id) {
         console.log(`🗑️ حذف STEP 4 قدیمی با ID: ${step4Id}`);
         try {
@@ -194,7 +185,6 @@ export function Step4_Calculation({
         }
       }
       
-      // STEP 4 جدید بساز
       console.log('📥 ایجاد STEP 4 جدید...');
       const createRes = await api.post('/intangible/valuation-step4/', {
         valuation_case: valuationCaseId,
@@ -204,13 +194,11 @@ export function Step4_Calculation({
       setStep4Id(newStep4Id);
       console.log('✅ STEP 4 جدید ایجاد شد با ID:', newStep4Id);
       
-      // محاسبه رو اجرا کن
       console.log(`📥 اجرای محاسبه برای STEP 4 ID: ${newStep4Id}`);
       const response = await api.post(`/intangible/valuation-step4/${newStep4Id}/calculate/`);
       setStep4Data(response.data);
       setActualMethodId(response.data.method_id);
       
-      // 🔥 مهم: بعد از محاسبه، step3UpdatedAt رو با مقدار جدید به‌روز کن
       const step3Check = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const step3Items = step3Check.data.results || step3Check.data || [];
       if (step3Items.length > 0) {
@@ -233,6 +221,8 @@ export function Step4_Calculation({
 
   const getMethodLabel = (method: string) => {
     const labels: Record<string, string> = {
+      'M-01': 'RfR - روش حق‌الامتیاز (Relief-from-Royalty)',
+      'M-02': 'MEEM - روش سود مازاد چند دوره‌ای (Multi-Period Excess Earnings)',
       'M-04': 'WWM - روش با و بدون',
       'M-05': 'RCM - روش هزینه جایگزینی',
       'M-06': 'RPCM - روش هزینه بازتولید',
@@ -240,9 +230,12 @@ export function Step4_Calculation({
     return labels[method] || method;
   };
 
+  // 🔥 مهم: finalMethodId رو درست تنظیم کن
   const finalMethodId = actualMethodId || propMethodId || 'M-03';
 
   const renderEngine = () => {
+    console.log('🔧 renderEngine - finalMethodId:', finalMethodId);
+    
     const commonProps = {
       data: step4Data?.calculation_details,
       finalValue: step4Data?.final_value,
@@ -253,24 +246,36 @@ export function Step4_Calculation({
       error,
     };
 
+    // 🔥 اضافه کردن M-02
     switch (finalMethodId) {
+      case 'M-01':
+        console.log('✅ رندر M01_RfR_Engine');
+        return <M01_RfR_Engine {...commonProps} />;
+      case 'M-02':
+        console.log('✅ رندر M02_MEEM_Engine');
+        return <M02_MEEM_Engine {...commonProps} />;
       case 'M-04':
+        console.log('✅ رندر M04_WWM_Engine');
         return <M04_WWM_Engine {...commonProps} />;
       case 'M-05':
+        console.log('✅ رندر M05_RCM_Engine');
         return <M05_RCM_Engine {...commonProps} />;
       case 'M-06':
+        console.log('✅ رندر M06_RPCM_Engine');
         return <M06_RPCM_Engine {...commonProps} />;
       default:
+        console.log('❌ روش پشتیبانی نمی‌شود:', finalMethodId);
         return (
           <div className="text-center py-12 text-gray-400">
             <p className="text-lg">روش {finalMethodId} پشتیبانی نمی‌شود</p>
+            <p className="text-sm mt-2">لطفاً روش دیگری را انتخاب کنید</p>
           </div>
         );
     }
   };
 
   // ============================================
-  // 🔥 رندر بر اساس status
+  // رندر بر اساس status
   // ============================================
   const renderContent = () => {
     if (status === 'idle') {
@@ -279,7 +284,7 @@ export function Step4_Calculation({
           <div className="text-6xl mb-4">📊</div>
           <h3 className="text-xl font-bold text-dark-green mb-2">شروع ارزش‌گذاری</h3>
           <p className="text-gray-500 max-w-md mx-auto">
-            برای محاسبه ارزش دارایی، دکمه زیر را بزنید.
+            برای محاسبه ارزش دارایی با روش {finalMethodId}، دکمه زیر را بزنید.
           </p>
           <Button
             onClick={handleCalculate}

@@ -14,8 +14,12 @@ const vazir = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Asset Dashboard",
-  description: "Asset Management System",
+  title: "مِتا | پلتفرم مدیریت دارایی‌های نامشهود",
+  description: "سامانه جامع مدیریت دارایی‌های نامشهود",
+    icons: {
+    icon: '/logo.png',        // ← مسیر درست
+
+  },
 };
 
 export default function RootLayout({

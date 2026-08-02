@@ -14,9 +14,15 @@ interface ValuationStepperProps {
   isStepComplete: (step: number) => boolean;
 }
 
+// 🔥 تبدیل عدد به فارسی
+const toPersianNumber = (num: number): string => {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return String(num).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
 export function ValuationStepper({ steps, currentStep, onStepClick, isStepComplete }: ValuationStepperProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 font-vazir">
       <div className="relative">
         {/* خط زمینه */}
         <div className="absolute top-7 left-8 right-8 h-1 bg-gray-200 rounded-full" />
@@ -56,8 +62,8 @@ export function ValuationStepper({ steps, currentStep, onStepClick, isStepComple
                   {isCompleted ? (
                     <Check className="w-6 h-6 text-white stroke-[3]" />
                   ) : (
-                    <span className={`text-base font-bold ${isActive ? 'text-white' : 'text-gray-500'}`}>
-                      {step.id}
+                    <span className={`text-base font-bold font-vazir ${isActive ? 'text-white' : 'text-gray-500'}`}>
+                      {toPersianNumber(step.id)}
                     </span>
                   )}
                   
@@ -70,7 +76,7 @@ export function ValuationStepper({ steps, currentStep, onStepClick, isStepComple
                 {/* لیبل */}
                 <div className="mt-3 text-center min-h-[48px] flex items-center justify-center px-1">
                   <p className={`
-                    text-xs font-medium transition-all duration-300 leading-tight text-center
+                    text-xs font-medium transition-all duration-300 leading-tight text-center font-vazir
                     ${isActive ? 'text-dark-green font-bold' : ''}
                     ${isCompleted ? 'text-gray-700' : ''}
                     ${!isCompleted && !isActive ? 'text-gray-400' : ''}

@@ -36,8 +36,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             
             print(f'🔍 محاسبه برای روش: {method_id}')
             
-            if method_id == 'M-04':
+            if method_id == 'M-02':
+                result = self.calculate_m02(inputs)
+            elif method_id == 'M-04':
                 result = self.calculate_m04(inputs)
+            elif method_id == 'M-01':
+                result = self.calculate_m01(inputs)
             elif method_id == 'M-05':
                 result = self.calculate_m05(inputs)
             elif method_id == 'M-06':
@@ -67,21 +71,260 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             )
 
     # ============================================
-    # 🔥 M-04: With-and-Without Method
+    # M-01: Relief-from-Royalty (RfR) Method
+    # ============================================
+    def calculate_m01(self, inputs):
+        print('🔥 calculate_m01 called!')
+        
+        royalty_rate = inputs.get('royalty_rate', 4) / 100
+        revenue_attribution = inputs.get('revenue_attribution', 80) / 100
+        revenue_growth_rate = inputs.get('revenue_growth_rate', 8) / 100
+        quality_multiplier = inputs.get('quality_multiplier', 0.92)
+        tax_rate = inputs.get('tax_rate', 25) / 100
+        discount_rate = inputs.get('discount_rate', 18) / 100
+        terminal_growth_rate = inputs.get('terminal_growth_rate', 5) / 100
+        forecast_horizon = inputs.get('forecast_horizon', 5)
+        current_revenue = inputs.get('current_revenue', 500000000000)
+        
+        effective_rate = royalty_rate * revenue_attribution
+        yearly_data = []
+        revenue = current_revenue
+        total_pv = 0
+        
+        for year in range(1, forecast_horizon + 1):
+            revenue = revenue * (1 + revenue_growth_rate)
+            gross_royalty = revenue * effective_rate
+            after_tax = gross_royalty * (1 - tax_rate)
+            pv_factor = 1 / ((1 + discount_rate) ** year)
+            pv = after_tax * pv_factor
+            total_pv += pv
+            yearly_data.append({
+                'year': year,
+                'revenue': round(revenue),
+                'gross_royalty': round(gross_royalty),
+                'after_tax': round(after_tax),
+                'pv_factor': round(pv_factor, 4),
+                'pv': round(pv)
+            })
+        
+        last_after_tax = yearly_data[-1]['after_tax']
+        terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
+        pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
+        value_before_quality = total_pv + pv_terminal
+        final_value = value_before_quality * quality_multiplier
+        
+        waterfall = []
+        cumulative = 0
+        cumulative += total_pv
+        waterfall.append({
+            'step': 1,
+            'title': f'جمع ارزش فعلی دوره صریح ({forecast_horizon} سال)',
+            'amount': round(total_pv),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative += pv_terminal
+        waterfall.append({
+            'step': 2,
+            'title': 'ارزش پایانی تنزیل‌شده',
+            'amount': round(pv_terminal),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = value_before_quality
+        waterfall.append({
+            'step': 3,
+            'title': f'ارزش قبل از ضریب کیفیت',
+            'amount': round(value_before_quality),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = final_value
+        waterfall.append({
+            'step': 4,
+            'title': f'× ضریب کیفیت ({quality_multiplier:.2f})',
+            'amount': round(final_value - value_before_quality),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        waterfall.append({
+            'step': 5,
+            'title': 'ارزش نهایی',
+            'amount': 0,
+            'cumulative': round(cumulative),
+            'is_final': True,
+            'type': 'final'
+        })
+        
+        return {
+            'final_value': round(final_value),
+            'confidence_level': 0.82,
+            'qc_score': 82,
+            'details': {
+                'waterfall': waterfall,
+                'yearly_data': yearly_data,
+                'summary': {
+                    'royalty_rate': royalty_rate * 100,
+                    'revenue_attribution': revenue_attribution * 100,
+                    'effective_rate': effective_rate * 100,
+                    'revenue_growth_rate': revenue_growth_rate * 100,
+                    'tax_rate': tax_rate * 100,
+                    'discount_rate': discount_rate * 100,
+                    'terminal_growth_rate': terminal_growth_rate * 100,
+                    'forecast_horizon': forecast_horizon,
+                    'quality_multiplier': quality_multiplier,
+                    'current_revenue': current_revenue,
+                    'total_pv': round(total_pv),
+                    'terminal_value': round(terminal_value),
+                    'pv_terminal': round(pv_terminal),
+                    'value_before_quality': round(value_before_quality),
+                    'final_value': round(final_value),
+                }
+            }
+        }
+
+    # ============================================
+    # M-02: MEEM (Multi-Period Excess Earnings)
+    # ============================================
+    def calculate_m02(self, inputs):
+        print('🔥 calculate_m02 called!')
+        
+        ebit_attributable = inputs.get('ebit_attributable', 20000000000)
+        contributory_assets = inputs.get('contributory_assets', [])
+        attrition_rate = inputs.get('customer_attrition_rate', 10) / 100
+        forecast_horizon = inputs.get('forecast_horizon', 5)
+        tax_rate = inputs.get('tax_rate', 25) / 100
+        discount_rate = inputs.get('discount_rate', 18) / 100
+        terminal_growth_rate = inputs.get('terminal_growth_rate', 5) / 100
+        quality_multiplier = inputs.get('quality_multiplier', 0.89)
+        
+        total_cac_charge = 0
+        asset_details = []
+        for asset in contributory_assets:
+            asset_value = asset.get('asset_value', 0)
+            return_rate = asset.get('return_rate', 0) / 100
+            annual_charge = asset_value * return_rate
+            total_cac_charge += annual_charge
+            asset_details.append({
+                'type': asset.get('asset_type', ''),
+                'value': asset_value,
+                'return_rate': return_rate,
+                'annual_charge': annual_charge
+            })
+        
+        excess_earnings_before_tax = ebit_attributable - total_cac_charge
+        yearly_data = []
+        total_pv = 0
+        
+        for year in range(1, forecast_horizon + 1):
+            survival_rate = (1 - attrition_rate) ** (year - 1)
+            excess_after_tax = excess_earnings_before_tax * survival_rate * (1 - tax_rate)
+            pv_factor = 1 / ((1 + discount_rate) ** year)
+            pv = excess_after_tax * pv_factor
+            total_pv += pv
+            
+            yearly_data.append({
+                'year': year,
+                'survival_rate': round(survival_rate, 4),
+                'excess_earnings_after_tax': round(excess_after_tax),
+                'pv': round(pv)
+            })
+        
+        last_after_tax = yearly_data[-1]['excess_earnings_after_tax']
+        terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
+        pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
+        value_before_quality = total_pv + pv_terminal
+        final_value = value_before_quality * quality_multiplier
+        
+        waterfall = []
+        cumulative = 0
+        cumulative += total_pv
+        waterfall.append({
+            'step': 1,
+            'title': f'جمع ارزش فعلی دوره صریح ({forecast_horizon} سال)',
+            'amount': round(total_pv),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative += pv_terminal
+        waterfall.append({
+            'step': 2,
+            'title': 'ارزش پایانی تنزیل‌شده',
+            'amount': round(pv_terminal),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = value_before_quality
+        waterfall.append({
+            'step': 3,
+            'title': f'ارزش قبل از ضریب کیفیت',
+            'amount': round(value_before_quality),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = final_value
+        waterfall.append({
+            'step': 4,
+            'title': f'× ضریب کیفیت ({quality_multiplier:.2f})',
+            'amount': round(final_value - value_before_quality),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        waterfall.append({
+            'step': 5,
+            'title': 'ارزش نهایی',
+            'amount': 0,
+            'cumulative': round(cumulative),
+            'is_final': True,
+            'type': 'final'
+        })
+        
+        return {
+            'final_value': round(final_value),
+            'confidence_level': 0.82,
+            'qc_score': 82,
+            'details': {
+                'waterfall': waterfall,
+                'yearly_data': yearly_data,
+                'contributory_assets': asset_details,
+                'summary': {
+                    'ebit_attributable': ebit_attributable,
+                    'attrition_rate': attrition_rate,
+                    'discount_rate': discount_rate,
+                    'tax_rate': tax_rate,
+                    'terminal_growth_rate': terminal_growth_rate,
+                    'forecast_horizon': forecast_horizon,
+                    'quality_multiplier': quality_multiplier,
+                    'total_cac_charge': round(total_cac_charge),
+                    'excess_earnings_before_tax': round(excess_earnings_before_tax),
+                    'total_pv': round(total_pv),
+                    'terminal_value': round(terminal_value),
+                    'pv_terminal': round(pv_terminal),
+                    'value_before_quality': round(value_before_quality),
+                    'final_value': round(final_value),
+                }
+            }
+        }
+
+    # ============================================
+    # M-04: With-and-Without Method
     # ============================================
     def calculate_m04(self, inputs):
         print('🔥 calculate_m04 called!')
         
-        # ============================================
-        # 🔥 هماهنگ کردن تعداد ردیف‌ها
-        # ============================================
         with_asset_fcf = inputs.get('with_asset_fcf', [])
         without_asset_fcf = inputs.get('without_asset_fcf', [])
         
-        # پیدا کردن بیشترین تعداد ردیف
         max_rows = max(len(with_asset_fcf), len(without_asset_fcf), 1)
         
-        # پر کردن with_asset_fcf با ۰ تا به max_rows برسه
         while len(with_asset_fcf) < max_rows:
             with_asset_fcf.append({
                 'id': len(with_asset_fcf) + 1,
@@ -89,7 +332,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'amount': 0
             })
         
-        # پر کردن without_asset_fcf با ۰ تا به max_rows برسه
         while len(without_asset_fcf) < max_rows:
             without_asset_fcf.append({
                 'id': len(without_asset_fcf) + 1,
@@ -101,16 +343,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         discount_rate = inputs.get('discount_rate', 18) / 100
         forecast_horizon = inputs.get('forecast_horizon', max_rows)
         
-        # تعداد واقعی سال‌ها = حداقل بین max_rows و forecast_horizon
         actual_horizon = min(max_rows, forecast_horizon)
         
-        print(f'📊 with_asset_fcf: {len(with_asset_fcf)} ردیف (هماهنگ شد)')
-        print(f'📊 without_asset_fcf: {len(without_asset_fcf)} ردیف (هماهنگ شد)')
-        print(f'📊 actual_horizon: {actual_horizon} سال')
-        print(f'📊 tax_rate: {tax_rate * 100}%')
-        print(f'📊 discount_rate: {discount_rate * 100}%')
-        
-        # محاسبه تفاضل جریان نقدی (Δ)
         differential_data = []
         for i in range(actual_horizon):
             with_amount = with_asset_fcf[i]['amount']
@@ -132,7 +366,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         
         total_pv = sum(row['pv'] for row in differential_data)
         
-        # FCF Data برای نمودار
         fcf_data = []
         for i in range(actual_horizon):
             fcf_data.append({
@@ -141,7 +374,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'withoutFCF': without_asset_fcf[i]['amount'],
             })
         
-        # Waterfall
         waterfall = []
         cumulative = 0
         
@@ -207,8 +439,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'is_final': True,
             'type': 'final'
         })
-        
-        print(f'📊 total_pv: {total_pv}')
         
         return {
             'final_value': total_pv,

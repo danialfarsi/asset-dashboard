@@ -38,23 +38,33 @@ const METHOD_PANELS: Record<string, any> = {
 };
 
 const METHOD_LABELS: Record<string, string> = {
-  'M-01': 'RfR - Relief from Royalty',
-  'M-02': 'MEEM - Multi-Period Excess Earnings',
-  'M-03': 'DCF - Discounted Cash Flow',
-  'M-04': 'WWM - With-and-Without Method',
-  'M-05': 'RCM - Replacement Cost Method',
-  'M-06': 'RPCM - Reproduction Cost Method',
-  'M-07': 'TWC - Trained Workforce Cost',
-  'M-08': 'CTM - Comparable Transactions Method',
-  'M-09': 'MMM - Market Multiple Method',
+  'M-01': 'RfR - Relief from Royalty (روش حق‌الامتیاز)',
+  'M-02': 'MEEM - Multi-Period Excess Earnings (سود مازاد چند دوره‌ای)',
+  'M-03': 'DCF - Discounted Cash Flow (جریان نقدی تنزیل‌شده)',
+  'M-04': 'WWM - With-and-Without Method (روش با و بدون)',
+  'M-05': 'RCM - Replacement Cost Method (هزینه جایگزینی)',
+  'M-06': 'RPCM - Reproduction Cost Method (هزینه بازتولید)',
+  'M-07': 'TWC - Trained Workforce Cost (هزینه نیروی کار آموزش‌دیده)',
+  'M-08': 'CTM - Comparable Transactions Method (معاملات مشابه)',
+  'M-09': 'MMM - Market Multiple Method (چندگان بازار)',
 };
 
 const METHOD_FIELDS: Record<string, string[]> = {
+  'M-01': [
+    'royalty_rate', 'industry_benchmark', 'revenue_attribution',
+    'revenue_growth_rate', 'attribution_basis', 'expert_signoffs',
+    'tax_rate', 'discount_rate', 'terminal_growth_rate',
+    'forecast_horizon', 'current_revenue', 'quality_multiplier',
+  ],
+  'M-02': [
+    'ebit_attributable', 'contributory_assets', 'customer_attrition_rate',
+    'expert_signoffs',
+    'tax_rate', 'discount_rate', 'terminal_growth_rate',
+    'forecast_horizon', 'current_revenue', 'quality_multiplier',
+  ],
   'M-04': ['with_asset_fcf', 'without_asset_fcf', 'ramp_up_period', 'revenue_attribution', 'revenue_growth_rate', 'expert_signoffs'],
   'M-05': ['labor_breakdown', 'material_infra_cost', 'overhead_pct', 'developer_profit_pct', 'functional_obs_pct', 'economic_obs_pct'],
   'M-06': ['labor_breakdown', 'direct_reproduction_cost', 'coordination_overhead', 'relevance_obsolescence', 'age_factor', 'last_review_date'],
-  'M-01': [],
-  'M-02': [],
   'M-03': [],
   'M-07': [],
   'M-08': [],
@@ -80,13 +90,12 @@ export function Step3_Parameters({
   const [error, setError] = useState<string | null>(null);
   const [step2Data, setStep2Data] = useState<any>(null);
   
-  // 🔥 refها برای tracking تغییرات
   const prevMethodIdRef = useRef<string>(propMethodId || 'M-03');
   const prevAssetIdRef = useRef<number | undefined>(assetId);
   const prevValuationCaseIdRef = useRef<number | undefined>(valuationCaseId);
 
   // ============================================
-  // 🔥 وقتی assetId یا valuationCaseId تغییر میکنه، فرم رو ریست کن
+  // وقتی assetId یا valuationCaseId تغییر میکنه
   // ============================================
   useEffect(() => {
     const assetChanged = assetId !== prevAssetIdRef.current;
@@ -94,24 +103,17 @@ export function Step3_Parameters({
     
     if (assetChanged || caseChanged) {
       console.log(`🔄 دارایی یا مورد ارزش‌گذاری تغییر کرد`);
-      console.log(`   assetId: ${prevAssetIdRef.current} → ${assetId}`);
-      console.log(`   valuationCaseId: ${prevValuationCaseIdRef.current} → ${valuationCaseId}`);
       
-      // 🔥 کلید localStorage مربوط به دارایی قبلی رو پاک کن
       if (prevAssetIdRef.current) {
         const oldKey = `valuation_form_${prevAssetIdRef.current}`;
         localStorage.removeItem(oldKey);
         console.log(`🗑️ localStorage key حذف شد: ${oldKey}`);
       }
       
-      // ریست کردن formData
       setFormData({});
       setStep3Id(null);
       setValidationResult(null);
       setStep2Data(null);
-      
-      // 🔥 اگه دارایی جدید هست، از localStorage جدید نخون
-      // فقط از دیتابیس بخون (اگه ValuationCase وجود داشته باشه)
       
       prevAssetIdRef.current = assetId;
       prevValuationCaseIdRef.current = valuationCaseId;
@@ -123,7 +125,6 @@ export function Step3_Parameters({
   // ============================================
   useEffect(() => {
     if (assetId) {
-      // 🔥 اول از دیتابیس بخون، بعد اگه نبود از localStorage
       loadFromDatabase();
       loadStep2Data();
       fetchAssetMethod();
@@ -136,11 +137,11 @@ export function Step3_Parameters({
   }, [assetId, propMethodId]);
 
   // ============================================
-  // 🔥 بارگذاری از دیتابیس (اولویت اول)
+  // بارگذاری از دیتابیس
   // ============================================
   const loadFromDatabase = async (): Promise<void> => {
     if (!valuationCaseId) {
-      console.log('ℹ️ valuationCaseId وجود ندارد، از localStorage استفاده میشود');
+      console.log('ℹ️ valuationCaseId وجود ندارد');
       return;
     }
     
@@ -170,9 +171,8 @@ export function Step3_Parameters({
   const loadStep2Data = (): void => {
     if (!assetId) return;
     
-    // 🔥 اگه step2Data از دیتابیس اومده، از localStorage استفاده نکن
     if (step2Data) {
-      console.log('✅ داده‌های STEP 2 از دیتابیس موجود است، از localStorage صرف‌نظر شد');
+      console.log('✅ داده‌های STEP 2 از دیتابیس موجود است');
       return;
     }
     
@@ -197,8 +197,6 @@ export function Step3_Parameters({
           business_unit: data.business_unit || '',
           lifecycle_stage: data.lifecycle_stage || 'growth',
         }));
-      } else {
-        console.log('⚠️ داده‌های STEP 2 در localStorage یافت نشد');
       }
     } catch (error) {
       console.error('❌ Error loading step2 data:', error);
@@ -214,9 +212,6 @@ export function Step3_Parameters({
       
       const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
       setAssetDetails(assetData);
-      
-      console.log('📥 داده دارایی کامل:', assetData);
-      console.log('📥 valuation_method از دیتابیس:', assetData.valuation_method);
       
       let detectedMethod = assetData.valuation_method;
       
@@ -247,18 +242,17 @@ export function Step3_Parameters({
             const savedInputs = step3.method_inputs || {};
             const filteredInputs: any = {};
             
-            if (savedInputs.tax_rate) filteredInputs.tax_rate = savedInputs.tax_rate;
-            if (savedInputs.discount_rate) filteredInputs.discount_rate = savedInputs.discount_rate;
-            if (savedInputs.forecast_horizon) filteredInputs.forecast_horizon = savedInputs.forecast_horizon;
-            if (savedInputs.terminal_growth_rate) filteredInputs.terminal_growth_rate = savedInputs.terminal_growth_rate;
-            if (savedInputs.current_revenue) filteredInputs.current_revenue = savedInputs.current_revenue;
-            if (savedInputs.useful_life) filteredInputs.useful_life = savedInputs.useful_life;
-            if (savedInputs.currency) filteredInputs.currency = savedInputs.currency;
-            if (savedInputs.source_reliability) filteredInputs.source_reliability = savedInputs.source_reliability;
-            if (savedInputs.category) filteredInputs.category = savedInputs.category;
-            if (savedInputs.business_unit) filteredInputs.business_unit = savedInputs.business_unit;
-            if (savedInputs.lifecycle_stage) filteredInputs.lifecycle_stage = savedInputs.lifecycle_stage;
+            // فیلدهای مشترک
+            const commonFields = ['tax_rate', 'discount_rate', 'forecast_horizon', 'terminal_growth_rate', 
+                                   'current_revenue', 'useful_life', 'currency', 'source_reliability', 
+                                   'category', 'business_unit', 'lifecycle_stage'];
+            commonFields.forEach(field => {
+              if (savedInputs[field] !== undefined) {
+                filteredInputs[field] = savedInputs[field];
+              }
+            });
             
+            // فیلدهای اختصاصی روش
             allowedFields.forEach(field => {
               if (savedInputs[field] !== undefined) {
                 filteredInputs[field] = savedInputs[field];

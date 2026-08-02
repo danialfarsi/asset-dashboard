@@ -53,3 +53,18 @@ class ValuationStep3Evidence(models.Model):
     
     def __str__(self):
         return f"{self.step3.valuation_case.asset.asset_name} - {self.file_name}"
+    # ============================================
+    # فیلدهای فایل برای M-02 (MEEM)
+    # ============================================
+    ebit_source = models.FileField(
+        upload_to='valuation/ebit/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        verbose_name='فایل EBIT Source'
+    )
+    cac_breakdown = models.FileField(
+        upload_to='valuation/cac/%Y/%m/%d/',
+        null=True,
+        blank=True,
+        verbose_name='فایل CAC Breakdown'
+    )

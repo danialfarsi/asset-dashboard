@@ -17,6 +17,12 @@ interface DiscoveryStepperProps {
   isStepActive: (step: number) => boolean;
 }
 
+// 🔥 تبدیل عدد به فارسی
+const toPersianNumber = (num: number): string => {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return String(num).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
 export function DiscoveryStepper({ 
   steps, 
   currentStep, 
@@ -25,7 +31,7 @@ export function DiscoveryStepper({
   isStepActive 
 }: DiscoveryStepperProps) {
   return (
-    <div className="w-full py-4">
+    <div className="w-full py-4 font-vazir">
       <div className="flex items-center justify-between relative">
         {/* خط اتصال */}
         <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200">
@@ -66,19 +72,21 @@ export function DiscoveryStepper({
                 {isComplete ? (
                   <CheckCircle className="w-5 h-5" />
                 ) : (
-                  <span className="text-sm font-medium">{step.id}</span>
+                  <span className="text-sm font-medium font-vazir">
+                    {toPersianNumber(step.id)}
+                  </span>
                 )}
               </div>
 
               {/* عنوان */}
               <div className="mt-2 text-center">
                 <p className={cn(
-                  "text-xs font-medium",
+                  "text-xs font-medium font-vazir",
                   isActive ? "text-dark-green" : "text-gray-500"
                 )}>
                   {step.title}
                 </p>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-gray-400 font-vazir">
                   {step.subtitle}
                 </p>
               </div>
