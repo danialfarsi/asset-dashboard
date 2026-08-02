@@ -1,0 +1,79 @@
+{
+  "method_id": "M-06",
+  "method_name": "RPCM (Reproduction Cost Method)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "direct_cost",
+      "name": "Direct Reproduction Cost",
+      "name_fa": "هزینه مستقیم بازتولید",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "labor_cost",
+      "name": "Labor Cost",
+      "name_fa": "هزینه نیروی کار",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "overhead_pct",
+      "name": "Coordination Overhead",
+      "name_fa": "سربار هماهنگی",
+      "base": 20,
+      "low": 15,
+      "high": 25,
+      "step": 1,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "obsolescence_pct",
+      "name": "Relevance Obsolescence",
+      "name_fa": "منسوخی مرتبط",
+      "base": 10,
+      "low": 5,
+      "high": 15,
+      "step": 1,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "age_factor",
+      "name": "Age Factor",
+      "name_fa": "عامل سن",
+      "base": 0.20,
+      "low": 0.10,
+      "high": 0.30,
+      "step": 0.02,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}

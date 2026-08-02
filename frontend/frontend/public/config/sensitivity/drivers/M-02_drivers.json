@@ -1,0 +1,64 @@
+{
+  "method_id": "M-02",
+  "method_name": "MEEM (Multi-Period Excess Earnings)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "ebit_margin",
+      "name": "EBIT Margin",
+      "name_fa": "حاشیه EBIT",
+      "base": 0.20,
+      "low": 0.15,
+      "high": 0.25,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "attrition_rate",
+      "name": "Customer Attrition Rate",
+      "name_fa": "نرخ ریزش مشتری",
+      "base": 0.10,
+      "low": 0.05,
+      "high": 0.15,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "discount_rate",
+      "name": "Discount Rate (WACC)",
+      "name_fa": "نرخ تنزیل",
+      "base": 0.18,
+      "low": 0.16,
+      "high": 0.20,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "terminal_growth",
+      "name": "Terminal Growth Rate",
+      "name_fa": "نرخ رشد پایانی",
+      "base": 0.05,
+      "low": 0.03,
+      "high": 0.07,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}

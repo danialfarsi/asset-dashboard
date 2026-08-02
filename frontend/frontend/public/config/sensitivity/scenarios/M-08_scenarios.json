@@ -1,0 +1,41 @@
+{
+  "method_id": "M-08",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "deal_multiple": { "type": "relative", "value": -0.20 },
+        "revenue_base": { "type": "relative", "value": -0.10 },
+        "adjustment_pct": { "type": "absolute", "value": -20 }
+      },
+      "description_fa": "کاهش ضریب و درآمد با تعدیلات منفی",
+      "description_en": "Decrease multiple and revenue with negative adjustments"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "deal_multiple": { "type": "relative", "value": 0.20 },
+        "revenue_base": { "type": "relative", "value": 0.10 },
+        "adjustment_pct": { "type": "absolute", "value": 20 }
+      },
+      "description_fa": "افزایش ضریب و درآمد با تعدیلات مثبت",
+      "description_en": "Increase multiple and revenue with positive adjustments"
+    }
+  }
+}

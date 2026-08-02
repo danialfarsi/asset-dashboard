@@ -187,9 +187,9 @@ export function M08_CTM_Engine({
       {/* توضیحات روش */}
       <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
         <p className="text-sm text-indigo-700 font-[family-name:var(--font-vazir)]">
-          🔹 روش معاملات مشابه (CTM) - ارزش دارایی را بر اساس معاملات اخیر دارایی‌های مشابه محاسبه می‌کند.
+          🔹 روش معاملات مشابه (CTM) 
           <span className="inline-block mr-2 px-2 py-0.5 bg-indigo-200 text-indigo-800 rounded-full text-xs font-medium">
-            ⭐ روش بازار
+             روش بازار
           </span>
         </p>
       </div>
@@ -455,26 +455,6 @@ export function M08_CTM_Engine({
         </Card>
       </div>
 
-      {/* فرمول محاسبه */}
-      <Card className="border-gray-200 bg-gray-50">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
-          <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
-            <p className="text-dark-green font-bold">
-              قیمت تعدیل‌شده = قیمت معامله × (۱ + مجموع تعدیلات)
-            </p>
-            <p className="text-dark-green font-bold mt-1">
-              میانگین وزنی = Σ(قیمت تعدیل‌شده × وزن)
-            </p>
-            <p className="text-dark-green font-bold mt-1">
-              ارزش نهایی = میانگین وزنی × ضریب کیفیت
-            </p>
-            <p className="text-gray-400 text-xs mt-2">
-              CTM-1.9 | روش بازار
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* دکمه خروجی Excel */}
       <div className="flex justify-end">

@@ -1,0 +1,41 @@
+{
+  "method_id": "M-06",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "direct_cost": { "type": "relative", "value": 0.20 },
+        "labor_cost": { "type": "relative", "value": 0.20 },
+        "obsolescence_pct": { "type": "relative", "value": 0.50 }
+      },
+      "description_fa": "افزایش هزینه‌ها و منسوخی",
+      "description_en": "Increase costs and obsolescence"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "direct_cost": { "type": "relative", "value": -0.20 },
+        "labor_cost": { "type": "relative", "value": -0.20 },
+        "obsolescence_pct": { "type": "relative", "value": -0.50 }
+      },
+      "description_fa": "کاهش هزینه‌ها و منسوخی",
+      "description_en": "Decrease costs and obsolescence"
+    }
+  }
+}

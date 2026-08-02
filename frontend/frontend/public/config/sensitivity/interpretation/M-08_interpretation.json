@@ -1,0 +1,41 @@
+{
+  "method_id": "M-08",
+  "method_name": "Comparable Transactions Method (CTM)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_multiple",
+      "condition": "top_driver == 'deal_multiple'",
+      "summary_fa": "ضریب معامله حساسترین متغیر است. افزایش {change_percent}% در ضریب معامله ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Deal multiple is the most sensitive driver. A {change_percent}% increase in deal multiple increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق ضریب معاملات مشابه",
+        "تحلیل تفاوت‌های معاملات",
+        "تطبیق ضریب با شرایط بازار"
+      ],
+      "recommendations_en": [
+        "Review comparable deal multiples in detail",
+        "Analyze deal differences",
+        "Align multiple with market conditions"
+      ]
+    },
+    {
+      "id": "top_driver_revenue",
+      "condition": "top_driver == 'revenue_base'",
+      "summary_fa": "درآمد پایه حساسترین متغیر است. افزایش {change_percent}% در درآمد پایه ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Revenue base is the most sensitive driver. A {change_percent}% increase in revenue base increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق پیش‌بینی درآمد",
+        "تحلیل سناریوهای مختلف درآمد",
+        "برنامه‌ریزی برای رشد درآمد"
+      ],
+      "recommendations_en": [
+        "Review revenue forecast in detail",
+        "Analyze different revenue scenarios",
+        "Plan for revenue growth"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

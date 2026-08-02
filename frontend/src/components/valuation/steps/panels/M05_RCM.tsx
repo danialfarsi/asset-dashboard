@@ -30,9 +30,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
 
-  // ============================================
-  // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
-  // ============================================
   useEffect(() => {
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
       console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
@@ -48,12 +45,9 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [valuationCaseId, formData.labor_breakdown]);
 
-  // ============================================
-  // مقداردهی اولیه با داده‌های STEP 2
-  // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
-      console.log('📥 دریافت داده‌های STEP 2 برای M05:', step2Data);
+      console.log('📥 دریافت داده‌های مرحله ۲ برای M05:', step2Data);
       
       if (!formData.tax_rate && step2Data.tax_rate) {
         onChange({
@@ -74,9 +68,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [step2Data, initialized]);
 
-  // ============================================
-  // بارگذاری از دیتابیس
-  // ============================================
   useEffect(() => {
     if (valuationCaseId && initialized) {
       loadFromDatabase();
@@ -113,9 +104,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   };
 
-  // ============================================
-  // داده‌های فرم
-  // ============================================
   const laborRows: LaborRow[] = formData.labor_breakdown || [];
 
   const handleChange = (field: string, value: any) => {
@@ -148,9 +136,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     handleChange('labor_breakdown', laborRows.filter(row => row.id !== id));
   };
 
-  // ============================================
-  // محاسبات
-  // ============================================
   const calculateTotalCost = () => {
     let total = 0;
     laborRows.forEach(row => {
@@ -174,9 +159,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return withProfit * (1 - functionalObs) * (1 - economicObs);
   };
 
-  // ============================================
-  // ذخیره در دیتابیس
-  // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) {
       console.warn('⚠️ valuationCaseId موجود نیست');
@@ -237,7 +219,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   };
 
-  // Auto-save
   useEffect(() => {
     const timer = setTimeout(() => {
       saveToDatabase();
@@ -246,9 +227,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return () => clearTimeout(timer);
   }, [formData, laborRows]);
 
-  // ============================================
-  // تبدیل اعداد به فارسی
-  // ============================================
   const toPersianNumber = (num: number) => {
     const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
     return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
@@ -260,26 +238,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
     return integerPart.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
-  };
-
-  // ============================================
-  // نمایش داده‌های STEP 2
-  // ============================================
-  const displayStep2Data = () => {
-    const data = formData.tax_rate ? formData : step2Data;
-    if (!data) return null;
-    
-    return (
-      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs font-[family-name:var(--font-vazir)]">
-        <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP 2:</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{toPersianNumber(data.tax_rate)}%</span></div>
-          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{toPersianNumber(data.discount_rate)}%</span></div>
-          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon)} سال</span></div>
-          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{formatPersianNumber(data.current_revenue)}</span></div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -312,8 +270,6 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
           ) : null}
         </div>
       </div>
-
-      {displayStep2Data()}
 
       {/* جدول نیروی کار */}
       <div className="space-y-2">

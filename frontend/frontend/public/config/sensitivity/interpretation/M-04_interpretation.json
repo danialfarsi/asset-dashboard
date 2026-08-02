@@ -1,0 +1,57 @@
+{
+  "method_id": "M-04",
+  "method_name": "With-and-Without Method (WWM)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_with",
+      "condition": "top_driver == 'with_asset_growth'",
+      "summary_fa": "نرخ رشد با دارایی حساسترین متغیر است. افزایش {change_percent}% در رشد با دارایی ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "With-asset growth rate is the most sensitive driver. A {change_percent}% increase in with-asset growth increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق فرصت‌های رشد با دارایی",
+        "تحلیل سناریوهای مختلف رشد",
+        "برنامه‌ریزی برای بهینه‌سازی رشد"
+      ],
+      "recommendations_en": [
+        "Review growth opportunities with asset",
+        "Analyze different growth scenarios",
+        "Plan for growth optimization"
+      ]
+    },
+    {
+      "id": "top_driver_discount",
+      "condition": "top_driver == 'discount_rate'",
+      "summary_fa": "نرخ تنزیل حساسترین متغیر است. کاهش ۲٪ در نرخ تنزیل می‌تواند ارزش را حدود {impact_percent}% افزایش دهد.",
+      "summary_en": "Discount rate is the most sensitive driver. A 2% decrease in discount rate can increase value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق نرخ تنزیل با مشاوران مالی",
+        "تحلیل سناریوهای مختلف نرخ تنزیل",
+        "مقایسه با نرخ تنزیل شرکت‌های مشابه"
+      ],
+      "recommendations_en": [
+        "Review discount rate with financial advisors",
+        "Analyze different discount rate scenarios",
+        "Compare with peer company discount rates"
+      ]
+    },
+    {
+      "id": "top_driver_without",
+      "condition": "top_driver == 'without_asset_growth'",
+      "summary_fa": "نرخ رشد بدون دارایی حساسترین متغیر است. کاهش {change_percent}% در رشد بدون دارایی ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Without-asset growth rate is the most sensitive driver. A {change_percent}% decrease in without-asset growth increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق سناریوی بدون دارایی",
+        "تحلیل هزینه‌های جایگزین",
+        "بهینه‌سازی سناریوی بدون دارایی"
+      ],
+      "recommendations_en": [
+        "Review without-asset scenario in detail",
+        "Analyze alternative costs",
+        "Optimize without-asset scenario"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

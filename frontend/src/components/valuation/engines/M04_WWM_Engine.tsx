@@ -145,9 +145,9 @@ export function M04_WWM_Engine({
       {/* توضیحات روش */}
       <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
         <p className="text-sm text-blue-700 font-[family-name:var(--font-vazir)]">
-          🔹 روش با و بدون دارایی (WWM) - تفاوت ارزش دارایی را با مقایسه سناریوهای با و بدون دارایی محاسبه می‌کند.
+          🔹 روش با و بدون دارایی (WWM) 
           <span className="inline-block mr-2 px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs font-medium">
-            ⭐ ۱۱ دارایی
+            
           </span>
           <span className="inline-block mr-2 px-2 py-0.5 bg-blue-300 text-blue-800 rounded-full text-xs font-medium">
             📥 داده از دیتابیس

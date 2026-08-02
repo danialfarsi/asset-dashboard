@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -29,11 +29,69 @@ interface Step1Props {
   methods: { id: string; name: string; description: string; recommended: boolean }[];
 }
 
-// 🔥 تابع تبدیل عدد به فارسی
+// 🔥 تبدیل عدد به فارسی
 const toPersianNumber = (num: number): string => {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
   return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
 };
+
+// 🔥 کامپوننت AssetItem با React.memo
+const AssetItem = memo(({ 
+  asset, 
+  isSelected, 
+  onSelect 
+}: { 
+  asset: Asset; 
+  isSelected: boolean; 
+  onSelect: (uid: string) => void;
+}) => {
+  return (
+    <div
+      className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+        isSelected
+          ? 'border-dark-green bg-dark-green/5 shadow-sm'
+          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+      }`}
+      onClick={() => onSelect(asset.asset_uid)}
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-bold text-dark-green text-sm font-vazir">
+            {asset.asset_uid}
+          </p>
+          <p className="text-sm font-medium text-gray-800 font-vazir">
+            {asset.asset_name}
+          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <span className="text-xs text-gray-400 font-vazir">
+              نوع: {asset.asset_type?.name || 'نامشخص'}
+            </span>
+            <span className="text-xs text-gray-400 font-vazir">•</span>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-vazir ${
+              asset.status === 'Active' 
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-500'
+            }`}>
+              {asset.status || 'فعال'}
+            </span>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          variant={isSelected ? 'default' : 'outline'}
+          className={`font-vazir ${
+            isSelected
+              ? 'bg-dark-green hover:bg-dark-green/90'
+              : 'border-dark-green text-dark-green hover:bg-dark-green/10'
+          }`}
+        >
+          {isSelected ? '✓ انتخاب شده' : 'انتخاب'}
+        </Button>
+      </div>
+    </div>
+  );
+});
+AssetItem.displayName = 'AssetItem';
 
 export function Step1_SelectAsset({
   assets,
@@ -43,28 +101,49 @@ export function Step1_SelectAsset({
 }: Step1Props) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // گروه‌بندی بر اساس asset_uid (هر دارایی فقط یک بار)
-  const uniqueAssetsMap = new Map<string, Asset>();
-  assets.forEach(asset => {
-    if (!uniqueAssetsMap.has(asset.asset_uid)) {
-      uniqueAssetsMap.set(asset.asset_uid, asset);
-    }
-  });
-  const uniqueAssets = Array.from(uniqueAssetsMap.values());
+  // 🔥 کش کردن دارایی‌های منحصربه‌فرد
+  const uniqueAssets = useMemo(() => {
+    const map = new Map<string, Asset>();
+    assets.forEach(asset => {
+      if (!map.has(asset.asset_uid)) {
+        map.set(asset.asset_uid, asset);
+      }
+    });
+    return Array.from(map.values());
+  }, [assets]);
 
-  const filteredAssets = uniqueAssets.filter(asset =>
-    asset.asset_uid.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    asset.asset_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (asset.asset_type?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // 🔥 کش کردن دارایی‌های فیلتر شده
+  const filteredAssets = useMemo(() => {
+    if (!searchTerm.trim()) return uniqueAssets;
+    
+    const term = searchTerm.toLowerCase();
+    return uniqueAssets.filter(asset =>
+      asset.asset_uid.toLowerCase().includes(term) ||
+      asset.asset_name.toLowerCase().includes(term) ||
+      (asset.asset_type?.name || '').toLowerCase().includes(term)
+    );
+  }, [uniqueAssets, searchTerm]);
 
-  // گروه‌بندی دارایی‌ها بر اساس نوع
-  const groupedAssets = filteredAssets.reduce((acc, asset) => {
-    const type = asset.asset_type?.name || 'سایر';
-    if (!acc[type]) acc[type] = [];
-    acc[type].push(asset);
-    return acc;
-  }, {} as Record<string, Asset[]>);
+  // 🔥 کش کردن دارایی‌های گروه‌بندی شده
+  const groupedAssets = useMemo(() => {
+    return filteredAssets.reduce((acc, asset) => {
+      const type = asset.asset_type?.name || 'سایر';
+      if (!acc[type]) acc[type] = [];
+      acc[type].push(asset);
+      return acc;
+    }, {} as Record<string, Asset[]>);
+  }, [filteredAssets]);
+
+  // 🔥 استفاده از useCallback برای توابع
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleSelect = useCallback((assetUid: string) => {
+    onAssetSelect(assetUid);
+  }, [onAssetSelect]);
+
+  const assetTypes = Object.keys(groupedAssets);
 
   return (
     <div className="space-y-6 font-vazir">
@@ -88,7 +167,7 @@ export function Step1_SelectAsset({
               <Input
                 placeholder="جستجوی دارایی بر اساس شناسه، نام یا نوع..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearch}
                 className="pr-10 font-vazir"
               />
             </div>
@@ -102,55 +181,17 @@ export function Step1_SelectAsset({
 
             {/* گروه‌بندی دارایی‌ها */}
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {Object.entries(groupedAssets).map(([type, items]) => (
+              {assetTypes.map((type) => (
                 <div key={type}>
                   <p className="text-xs font-medium text-gray-400 mb-2 font-vazir">{type}</p>
                   <div className="space-y-2">
-                    {items.map((asset) => (
-                      <div
+                    {groupedAssets[type].map((asset) => (
+                      <AssetItem
                         key={asset.id}
-                        className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                          selectedAsset?.id === asset.id
-                            ? 'border-dark-green bg-dark-green/5 shadow-sm'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                        }`}
-                        onClick={() => onAssetSelect(asset.asset_uid)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-bold text-dark-green text-sm font-vazir">
-                              {asset.asset_uid}
-                            </p>
-                            <p className="text-sm font-medium text-gray-800 font-vazir">
-                              {asset.asset_name}
-                            </p>
-                            <div className="flex flex-wrap items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-400 font-vazir">
-                                نوع: {asset.asset_type?.name || 'نامشخص'}
-                              </span>
-                              <span className="text-xs text-gray-400 font-vazir">•</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-vazir ${
-                                asset.status === 'Active' 
-                                  ? 'bg-green-100 text-green-700'
-                                  : 'bg-gray-100 text-gray-500'
-                              }`}>
-                                {asset.status || 'فعال'}
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant={selectedAsset?.id === asset.id ? 'default' : 'outline'}
-                            className={`font-vazir ${
-                              selectedAsset?.id === asset.id
-                                ? 'bg-dark-green hover:bg-dark-green/90'
-                                : 'border-dark-green text-dark-green hover:bg-dark-green/10'
-                            }`}
-                          >
-                            {selectedAsset?.id === asset.id ? '✓ انتخاب شده' : 'انتخاب'}
-                          </Button>
-                        </div>
-                      </div>
+                        asset={asset}
+                        isSelected={selectedAsset?.id === asset.id}
+                        onSelect={handleSelect}
+                      />
                     ))}
                   </div>
                 </div>

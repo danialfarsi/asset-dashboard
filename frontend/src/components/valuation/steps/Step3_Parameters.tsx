@@ -78,7 +78,12 @@ const METHOD_FIELDS: Record<string, string[]> = {
     'comparable_deals', 'market_comparability_context', 'industry_classification',
     'expert_signoffs', 'discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability',
   ],
-  'M-09': [],
+  'M-09': [
+    'base_metric', 'base_metric_value', 'market_multiple', 'multiple_source',
+    'control_premium_percent', 'marketability_discount_percent', 'intangible_share_percent',
+    'industry_classification', 'market_comparability_context', 'expert_signoffs',
+    'discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability',
+  ],
 };
 
 export function Step3_Parameters({ 

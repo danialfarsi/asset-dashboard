@@ -1,0 +1,41 @@
+{
+  "method_id": "M-06",
+  "method_name": "Reproduction Cost Method (RPCM)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_direct",
+      "condition": "top_driver == 'direct_cost'",
+      "summary_fa": "هزینه مستقیم بازتولید حساسترین متغیر است. کاهش {change_percent}% در هزینه مستقیم ارزش را حدود {impact_percent}% کاهش می‌دهد.",
+      "summary_en": "Direct reproduction cost is the most sensitive driver. A {change_percent}% decrease in direct cost decreases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق هزینه‌های مستقیم بازتولید",
+        "تحلیل روش‌های کاهش هزینه",
+        "برنامه‌ریزی برای بهینه‌سازی بازتولید"
+      ],
+      "recommendations_en": [
+        "Review direct reproduction costs in detail",
+        "Analyze cost reduction methods",
+        "Plan for reproduction optimization"
+      ]
+    },
+    {
+      "id": "top_driver_obsolescence",
+      "condition": "top_driver == 'obsolescence_pct'",
+      "summary_fa": "درصد منسوخ‌شدگی حساسترین متغیر است. کاهش {change_percent}% در منسوخ‌شدگی ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Obsolescence percentage is the most sensitive driver. A {change_percent}% decrease in obsolescence increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق عوامل منسوخ‌شدگی",
+        "تحلیل روش‌های کاهش منسوخ‌شدگی",
+        "برنامه‌ریزی برای به‌روزرسانی دارایی"
+      ],
+      "recommendations_en": [
+        "Review obsolescence factors in detail",
+        "Analyze obsolescence reduction methods",
+        "Plan for asset modernization"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

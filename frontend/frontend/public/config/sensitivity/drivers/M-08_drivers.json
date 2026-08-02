@@ -1,0 +1,52 @@
+{
+  "method_id": "M-08",
+  "method_name": "CTM (Comparable Transactions Method)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "deal_multiple",
+      "name": "Deal Multiple",
+      "name_fa": "ضریب معامله",
+      "base": 2.5,
+      "low": 2.0,
+      "high": 3.0,
+      "step": 0.1,
+      "unit": "multiple",
+      "decimal_places": 1,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "revenue_base",
+      "name": "Revenue Base",
+      "name_fa": "درآمد پایه",
+      "base": 100,
+      "low": 90,
+      "high": 110,
+      "step": 2,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "adjustment_pct",
+      "name": "Total Adjustments",
+      "name_fa": "مجموع تعدیلات",
+      "base": 0,
+      "low": -20,
+      "high": 20,
+      "step": 2,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}
