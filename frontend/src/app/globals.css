@@ -107,3 +107,34 @@
 .animate-zoom-in-95 {
   animation: zoomIn95 0.2s ease-out;
 }
+
+/* ============================================
+   فونت وزیر برای تمام اعداد
+   ============================================ */
+@layer base {
+  input,
+  button,
+  span,
+  p,
+  h1, h2, h3, h4, h5, h6,
+  label,
+  td,
+  th,
+  div {
+    font-family: var(--font-vazir), sans-serif;
+  }
+  
+  /* اعداد در input ها */
+  input[type="number"],
+  input[type="text"],
+  input[type="tel"] {
+    font-family: var(--font-vazir), sans-serif !important;
+  }
+  
+  /* اعداد در جداول */
+  table,
+  td,
+  th {
+    font-family: var(--font-vazir), sans-serif !important;
+  }
+}

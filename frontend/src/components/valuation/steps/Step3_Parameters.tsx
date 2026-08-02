@@ -62,12 +62,22 @@ const METHOD_FIELDS: Record<string, string[]> = {
     'tax_rate', 'discount_rate', 'terminal_growth_rate',
     'forecast_horizon', 'current_revenue', 'quality_multiplier',
   ],
+  'M-03': [
+    'fcf_schedule', 'intangible_share_percent', 'expert_signoffs',
+    'tax_rate', 'discount_rate', 'terminal_growth_rate',
+    'forecast_horizon', 'quality_multiplier',
+  ],
   'M-04': ['with_asset_fcf', 'without_asset_fcf', 'ramp_up_period', 'revenue_attribution', 'revenue_growth_rate', 'expert_signoffs'],
   'M-05': ['labor_breakdown', 'material_infra_cost', 'overhead_pct', 'developer_profit_pct', 'functional_obs_pct', 'economic_obs_pct'],
   'M-06': ['labor_breakdown', 'direct_reproduction_cost', 'coordination_overhead', 'relevance_obsolescence', 'age_factor', 'last_review_date'],
-  'M-03': [],
-  'M-07': [],
-  'M-08': [],
+  'M-07': [
+    'team_members', 'ramp_up_duration', 'productivity_loss', 'turnover_rate',
+    'expert_signoffs', 'discount_rate', 'tax_rate', 'quality_multiplier',
+  ],
+  'M-08': [
+    'comparable_deals', 'market_comparability_context', 'industry_classification',
+    'expert_signoffs', 'discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability',
+  ],
   'M-09': [],
 };
 
@@ -242,7 +252,6 @@ export function Step3_Parameters({
             const savedInputs = step3.method_inputs || {};
             const filteredInputs: any = {};
             
-            // فیلدهای مشترک
             const commonFields = ['tax_rate', 'discount_rate', 'forecast_horizon', 'terminal_growth_rate', 
                                    'current_revenue', 'useful_life', 'currency', 'source_reliability', 
                                    'category', 'business_unit', 'lifecycle_stage'];
@@ -252,7 +261,6 @@ export function Step3_Parameters({
               }
             });
             
-            // فیلدهای اختصاصی روش
             allowedFields.forEach(field => {
               if (savedInputs[field] !== undefined) {
                 filteredInputs[field] = savedInputs[field];

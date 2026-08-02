@@ -11,6 +11,7 @@ import { M02_MEEM_Engine } from '../engines/M02_MEEM_Engine';
 import { M04_WWM_Engine } from '../engines/M04_WWM_Engine';
 import { M05_RCM_Engine } from '../engines/M05_RCM_Engine';
 import { M06_RPCM_Engine } from '../engines/M06_RPCM_Engine';
+import { M08_CTM_Engine } from '../engines/M08_CTM_Engine';
 
 interface Step4Props {
   onNext: () => void;
@@ -226,6 +227,7 @@ export function Step4_Calculation({
       'M-04': 'WWM - روش با و بدون',
       'M-05': 'RCM - روش هزینه جایگزینی',
       'M-06': 'RPCM - روش هزینه بازتولید',
+      'M-08': 'CTM - روش معاملات مشابه (Comparable Transactions)',
     };
     return labels[method] || method;
   };
@@ -246,7 +248,7 @@ export function Step4_Calculation({
       error,
     };
 
-    // 🔥 اضافه کردن M-02
+    // 🔥 اضافه کردن M-08
     switch (finalMethodId) {
       case 'M-01':
         console.log('✅ رندر M01_RfR_Engine');
@@ -263,6 +265,9 @@ export function Step4_Calculation({
       case 'M-06':
         console.log('✅ رندر M06_RPCM_Engine');
         return <M06_RPCM_Engine {...commonProps} />;
+      case 'M-08':
+        console.log('✅ رندر M08_CTM_Engine');
+        return <M08_CTM_Engine {...commonProps} />;
       default:
         console.log('❌ روش پشتیبانی نمی‌شود:', finalMethodId);
         return (
