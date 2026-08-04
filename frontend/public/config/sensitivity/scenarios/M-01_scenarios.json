@@ -1,0 +1,43 @@
+{
+  "method_id": "M-01",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "royalty_rate": { "type": "relative", "value": -0.25 },
+        "discount_rate": { "type": "relative", "value": 0.10 },
+        "terminal_growth": { "type": "relative", "value": -0.40 },
+        "revenue_growth": { "type": "relative", "value": -0.25 }
+      },
+      "description_fa": "کاهش نرخ حق‌الامتیاز و افزایش نرخ تنزیل",
+      "description_en": "Decrease royalty rate and increase discount rate"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "royalty_rate": { "type": "relative", "value": 0.375 },
+        "discount_rate": { "type": "relative", "value": -0.10 },
+        "terminal_growth": { "type": "relative", "value": 0.40 },
+        "revenue_growth": { "type": "relative", "value": 0.25 }
+      },
+      "description_fa": "افزایش نرخ حق‌الامتیاز و کاهش نرخ تنزیل",
+      "description_en": "Increase royalty rate and decrease discount rate"
+    }
+  }
+}

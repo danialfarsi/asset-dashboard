@@ -1,0 +1,57 @@
+{
+  "method_id": "M-03",
+  "method_name": "DCF (Discounted Cash Flow)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_discount",
+      "condition": "top_driver == 'discount_rate'",
+      "summary_fa": "نرخ تنزیل حساسترین متغیر است. کاهش ۲٪ در نرخ تنزیل می‌تواند ارزش را حدود {impact_percent}% افزایش دهد.",
+      "summary_en": "Discount rate is the most sensitive driver. A 2% decrease in discount rate can increase value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق نرخ تنزیل با مشاوران مالی",
+        "تحلیل سناریوهای مختلف نرخ تنزیل",
+        "مقایسه با نرخ تنزیل شرکت‌های مشابه"
+      ],
+      "recommendations_en": [
+        "Review discount rate with financial advisors",
+        "Analyze different discount rate scenarios",
+        "Compare with peer company discount rates"
+      ]
+    },
+    {
+      "id": "top_driver_fcf",
+      "condition": "top_driver == 'fcf_cagr'",
+      "summary_fa": "نرخ رشد مرکب FCF حساسترین متغیر است. افزایش {change_percent}% در رشد FCF می‌تواند ارزش را حدود {impact_percent}% افزایش دهد.",
+      "summary_en": "FCF CAGR is the most sensitive driver. A {change_percent}% increase in FCF growth can increase value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق پروژه‌های سرمایه‌گذاری",
+        "تحلیل جریان‌های نقدی آینده",
+        "برنامه‌ریزی برای بهبود رشد FCF"
+      ],
+      "recommendations_en": [
+        "Review investment projects in detail",
+        "Analyze future cash flows",
+        "Plan for FCF growth improvement"
+      ]
+    },
+    {
+      "id": "top_driver_terminal",
+      "condition": "top_driver == 'terminal_growth'",
+      "summary_fa": "نرخ رشد پایانی حساسترین متغیر است. تغییر {change_percent}% در نرخ رشد پایانی ارزش را حدود {impact_percent}% تغییر می‌دهد.",
+      "summary_en": "Terminal growth rate is the most sensitive driver. A {change_percent}% change in terminal growth changes value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی پایداری نرخ رشد پایانی با تحلیل صنعت",
+        "تطبیق نرخ رشد با نرخ تورم بلندمدت",
+        "تحلیل سناریوهای مختلف برای رشد پایانی"
+      ],
+      "recommendations_en": [
+        "Review terminal growth sustainability with industry analysis",
+        "Align growth rate with long-term inflation",
+        "Analyze different terminal growth scenarios"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

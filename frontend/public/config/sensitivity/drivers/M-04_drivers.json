@@ -1,0 +1,51 @@
+{
+  "method_id": "M-04",
+  "method_name": "With-and-Without Method (WWM)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "with_asset_growth",
+      "name": "With Asset Growth Rate",
+      "name_fa": "نرخ رشد با دارایی",
+      "base": 0.08,
+      "low": 0.05,
+      "high": 0.12,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "without_asset_growth",
+      "name": "Without Asset Growth Rate",
+      "name_fa": "نرخ رشد بدون دارایی",
+      "base": 0.06,
+      "low": 0.03,
+      "high": 0.10,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "discount_rate",
+      "name": "Discount Rate (WACC)",
+      "name_fa": "نرخ تنزیل",
+      "base": 0.18,
+      "low": 0.16,
+      "high": 0.20,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}

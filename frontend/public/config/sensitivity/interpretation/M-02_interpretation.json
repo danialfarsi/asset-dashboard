@@ -1,0 +1,57 @@
+{
+  "method_id": "M-02",
+  "method_name": "MEEM (Multi-Period Excess Earnings)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_ebit",
+      "condition": "top_driver == 'ebit_margin'",
+      "summary_fa": "حاشیه EBIT حساسترین متغیر است. تغییر {change_percent}% در حاشیه EBIT ارزش را حدود {impact_percent}% تغییر می‌دهد.",
+      "summary_en": "EBIT margin is the most sensitive driver. A {change_percent}% change in EBIT margin changes value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق حاشیه سود با تیم مالی",
+        "مقایسه با حاشیه سود صنعت",
+        "تحلیل سناریوهای مختلف برای بهینه‌سازی حاشیه سود"
+      ],
+      "recommendations_en": [
+        "Review EBIT margin with finance team",
+        "Compare with industry margins",
+        "Analyze different margin optimization scenarios"
+      ]
+    },
+    {
+      "id": "top_driver_attrition",
+      "condition": "top_driver == 'attrition_rate'",
+      "summary_fa": "نرخ ریزش مشتری حساسترین متغیر است. کاهش {change_percent}% در نرخ ریزش می‌تواند ارزش را حدود {impact_percent}% افزایش دهد.",
+      "summary_en": "Customer attrition rate is the most sensitive driver. A {change_percent}% decrease in attrition can increase value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی استراتژی‌های کاهش ریزش مشتری",
+        "تحلیل دلایل ریزش مشتریان",
+        "برنامه‌ریزی برای بهبود وفاداری مشتری"
+      ],
+      "recommendations_en": [
+        "Review customer retention strategies",
+        "Analyze reasons for customer churn",
+        "Plan for customer loyalty improvement"
+      ]
+    },
+    {
+      "id": "top_driver_discount",
+      "condition": "top_driver == 'discount_rate'",
+      "summary_fa": "نرخ تنزیل حساسترین متغیر است. کاهش ۲٪ در نرخ تنزیل می‌تواند ارزش را حدود {impact_percent}% افزایش دهد.",
+      "summary_en": "Discount rate is the most sensitive driver. A 2% decrease in discount rate can increase value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق نرخ تنزیل با مشاوران مالی",
+        "تحلیل سناریوهای مختلف نرخ تنزیل",
+        "مقایسه با نرخ تنزیل شرکت‌های مشابه"
+      ],
+      "recommendations_en": [
+        "Review discount rate with financial advisors",
+        "Analyze different discount rate scenarios",
+        "Compare with peer company discount rates"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

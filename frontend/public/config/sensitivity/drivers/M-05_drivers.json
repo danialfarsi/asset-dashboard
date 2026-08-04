@@ -1,0 +1,66 @@
+{
+  "method_id": "M-05",
+  "method_name": "RCM (Replacement Cost Method)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "labor_cost",
+      "name": "Labor Cost",
+      "name_fa": "هزینه نیروی کار",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "material_cost",
+      "name": "Material Cost",
+      "name_fa": "هزینه مواد",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "overhead_pct",
+      "name": "Overhead Percentage",
+      "name_fa": "درصد سربار",
+      "base": 20,
+      "low": 15,
+      "high": 25,
+      "step": 1,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "obsolescence_pct",
+      "name": "Total Obsolescence",
+      "name_fa": "مجموع منسوخ‌شدگی",
+      "base": 8,
+      "low": 5,
+      "high": 12,
+      "step": 1,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}

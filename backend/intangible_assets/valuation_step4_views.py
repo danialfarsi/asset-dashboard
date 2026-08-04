@@ -36,16 +36,24 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             
             print(f'🔍 محاسبه برای روش: {method_id}')
             
-            if method_id == 'M-02':
+            if method_id == 'M-01':
+                result = self.calculate_m01(inputs)
+            elif method_id == 'M-02':
                 result = self.calculate_m02(inputs)
+            elif method_id == 'M-03':
+                result = self.calculate_m03(inputs)
             elif method_id == 'M-04':
                 result = self.calculate_m04(inputs)
-            elif method_id == 'M-01':
-                result = self.calculate_m01(inputs)
             elif method_id == 'M-05':
                 result = self.calculate_m05(inputs)
             elif method_id == 'M-06':
                 result = self.calculate_m06(inputs)
+            elif method_id == 'M-07':
+                result = self.calculate_m07(inputs)
+            elif method_id == 'M-08':
+                result = self.calculate_m08(inputs)
+            elif method_id == 'M-09':
+                result = self.calculate_m09(inputs)
             else:
                 return Response(
                     {'error': f'روش {method_id} پشتیبانی نمیشود'},
@@ -313,7 +321,149 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 }
             }
         }
-
+    # ============================================
+    # M-03: DCF (Discounted Cash Flow)
+    # ============================================
+    def calculate_m03(self, inputs):
+        print('🔥 calculate_m03 called!')
+        
+        # دریافت از STEP 3
+        fcf_data = inputs.get('fcf_data', [])
+        intangible_share = inputs.get('intangible_share', 70) / 100
+        forecast_horizon = inputs.get('forecast_horizon', 5)
+        tax_rate = inputs.get('tax_rate', 25) / 100
+        discount_rate = inputs.get('discount_rate', 18) / 100
+        terminal_growth_rate = inputs.get('terminal_growth_rate', 5) / 100
+        quality_multiplier = inputs.get('quality_multiplier', 0.85)
+        
+        # گام ۱: محاسبه ارزش تنزیل‌شده FCFهای سالانه
+        yearly_data = []
+        total_pv = 0
+        
+        # اگر fcf_data خالی بود، از مقادیر پیش‌فرض استفاده کن
+        if not fcf_data:
+            fcf_data = [
+                {'year': 1, 'fcf': 80000000},
+                {'year': 2, 'fcf': 90000000},
+                {'year': 3, 'fcf': 100000000},
+                {'year': 4, 'fcf': 110000000},
+                {'year': 5, 'fcf': 120000000},
+            ]
+        
+        for item in fcf_data:
+            year = item.get('year', 1)
+            fcf = item.get('fcf', 0)
+            pv_factor = 1 / ((1 + discount_rate) ** year)
+            pv = fcf * pv_factor
+            total_pv += pv
+            
+            yearly_data.append({
+                'year': year,
+                'fcf': round(fcf),
+                'pv_factor': round(pv_factor, 4),
+                'pv': round(pv)
+            })
+        
+        # گام ۳: ارزش پایانی
+        last_fcf = yearly_data[-1]['fcf']
+        terminal_value = (last_fcf * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
+        pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
+        
+        # گام ۵: ارزش کل شرکت (Enterprise Value)
+        enterprise_value = total_pv + pv_terminal
+        
+        # گام ۶: اعمال سهم دارایی نامشهود
+        intangible_value = enterprise_value * intangible_share
+        
+        # گام ۷: اعمال ضریب کیفیت
+        final_value = intangible_value * quality_multiplier
+        
+        # Waterfall
+        waterfall = []
+        cumulative = 0
+        
+        cumulative += total_pv
+        waterfall.append({
+            'step': 1,
+            'title': f'جمع ارزش فعلی FCF ({forecast_horizon} سال)',
+            'amount': round(total_pv),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative += pv_terminal
+        waterfall.append({
+            'step': 2,
+            'title': 'ارزش پایانی تنزیل‌شده',
+            'amount': round(pv_terminal),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative = enterprise_value
+        waterfall.append({
+            'step': 3,
+            'title': 'ارزش کل شرکت (EV)',
+            'amount': round(enterprise_value),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative = intangible_value
+        waterfall.append({
+            'step': 4,
+            'title': f'× سهم دارایی نامشهود ({intangible_share * 100:.0f}%)',
+            'amount': round(intangible_value - enterprise_value),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative = final_value
+        waterfall.append({
+            'step': 5,
+            'title': f'× ضریب کیفیت ({quality_multiplier:.2f})',
+            'amount': round(final_value - intangible_value),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        waterfall.append({
+            'step': 6,
+            'title': 'ارزش نهایی',
+            'amount': 0,
+            'cumulative': round(cumulative),
+            'is_final': True,
+            'type': 'final'
+        })
+        
+        return {
+            'final_value': round(final_value),
+            'confidence_level': 0.82,
+            'qc_score': 82,
+            'details': {
+                'waterfall': waterfall,
+                'yearly_data': yearly_data,
+                'summary': {
+                    'discount_rate': discount_rate,
+                    'tax_rate': tax_rate,
+                    'terminal_growth_rate': terminal_growth_rate,
+                    'forecast_horizon': forecast_horizon,
+                    'quality_multiplier': quality_multiplier,
+                    'intangible_share': intangible_share,
+                    'total_pv': round(total_pv),
+                    'terminal_value': round(terminal_value),
+                    'pv_terminal': round(pv_terminal),
+                    'enterprise_value': round(enterprise_value),
+                    'intangible_value': round(intangible_value),
+                    'final_value': round(final_value),
+                }
+            }
+        }
     # ============================================
     # M-04: With-and-Without Method
     # ============================================
@@ -672,6 +822,272 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'obsolescence_pct': obsolescence * 100,
                     'age_factor': age_factor,
                     'final_value': cumulative,
+                }
+            }
+        }
+    # ============================================
+    # M-07: TWC (Trained Workforce / Team Cost)
+    # ============================================
+    def calculate_m07(self, inputs):
+        print('🔥 calculate_m07 called!')
+        
+        # دریافت از STEP 3
+        team_members = inputs.get('team_members', [])
+        ramp_up_duration = inputs.get('ramp_up_duration', 6)  # ماه
+        productivity_loss = inputs.get('productivity_loss', 30) / 100
+        turnover_rate = inputs.get('turnover_rate', 8) / 100
+        quality_multiplier = inputs.get('quality_multiplier', 0.87)
+        
+        # گام ۱: هزینه جذب کل
+        recruit_total = 0
+        train_total = 0
+        salary_total = 0
+        team_details = []
+        
+        for member in team_members:
+            headcount = member.get('headcount', 0)
+            recruit_cost = member.get('recruit_cost', 0)
+            train_cost = member.get('train_cost', 0)
+            salary = member.get('salary', 0)
+            
+            recruit_total += headcount * recruit_cost
+            train_total += headcount * train_cost
+            salary_total += headcount * salary
+            
+            team_details.append({
+                'role': member.get('role', ''),
+                'headcount': headcount,
+                'recruit_cost': recruit_cost,
+                'train_cost': train_cost,
+                'salary': salary,
+                'recruit_total': headcount * recruit_cost,
+                'train_total': headcount * train_cost,
+                'salary_total': headcount * salary
+            })
+        
+        # گام ۲: هزینه آموزش کل (همان train_total)
+        
+        # گام ۳: هزینه کاهش بهره‌وری
+        productivity_loss_cost = salary_total * (ramp_up_duration / 12) * productivity_loss
+        
+        # گام ۴: هزینه جابجایی (اختیاری)
+        turnover_cost = (recruit_total + train_total) * turnover_rate
+        
+        # گام ۵: جمع هزینه کل بازسازی
+        total_replacement_cost = recruit_total + train_total + productivity_loss_cost + turnover_cost
+        
+        # گام ۶: اعمال ضریب کیفیت
+        final_value = total_replacement_cost * quality_multiplier
+        
+        # Waterfall
+        waterfall = []
+        cumulative = 0
+        
+        cumulative += recruit_total
+        waterfall.append({
+            'step': 1,
+            'title': 'هزینه جذب کل',
+            'amount': round(recruit_total),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative += train_total
+        waterfall.append({
+            'step': 2,
+            'title': 'هزینه آموزش کل',
+            'amount': round(train_total),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative += productivity_loss_cost
+        waterfall.append({
+            'step': 3,
+            'title': f'کاهش بهره‌وری ({ramp_up_duration} ماه)',
+            'amount': round(productivity_loss_cost),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative += turnover_cost
+        waterfall.append({
+            'step': 4,
+            'title': f'هزینه جابجایی ({turnover_rate * 100:.0f}%)',
+            'amount': round(turnover_cost),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative = total_replacement_cost
+        waterfall.append({
+            'step': 5,
+            'title': 'هزینه کل بازسازی',
+            'amount': round(total_replacement_cost),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        cumulative = final_value
+        waterfall.append({
+            'step': 6,
+            'title': f'× ضریب کیفیت ({quality_multiplier:.2f})',
+            'amount': round(final_value - total_replacement_cost),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        
+        waterfall.append({
+            'step': 7,
+            'title': 'ارزش نهایی',
+            'amount': 0,
+            'cumulative': round(cumulative),
+            'is_final': True,
+            'type': 'final'
+        })
+        
+        return {
+            'final_value': round(final_value),
+            'confidence_level': 0.82,
+            'qc_score': 82,
+            'details': {
+                'waterfall': waterfall,
+                'team_details': team_details,
+                'summary': {
+                    'recruit_total': round(recruit_total),
+                    'train_total': round(train_total),
+                    'productivity_loss_cost': round(productivity_loss_cost),
+                    'turnover_cost': round(turnover_cost),
+                    'total_replacement_cost': round(total_replacement_cost),
+                    'quality_multiplier': quality_multiplier,
+                    'ramp_up_duration': ramp_up_duration,
+                    'productivity_loss': productivity_loss,
+                    'turnover_rate': turnover_rate,
+                    'final_value': round(final_value),
+                }
+            }
+        }
+    # ============================================
+    # M-08: CTM (Comparable Transactions Method)
+    # ============================================
+    def calculate_m08(self, inputs):
+        print('🔥 calculate_m08 called!')
+        # TODO: پیاده‌سازی کامل M-08
+        return {
+            'final_value': 0,
+            'confidence_level': 0.80,
+            'qc_score': 80,
+            'details': {
+                'summary': {
+                    'message': 'M-08 در حال پیاده‌سازی است'
+                }
+            }
+        }
+
+    # ============================================
+    # M-09: MMM (Market Multiples Method)
+    # ============================================
+    def calculate_m09(self, inputs):
+        print('🔥 calculate_m09 called!')
+        
+        base_metric = inputs.get('base_metric', 'revenue')
+        base_metric_value = inputs.get('base_metric_value', 100000000000)
+        market_multiple = inputs.get('market_multiple', 2.5)
+        control_premium_percent = inputs.get('control_premium_percent', 10) / 100
+        marketability_discount_percent = inputs.get('marketability_discount_percent', 20) / 100
+        intangible_share_percent = inputs.get('intangible_share_percent', 40) / 100
+        quality_multiplier = inputs.get('quality_multiplier', 0.86)
+        
+        enterprise_value = base_metric_value * market_multiple
+        control_premium_amount = enterprise_value * control_premium_percent
+        enterprise_value_after_premium = enterprise_value + control_premium_amount
+        marketability_discount_amount = enterprise_value_after_premium * marketability_discount_percent
+        enterprise_value_after_discount = enterprise_value_after_premium - marketability_discount_amount
+        intangible_value_before_quality = enterprise_value_after_discount * intangible_share_percent
+        final_value = intangible_value_before_quality * quality_multiplier
+        
+        waterfall = []
+        cumulative = 0
+        cumulative += enterprise_value
+        waterfall.append({
+            'step': 1,
+            'title': 'ارزش شرکت (EV)',
+            'amount': round(enterprise_value),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative += control_premium_amount
+        waterfall.append({
+            'step': 2,
+            'title': f'+ صرف کنترل ({int(control_premium_percent * 100)}%)',
+            'amount': round(control_premium_amount),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative -= marketability_discount_amount
+        waterfall.append({
+            'step': 3,
+            'title': f'- تخفیف بازارپذیری ({int(marketability_discount_percent * 100)}%)',
+            'amount': -round(marketability_discount_amount),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'decrease'
+        })
+        cumulative = enterprise_value_after_discount
+        waterfall.append({
+            'step': 4,
+            'title': f'× سهم دارایی نامشهود ({int(intangible_share_percent * 100)}%)',
+            'amount': round(intangible_value_before_quality - enterprise_value_after_discount),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = intangible_value_before_quality
+        waterfall.append({
+            'step': 5,
+            'title': f'× ضریب کیفیت ({quality_multiplier:.2f})',
+            'amount': round(final_value - intangible_value_before_quality),
+            'cumulative': round(cumulative),
+            'is_final': False,
+            'type': 'increase'
+        })
+        cumulative = final_value
+        waterfall.append({
+            'step': 6,
+            'title': 'ارزش نهایی',
+            'amount': 0,
+            'cumulative': round(cumulative),
+            'is_final': True,
+            'type': 'final'
+        })
+        
+        return {
+            'final_value': round(final_value),
+            'confidence_level': 0.82,
+            'qc_score': 82,
+            'details': {
+                'waterfall': waterfall,
+                'summary': {
+                    'base_metric': base_metric,
+                    'base_metric_value': base_metric_value,
+                    'market_multiple': market_multiple,
+                    'control_premium_percent': control_premium_percent,
+                    'marketability_discount_percent': marketability_discount_percent,
+                    'intangible_share_percent': intangible_share_percent,
+                    'quality_multiplier': quality_multiplier,
+                    'enterprise_value': round(enterprise_value),
+                    'enterprise_value_after_premium': round(enterprise_value_after_premium),
+                    'enterprise_value_after_discount': round(enterprise_value_after_discount),
+                    'intangible_value_before_quality': round(intangible_value_before_quality),
+                    'final_value': round(final_value),
                 }
             }
         }

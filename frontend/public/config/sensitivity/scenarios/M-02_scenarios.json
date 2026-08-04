@@ -1,0 +1,41 @@
+{
+  "method_id": "M-02",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "ebit_margin": { "type": "relative", "value": -0.25 },
+        "attrition_rate": { "type": "relative", "value": 0.50 },
+        "discount_rate": { "type": "relative", "value": 0.10 }
+      },
+      "description_fa": "کاهش حاشیه سود و افزایش ریزش مشتری",
+      "description_en": "Decrease EBIT margin and increase customer attrition"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "ebit_margin": { "type": "relative", "value": 0.25 },
+        "attrition_rate": { "type": "relative", "value": -0.50 },
+        "discount_rate": { "type": "relative", "value": -0.10 }
+      },
+      "description_fa": "افزایش حاشیه سود و کاهش ریزش مشتری",
+      "description_en": "Increase EBIT margin and decrease customer attrition"
+    }
+  }
+}

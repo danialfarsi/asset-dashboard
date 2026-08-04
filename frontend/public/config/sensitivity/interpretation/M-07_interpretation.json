@@ -1,0 +1,41 @@
+{
+  "method_id": "M-07",
+  "method_name": "Trained Workforce Cost (TWC)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_headcount",
+      "condition": "top_driver == 'headcount'",
+      "summary_fa": "تعداد نیرو حساسترین متغیر است. افزایش {change_percent}% در تعداد نیرو ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Headcount is the most sensitive driver. A {change_percent}% increase in headcount increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق نیازهای نیروی انسانی",
+        "تحلیل بهینه‌سازی ساختار نیرو",
+        "برنامه‌ریزی برای جذب و نگهداشت نیرو"
+      ],
+      "recommendations_en": [
+        "Review workforce needs in detail",
+        "Analyze workforce structure optimization",
+        "Plan for recruitment and retention"
+      ]
+    },
+    {
+      "id": "top_driver_productivity",
+      "condition": "top_driver == 'productivity_loss'",
+      "summary_fa": "کاهش بهره‌وری در شتاب‌دهی حساسترین متغیر است. کاهش {change_percent}% در کاهش بهره‌وری ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Productivity loss during ramp-up is the most sensitive driver. A {change_percent}% decrease in productivity loss increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق برنامه‌های شتاب‌دهی",
+        "تحلیل روش‌های کاهش کاهش بهره‌وری",
+        "برنامه‌ریزی برای بهبود بهره‌وری"
+      ],
+      "recommendations_en": [
+        "Review ramp-up plans in detail",
+        "Analyze productivity loss reduction methods",
+        "Plan for productivity improvement"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

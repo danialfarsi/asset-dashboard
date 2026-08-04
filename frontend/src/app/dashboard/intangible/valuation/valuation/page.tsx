@@ -256,87 +256,95 @@ export default function ValuationPage() {
     );
   }
 
-const renderStep = () => {
-  switch (currentStep) {
-    case 1:
-      return (
-        <Step1_SelectAsset
-          assets={assets}
-          selectedAsset={selectedAsset}
-          selectedMethod={selectedMethod}
-          onAssetSelect={handleAssetSelect}
-          onMethodSelect={setSelectedMethod}
-          onNext={nextStep}
-          methods={VALUATION_METHODS}
-        />
-      );
-    case 2:
-      return (
-        <Step2_InputData
-          formData={formData}
-          onInputChange={handleInputChange}
-          onNext={nextStep}
-          onPrev={prevStep}
-          selectedAsset={selectedAsset}
-          valuationData={valuationData}
-          assetId={selectedAsset?.id}
-          valuationMethod={selectedMethod}
-          valuationCaseId={valuationCaseId}
-        />
-      );
-    case 3:
-      return (
-        <Step3_Parameters
-          assetId={selectedAsset?.id}
-          valuationCaseId={valuationCaseId}
-          onNext={nextStep}
-          onPrev={prevStep}
-          methodId={selectedAsset?.valuation_method || selectedMethod || 'M-03'}
-        />
-      );
-    case 4:
-      return (
-        <Step4_Calculation
-          valuationCaseId={valuationCaseId}
-          methodId={selectedAsset?.valuation_method || selectedMethod || 'M-03'}
-          assetId={selectedAsset?.id}
-          onNext={nextStep}
-          onPrev={prevStep}
-        />
-      );
-    case 5:
-      return (
-        <Step5_QualityControl
-          onNext={nextStep}
-          onPrev={prevStep}
-          assetId={selectedAsset?.id}
-          valuationCaseId={valuationCaseId}
-          methodId={selectedAsset?.valuation_method || selectedMethod || 'M-03'}
-          onSave={(data) => {
-            console.log('💾 ذخیره QC:', data);
-          }}
-        />
-      );
-    case 6:
-      return (
-        <Step6_Sensitivity
-          onNext={nextStep}
-          onPrev={prevStep}
-        />
-      );
-    case 7:
-      return (
-        <Step7_Report
-          onPrev={prevStep}
-          selectedMethod={selectedMethod}
-          methods={VALUATION_METHODS}
-          formData={formData}
-        />
-      );
-    default:
-      return null;
-  }
-};
+  const renderStep = () => {
+    // متد جاری رو بگیریم (از دارایی یا انتخاب شده)
+    const currentMethodId = selectedAsset?.valuation_method || selectedMethod || 'M-03';
+    
+    switch (currentStep) {
+      case 1:
+        return (
+          <Step1_SelectAsset
+            assets={assets}
+            selectedAsset={selectedAsset}
+            selectedMethod={selectedMethod}
+            onAssetSelect={handleAssetSelect}
+            onMethodSelect={setSelectedMethod}
+            onNext={nextStep}
+            methods={VALUATION_METHODS}
+          />
+        );
+      case 2:
+        return (
+          <Step2_InputData
+            formData={formData}
+            onInputChange={handleInputChange}
+            onNext={nextStep}
+            onPrev={prevStep}
+            selectedAsset={selectedAsset}
+            valuationData={valuationData}
+            assetId={selectedAsset?.id}
+            valuationMethod={selectedMethod}
+            valuationCaseId={valuationCaseId}
+          />
+        );
+      case 3:
+        return (
+          <Step3_Parameters
+            assetId={selectedAsset?.id}
+            valuationCaseId={valuationCaseId}
+            onNext={nextStep}
+            onPrev={prevStep}
+            methodId={currentMethodId}
+          />
+        );
+      case 4:
+        return (
+          <Step4_Calculation
+            valuationCaseId={valuationCaseId}
+            methodId={currentMethodId}
+            assetId={selectedAsset?.id}
+            onNext={nextStep}
+            onPrev={prevStep}
+          />
+        );
+      case 5:
+        return (
+          <Step5_QualityControl
+            onNext={nextStep}
+            onPrev={prevStep}
+            assetId={selectedAsset?.id}
+            valuationCaseId={valuationCaseId}
+            methodId={currentMethodId}
+            onSave={(data) => {
+              console.log('💾 ذخیره QC:', data);
+            }}
+          />
+        );
+      case 6:
+        return (
+          <Step6_Sensitivity
+            valuationCaseId={valuationCaseId}
+            methodId={currentMethodId}
+            onNext={nextStep}
+            onComplete={(data) => {
+              console.log('✅ STEP 6 کامل شد:', data);
+            }}
+          />
+        );
+      case 7:
+        return (
+          <Step7_Report
+            onPrev={prevStep}
+            selectedMethod={selectedMethod}
+            methods={VALUATION_METHODS}
+            formData={formData}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center justify-between">

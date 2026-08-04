@@ -1,0 +1,33 @@
+{
+  "version": "2.4",
+  "formula": {
+    "type": "weighted_avg",
+    "weighting": {
+      "impact_weight": 1.5,
+      "qc_score_weight": 0.3,
+      "method_base_weight": 0.2
+    }
+  },
+  "defaults": {
+    "min_confidence": 80,
+    "max_confidence": 95,
+    "warning_threshold": 80,
+    "committee_threshold": 75
+  },
+  "method_adjustments": {
+    "M-01": { "base_confidence": 87 },
+    "M-02": { "base_confidence": 89 },
+    "M-03": { "base_confidence": 85 },
+    "M-04": { "base_confidence": 82 },
+    "M-05": { "base_confidence": 91 },
+    "M-06": { "base_confidence": 90 },
+    "M-07": { "base_confidence": 88 },
+    "M-08": { "base_confidence": 83 },
+    "M-09": { "base_confidence": 86 }
+  },
+  "confidence_levels": {
+    "high": { "min": 85, "label_fa": "بالا", "label_en": "High", "color": "#22C55E" },
+    "medium": { "min": 70, "label_fa": "متوسط", "label_en": "Medium", "color": "#EAB308" },
+    "low": { "min": 0, "label_fa": "پایین", "label_en": "Low", "color": "#EF4444" }
+  }
+}

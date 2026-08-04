@@ -1,0 +1,47 @@
+{
+  "version": "2.4",
+  "rules": [
+    {
+      "id": "S6-01",
+      "field": "qc_status",
+      "type": "equals",
+      "value": "APPROVED",
+      "severity": "hard",
+      "message_fa": "وضعیت QC باید تأیید شده باشد",
+      "message_en": "QC status must be APPROVED"
+    },
+    {
+      "id": "S6-02",
+      "field": "drivers",
+      "type": "min_count",
+      "min": 3,
+      "severity": "hard",
+      "message_fa": "حداقل ۳ متغیر کلیدی باید انتخاب شوند",
+      "message_en": "At least 3 key drivers must be selected"
+    },
+    {
+      "id": "S6-03",
+      "field": "drivers",
+      "type": "valid_ranges",
+      "severity": "hard",
+      "message_fa": "بازه متغیرها نامعتبر است",
+      "message_en": "Driver ranges are invalid"
+    },
+    {
+      "id": "S6-04",
+      "field": "scenarios",
+      "type": "not_null",
+      "severity": "hard",
+      "message_fa": "سناریوها باید تولید شوند",
+      "message_en": "Scenarios must be generated"
+    },
+    {
+      "id": "S6-05",
+      "field": "confidence_band",
+      "type": "not_null",
+      "severity": "hard",
+      "message_fa": "بازه اطمینان باید محاسبه شود",
+      "message_en": "Confidence band must be calculated"
+    }
+  ]
+}

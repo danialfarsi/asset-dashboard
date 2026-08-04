@@ -1,0 +1,73 @@
+{
+  "method_id": "M-09",
+  "method_name": "Market Multiples Method (MMM)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_multiple",
+      "condition": "top_driver == 'market_multiple'",
+      "summary_fa": "ضریب بازار حساسترین متغیر است. افزایش {change_percent}% در ضریب بازار ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Market multiple is the most sensitive driver. A {change_percent}% increase in market multiple increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق ضریب بازار مرجع",
+        "تحلیل روند ضریب در صنعت",
+        "تطبیق ضریب با شرایط بازار"
+      ],
+      "recommendations_en": [
+        "Review reference market multiple in detail",
+        "Analyze multiple trends in industry",
+        "Align multiple with market conditions"
+      ]
+    },
+    {
+      "id": "top_driver_share",
+      "condition": "top_driver == 'intangible_share'",
+      "summary_fa": "سهم دارایی نامشهود حساسترین متغیر است. افزایش {change_percent}% در سهم دارایی ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Intangible share is the most sensitive driver. A {change_percent}% increase in intangible share increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق سهم دارایی نامشهود",
+        "تحلیل تخصیص ارزش به دارایی‌ها",
+        "بهینه‌سازی سهم دارایی"
+      ],
+      "recommendations_en": [
+        "Review intangible share in detail",
+        "Analyze value allocation to assets",
+        "Optimize asset share"
+      ]
+    },
+    {
+      "id": "top_driver_premium",
+      "condition": "top_driver == 'control_premium'",
+      "summary_fa": "صرف کنترل حساسترین متغیر است. افزایش {change_percent}% در صرف کنترل ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Control premium is the most sensitive driver. A {change_percent}% increase in control premium increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق صرف کنترل در صنعت",
+        "تحلیل معاملات مشابه",
+        "تطبیق صرف کنترل با شرایط"
+      ],
+      "recommendations_en": [
+        "Review control premium in industry",
+        "Analyze comparable transactions",
+        "Align control premium with conditions"
+      ]
+    },
+    {
+      "id": "top_driver_discount",
+      "condition": "top_driver == 'marketability_discount'",
+      "summary_fa": "تخفیف بازارپذیری حساسترین متغیر است. کاهش {change_percent}% در تخفیف بازارپذیری ارزش را حدود {impact_percent}% افزایش می‌دهد.",
+      "summary_en": "Marketability discount is the most sensitive driver. A {change_percent}% decrease in discount increases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق تخفیف بازارپذیری",
+        "تحلیل نقدشوندگی دارایی",
+        "بهینه‌سازی تخفیف"
+      ],
+      "recommendations_en": [
+        "Review marketability discount in detail",
+        "Analyze asset liquidity",
+        "Optimize discount"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

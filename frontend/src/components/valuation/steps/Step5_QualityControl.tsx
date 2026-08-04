@@ -93,18 +93,15 @@ export function Step5_QualityControl({
   const [loaded, setLoaded] = useState(false);
   const loadingRef = useRef(false);
   
-  // 🔥 state برای شواهد آپلود شده
+  // state برای شواهد آپلود شده
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
   const [hasEvidence, setHasEvidence] = useState(false);
 
-  // ============================================
-  // 🔥 بررسی شواهد آپلود شده
-  // ============================================
+  // بررسی شواهد آپلود شده
   const checkUploadedEvidence = async () => {
     if (!valuationCaseId) return;
     
     try {
-      // دریافت STEP 3 برای بررسی فایل‌های آپلود شده
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
@@ -112,7 +109,6 @@ export function Step5_QualityControl({
         const step3 = items[0];
         const inputs = step3.method_inputs || {};
         
-        // لیست فیلدهای فایل بر اساس روش
         const fileFields: Record<string, string[]> = {
           'M-01': ['benchmark_report', 'revenue_file', 'asset_description', 'licensable_evidence'],
           'M-04': ['with_scenario_doc', 'without_scenario_doc', 'differential_justification'],
@@ -131,23 +127,18 @@ export function Step5_QualityControl({
         
         setUploadedFiles(uploaded);
         setHasEvidence(uploaded.length > 0);
-        
-        console.log(`📎 شواهد آپلود شده: ${uploaded.length} مورد`);
       }
     } catch (error) {
       console.error('Error checking evidence:', error);
     }
   };
 
-  // ============================================
   // قوانین QC بر اساس روش (داینامیک)
-  // ============================================
   const getQCRules = (method: string, hasEvidence: boolean): QCRule[] => {
     const commonRules: QCRule[] = [
       { id: 'S5-01', name: 'Asset Profile کامل باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'اطلاعات پایه دارایی تکمیل شده است' },
       { id: 'S5-02', name: 'Quality Scores ثبت شده باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'امتیازات کیفی وارد شده است' },
       { id: 'S5-03', name: 'Base Inputs کامل باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'ورودی‌های پایه تکمیل شده است' },
-      // 🔥 این قانون داینامیک شده: اگر شاهد آپلود شده باشد => PASS، در غیر این صورت => WARN
       { 
         id: 'S5-04', 
         name: 'حداقل شواهد مورد نیاز آپلود شده باشد', 
@@ -180,9 +171,7 @@ export function Step5_QualityControl({
     return [...commonRules, ...specific];
   };
 
-  // ============================================
   // بارگذاری داده‌ها
-  // ============================================
   useEffect(() => {
     if (loaded || loadingRef.current) return;
     loadingRef.current = true;
@@ -222,10 +211,8 @@ export function Step5_QualityControl({
 
         setActualMethodId(method);
         
-        // 🔥 بررسی شواهد آپلود شده
         await checkUploadedEvidence();
         
-        // 🔥 تولید قوانین با وضعیت داینامیک
         const rules = getQCRules(method, hasEvidence);
         setQcRules(rules);
         
@@ -256,13 +243,10 @@ export function Step5_QualityControl({
     loadData();
   }, [assetId, valuationCaseId, propMethodId]);
 
-  // ============================================
   // اجرای QC Checks
-  // ============================================
   const runQCChecks = async () => {
     setIsRunning(true);
     
-    // 🔥 دوباره شواهد رو چک کن
     await checkUploadedEvidence();
     
     setTimeout(() => {
@@ -298,6 +282,15 @@ export function Step5_QualityControl({
       console.error('Error saving QC data:', error);
       setSaving(false);
     }
+  };
+
+  // 🔥 تابع جدید برای ادامه با هشدار
+  const handleProceedWithWarnings = () => {
+    if (summary.errors > 0) {
+      alert('خطاهای کیو سی باید قبل از ادامه رفع شوند');
+      return;
+    }
+    onNext();
   };
 
   const getStatusBadge = (status: string) => {
@@ -347,7 +340,8 @@ export function Step5_QualityControl({
     );
   }
 
-  const canProceed = summary.errors === 0 && summary.completeness_score >= 80;
+  const canProceed = summary.errors === 0;
+  const hasWarnings = summary.warnings > 0;
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -581,7 +575,7 @@ export function Step5_QualityControl({
           
           <Button
             className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 font-[family-name:var(--font-vazir)]"
-            onClick={onNext}
+            onClick={handleProceedWithWarnings}
             disabled={!canProceed}
           >
             ادامه به مرحله ۶
@@ -590,11 +584,30 @@ export function Step5_QualityControl({
         </div>
       </div>
 
-      {!canProceed && summary.errors > 0 && (
-        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">❌ خطاهای کیو سی باید قبل از ادامه رفع شوند</p>
+      {/* پیام‌های وضعیت */}
+      {summary.errors > 0 && (
+        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
+          ❌ {toPersianNumber(summary.errors)} خطای کیو سی باید قبل از ادامه رفع شوند
+        </p>
       )}
-      {!canProceed && summary.completeness_score < 80 && (
-        <p className="text-sm text-yellow-500 text-center font-[family-name:var(--font-vazir)]">⚠️ امتیاز کیو سی کمتر از ۸۰٪ است. لطفاً موارد هشدار را بررسی کنید</p>
+      {summary.errors === 0 && hasWarnings && (
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-sm text-yellow-600 text-center font-[family-name:var(--font-vazir)]">
+            ⚠️ {toPersianNumber(summary.warnings)} هشدار وجود دارد. در صورت تایید، می‌توانید ادامه دهید.
+          </p>
+          <Button
+            variant="outline"
+            className="border-yellow-400 text-yellow-700 hover:bg-yellow-50 font-[family-name:var(--font-vazir)]"
+            onClick={onNext}
+          >
+            ادامه با وجود هشدارها
+          </Button>
+        </div>
+      )}
+      {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && (
+        <p className="text-sm text-green-500 text-center font-[family-name:var(--font-vazir)]">
+          ✅ همه قوانین با موفقیت پاس شده‌اند!
+        </p>
       )}
     </div>
   );

@@ -1,0 +1,57 @@
+{
+  "method_id": "M-05",
+  "method_name": "Replacement Cost Method (RCM)",
+  "version": "2.4",
+  "templates": [
+    {
+      "id": "top_driver_labor",
+      "condition": "top_driver == 'labor_cost'",
+      "summary_fa": "هزینه نیروی کار حساسترین متغیر است. کاهش {change_percent}% در هزینه نیروی کار ارزش را حدود {impact_percent}% کاهش می‌دهد.",
+      "summary_en": "Labor cost is the most sensitive driver. A {change_percent}% decrease in labor cost decreases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق ساختار هزینه نیروی کار",
+        "تحلیل بهینه‌سازی نیروی کار",
+        "برنامه‌ریزی برای کاهش هزینه‌ها"
+      ],
+      "recommendations_en": [
+        "Review labor cost structure in detail",
+        "Analyze workforce optimization",
+        "Plan for cost reduction"
+      ]
+    },
+    {
+      "id": "top_driver_material",
+      "condition": "top_driver == 'material_cost'",
+      "summary_fa": "هزینه مواد حساسترین متغیر است. کاهش {change_percent}% در هزینه مواد ارزش را حدود {impact_percent}% کاهش می‌دهد.",
+      "summary_en": "Material cost is the most sensitive driver. A {change_percent}% decrease in material cost decreases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق زنجیره تأمین مواد",
+        "تحلیل تأمین‌کنندگان جایگزین",
+        "برنامه‌ریزی برای کاهش هزینه مواد"
+      ],
+      "recommendations_en": [
+        "Review material supply chain in detail",
+        "Analyze alternative suppliers",
+        "Plan for material cost reduction"
+      ]
+    },
+    {
+      "id": "top_driver_overhead",
+      "condition": "top_driver == 'overhead_pct'",
+      "summary_fa": "درصد سربار حساسترین متغیر است. کاهش {change_percent}% در سربار ارزش را حدود {impact_percent}% کاهش می‌دهد.",
+      "summary_en": "Overhead percentage is the most sensitive driver. A {change_percent}% decrease in overhead decreases value by approximately {impact_percent}%.",
+      "recommendations_fa": [
+        "بررسی دقیق ساختار هزینه‌های سربار",
+        "تحلیل بهینه‌سازی سربار",
+        "برنامه‌ریزی برای کاهش هزینه‌های سربار"
+      ],
+      "recommendations_en": [
+        "Review overhead cost structure in detail",
+        "Analyze overhead optimization",
+        "Plan for overhead cost reduction"
+      ]
+    }
+  ],
+  "default_summary_fa": "بر اساس تحلیل حساسیت، متغیر {top_driver} با تأثیر {impact_percent}% بیشترین تأثیر را بر ارزش دارد. بازه اطمینان: {low} تا {high} IRR با سطح اطمینان {confidence}%.",
+  "default_summary_en": "Based on sensitivity analysis, {top_driver} has the highest impact on value at {impact_percent}%. Confidence range: {low} to {high} IRR with {confidence}% confidence."
+}

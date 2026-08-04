@@ -1,0 +1,43 @@
+{
+  "method_id": "M-07",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "headcount": { "type": "relative", "value": -0.20 },
+        "recruit_cost": { "type": "relative", "value": 0.25 },
+        "productivity_loss": { "type": "relative", "value": 0.50 },
+        "turnover_rate": { "type": "relative", "value": 0.50 }
+      },
+      "description_fa": "کاهش نیرو، افزایش هزینه‌ها و کاهش بهره‌وری",
+      "description_en": "Decrease headcount, increase costs, higher productivity loss"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "headcount": { "type": "relative", "value": 0.20 },
+        "recruit_cost": { "type": "relative", "value": -0.10 },
+        "productivity_loss": { "type": "relative", "value": -0.30 },
+        "turnover_rate": { "type": "relative", "value": -0.50 }
+      },
+      "description_fa": "افزایش نیرو، کاهش هزینه‌ها و بهبود بهره‌وری",
+      "description_en": "Increase headcount, decrease costs, better productivity"
+    }
+  }
+}

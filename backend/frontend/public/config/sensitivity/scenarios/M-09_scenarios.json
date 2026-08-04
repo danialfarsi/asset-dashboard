@@ -1,0 +1,45 @@
+{
+  "method_id": "M-09",
+  "version": "2.4",
+  "scenarios": {
+    "pessimistic": {
+      "id": "pessimistic",
+      "label_fa": "بدبینانه",
+      "label_en": "Pessimistic",
+      "color": "#EF4444",
+      "driver_changes": {
+        "market_multiple": { "type": "relative", "value": -0.20 },
+        "base_metric_value": { "type": "relative", "value": -0.10 },
+        "control_premium": { "type": "relative", "value": -0.50 },
+        "marketability_discount": { "type": "relative", "value": 0.50 },
+        "intangible_share": { "type": "relative", "value": -0.25 }
+      },
+      "description_fa": "کاهش ضریب و سهم دارایی، افزایش تخفیف",
+      "description_en": "Decrease multiple and share, increase discount"
+    },
+    "base": {
+      "id": "base",
+      "label_fa": "مبنا",
+      "label_en": "Base",
+      "color": "#3B82F6",
+      "driver_changes": {},
+      "description_fa": "مقادیر پایه",
+      "description_en": "Base values"
+    },
+    "optimistic": {
+      "id": "optimistic",
+      "label_fa": "خوش‌بینانه",
+      "label_en": "Optimistic",
+      "color": "#22C55E",
+      "driver_changes": {
+        "market_multiple": { "type": "relative", "value": 0.40 },
+        "base_metric_value": { "type": "relative", "value": 0.10 },
+        "control_premium": { "type": "relative", "value": 0.50 },
+        "marketability_discount": { "type": "relative", "value": -0.50 },
+        "intangible_share": { "type": "relative", "value": 0.25 }
+      },
+      "description_fa": "افزایش ضریب و سهم دارایی، کاهش تخفیف",
+      "description_en": "Increase multiple and share, decrease discount"
+    }
+  }
+}

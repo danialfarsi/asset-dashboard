@@ -1,0 +1,64 @@
+{
+  "method_id": "M-03",
+  "method_name": "DCF (Discounted Cash Flow)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "discount_rate",
+      "name": "Discount Rate (WACC)",
+      "name_fa": "نرخ تنزیل",
+      "base": 0.18,
+      "low": 0.16,
+      "high": 0.20,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "terminal_growth",
+      "name": "Terminal Growth Rate",
+      "name_fa": "نرخ رشد پایانی",
+      "base": 0.05,
+      "low": 0.03,
+      "high": 0.07,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "fcf_cagr",
+      "name": "FCF CAGR",
+      "name_fa": "نرخ رشد مرکب FCF",
+      "base": 0.10,
+      "low": 0.08,
+      "high": 0.12,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "intangible_share",
+      "name": "Intangible Share",
+      "name_fa": "سهم دارایی نامشهود",
+      "base": 0.70,
+      "low": 0.60,
+      "high": 0.80,
+      "step": 0.05,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20
+  }
+}

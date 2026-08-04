@@ -1,0 +1,84 @@
+{
+  "method_id": "M-07",
+  "method_name": "TWC (Trained Workforce Cost)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "headcount",
+      "name": "Headcount",
+      "name_fa": "تعداد نیرو",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "recruit_cost",
+      "name": "Recruitment Cost",
+      "name_fa": "هزینه جذب",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "train_cost",
+      "name": "Training Cost",
+      "name_fa": "هزینه آموزش",
+      "base": 100,
+      "low": 80,
+      "high": 120,
+      "step": 5,
+      "unit": "percent",
+      "decimal_places": 0,
+      "is_editable": true,
+      "enabled": true,
+      "is_relative": true
+    },
+    {
+      "id": "productivity_loss",
+      "name": "Ramp-up Productivity Loss",
+      "name_fa": "کاهش بهره‌وری در شتاب‌دهی",
+      "base": 0.30,
+      "low": 0.20,
+      "high": 0.50,
+      "step": 0.05,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "turnover_rate",
+      "name": "Turnover Rate",
+      "name_fa": "نرخ جابجایی",
+      "base": 0.10,
+      "low": 0.05,
+      "high": 0.20,
+      "step": 0.02,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20,
+    "two_way_default_pairs": [
+      ["headcount", "recruit_cost"],
+      ["productivity_loss", "turnover_rate"]
+    ]
+  }
+}

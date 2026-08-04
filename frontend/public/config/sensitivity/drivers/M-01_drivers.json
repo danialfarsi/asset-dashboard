@@ -1,0 +1,82 @@
+{
+  "method_id": "M-01",
+  "method_name": "Relief-from-Royalty (RfR)",
+  "version": "2.4",
+  "drivers": [
+    {
+      "id": "royalty_rate",
+      "name": "Royalty Rate",
+      "name_fa": "نرخ حق‌الامتیاز",
+      "base": 0.04,
+      "low": 0.03,
+      "high": 0.055,
+      "step": 0.005,
+      "unit": "percent",
+      "decimal_places": 3,
+      "is_editable": true,
+      "enabled": true,
+      "validation": {
+        "type": "range",
+        "min": 0.01,
+        "max": 0.10,
+        "severity": "warning",
+        "message_fa": "نرخ حق‌الامتیاز خارج از بازه مرجع صنعت است"
+      }
+    },
+    {
+      "id": "discount_rate",
+      "name": "Discount Rate (WACC)",
+      "name_fa": "نرخ تنزیل",
+      "base": 0.18,
+      "low": 0.16,
+      "high": 0.20,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true,
+      "validation": {
+        "type": "range",
+        "min": 0.10,
+        "max": 0.30,
+        "severity": "hard",
+        "message_fa": "نرخ تنزیل باید بین ۱۰٪ تا ۳۰٪ باشد"
+      }
+    },
+    {
+      "id": "terminal_growth",
+      "name": "Terminal Growth Rate",
+      "name_fa": "نرخ رشد پایانی",
+      "base": 0.05,
+      "low": 0.03,
+      "high": 0.07,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    },
+    {
+      "id": "revenue_growth",
+      "name": "Revenue Growth Rate",
+      "name_fa": "نرخ رشد درآمد",
+      "base": 0.08,
+      "low": 0.06,
+      "high": 0.10,
+      "step": 0.01,
+      "unit": "percent",
+      "decimal_places": 2,
+      "is_editable": true,
+      "enabled": true
+    }
+  ],
+  "analysis_config": {
+    "default_steps": 10,
+    "min_steps": 5,
+    "max_steps": 20,
+    "two_way_default_pairs": [
+      ["royalty_rate", "discount_rate"],
+      ["royalty_rate", "terminal_growth"]
+    ]
+  }
+}
