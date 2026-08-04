@@ -3,6 +3,36 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+// 🔥 تبدیل اعداد به فارسی
+const toPersianNumber = (num: number) => {
+  if (!num && num !== 0) return '۰';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const str = String(Math.round(num));
+  return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+// 🔥 فرمت اعداد با واحد فارسی
+const formatValue = (val: number) => {
+  if (!val || val === 0) return '۰';
+  const isNegative = val < 0;
+  const absVal = Math.abs(val);
+  let formatted: string;
+  if (absVal >= 1e12) formatted = (absVal / 1e12).toFixed(1) + 'B';
+  else if (absVal >= 1e9) formatted = (absVal / 1e9).toFixed(1) + 'B';
+  else if (absVal >= 1e6) formatted = (absVal / 1e6).toFixed(1) + 'M';
+  else if (absVal >= 1e3) formatted = (absVal / 1e3).toFixed(1) + 'K';
+  else formatted = absVal.toFixed(0);
+  const result = isNegative ? `-${formatted}` : formatted;
+  return result.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)]);
+};
+
+// 🔥 نمایش درصد با اعداد فارسی
+const displayPercent = (value: number) => {
+  if (value === undefined || value === null) return '۰%';
+  const num = value > 1 ? value : value * 100;
+  return toPersianNumber(num) + '%';
+};
+
 interface MatrixTableProps {
   drivers: any[];
   baseValue: number;
@@ -19,7 +49,6 @@ export function MatrixTable({ drivers, baseValue, methodId }: MatrixTableProps) 
     return values;
   };
 
-  // انتخاب دو متغیر مناسب بر اساس روش
   const getMatrixDrivers = (driverList: any[], method: string) => {
     if (!driverList || driverList.length < 2) return null;
 
@@ -111,17 +140,10 @@ export function MatrixTable({ drivers, baseValue, methodId }: MatrixTableProps) 
     );
   }
 
-  const formatValue = (val: number) => {
-    if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B';
-    if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M';
-    if (val >= 1e3) return (val / 1e3).toFixed(1) + 'K';
-    return val.toFixed(0);
-  };
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+        <CardTitle className="text-sm font-medium text-muted-foreground" style={{ fontFamily: 'var(--font-vazir)' }}>
           ماتریس حساسیت ({matrix.xLabel} vs {matrix.yLabel})
         </CardTitle>
       </CardHeader>
@@ -132,18 +154,18 @@ export function MatrixTable({ drivers, baseValue, methodId }: MatrixTableProps) 
               <tr>
                 <th className="p-2 border bg-gray-50 w-16"></th>
                 {matrix.xValues.map((x: number, idx: number) => (
-                  <th key={idx} className="p-2 border text-center font-medium bg-gray-50 min-w-[70px]">
-                    {(x * 100).toFixed(1)}%
+                  <th key={idx} className="p-2 border text-center font-medium bg-gray-50 min-w-[70px]" style={{ fontFamily: 'var(--font-vazir)' }}>
+                    {displayPercent(x)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {matrix.data.map((row: number[], i: number) => {
-                const yLabel = (matrix.yValues[i] * 100).toFixed(1) + '%';
+                const yLabel = displayPercent(matrix.yValues[i]);
                 return (
                   <tr key={i}>
-                    <td className="p-2 border text-center font-medium bg-gray-50 whitespace-nowrap">
+                    <td className="p-2 border text-center font-medium bg-gray-50 whitespace-nowrap" style={{ fontFamily: 'var(--font-vazir)' }}>
                       {yLabel}
                     </td>
                     {row.map((val: number, j: number) => {
@@ -175,7 +197,11 @@ export function MatrixTable({ drivers, baseValue, methodId }: MatrixTableProps) 
                         <td 
                           key={j} 
                           className={`p-2 border text-center font-mono text-sm min-w-[60px] ${isBase ? 'ring-2 ring-blue-500 font-bold' : ''}`}
-                          style={{ backgroundColor: bgColor, color: textColor }}
+                          style={{ 
+                            backgroundColor: bgColor, 
+                            color: textColor,
+                            fontFamily: 'var(--font-vazir)',
+                          }}
                         >
                           {formatValue(val)}
                         </td>

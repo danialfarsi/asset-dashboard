@@ -19,6 +19,14 @@ import { MatrixTable } from '../sensitivity/MatrixTable';
 import { TornadoChart } from '../sensitivity/TornadoChart';
 import { ConfidenceRange } from '../sensitivity/ConfidenceRange';
 
+// 🔥 تبدیل اعداد به فارسی
+const toPersianNumber = (num: number) => {
+  if (!num && num !== 0) return '۰';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const str = String(Math.round(num));
+  return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
 export function Step6_Sensitivity({
   valuationCaseId = 6,
   methodId = 'M-04',
@@ -39,9 +47,35 @@ export function Step6_Sensitivity({
   const [drivers, setDrivers] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any>({});
   
+  const [globalMin, setGlobalMin] = useState<number | undefined>(undefined);
+  const [globalMax, setGlobalMax] = useState<number | undefined>(undefined);
+  
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingRequestRef = useRef<AbortController | null>(null);
   const isFirstLoad = useRef<boolean>(true);
+  const originalBaseRef = useRef<number>(0);
+
+  const calculateScenarioValues = (driverList: any[], currentBase: number) => {
+    if (!currentBase || driverList.length === 0) {
+      return { optimistic: currentBase, pessimistic: currentBase };
+    }
+    
+    let optFactor = 1;
+    let pesFactor = 1;
+    
+    driverList.forEach(d => {
+      const maxChange = ((d.high - d.base) / d.base) * 0.5;
+      const minChange = ((d.low - d.base) / d.base) * 0.5;
+      
+      optFactor = optFactor * (1 + maxChange);
+      pesFactor = pesFactor * (1 + minChange);
+    });
+    
+    return { 
+      optimistic: currentBase * optFactor, 
+      pessimistic: currentBase * pesFactor 
+    };
+  };
 
   const loadData = useCallback(async (customDrivers?: any[]) => {
     if (pendingRequestRef.current) {
@@ -75,18 +109,22 @@ export function Step6_Sensitivity({
       
       console.log('📊 API Response:', data);
       
+      let newBaseValue = baseValue;
+      
       if (data.sensitivity_dashboard) {
-        setBaseValue(data.sensitivity_dashboard.base_value || 0);
-        setOptimisticValue(data.sensitivity_dashboard.optimistic_value || 0);
-        setPessimisticValue(data.sensitivity_dashboard.pessimistic_value || 0);
+        newBaseValue = data.sensitivity_dashboard.base_value || 0;
+        setBaseValue(newBaseValue);
+        
+        if (isFirstLoad.current && newBaseValue > 0) {
+          originalBaseRef.current = newBaseValue;
+          isFirstLoad.current = false;
+          console.log('✅ Original base saved:', originalBaseRef.current);
+        }
       }
 
-      if (data.scenarios) {
-        setScenarios(data.scenarios);
-      }
-
+      let driverList = [];
       if (data.key_drivers && data.key_drivers.length > 0) {
-        const driverList = data.key_drivers.map((d: any) => {
+        driverList = data.key_drivers.map((d: any) => {
           let currentVal = d.base_value;
           if (customDrivers) {
             const found = customDrivers.find(cd => cd.id === d.driver_id);
@@ -103,10 +141,42 @@ export function Step6_Sensitivity({
           };
         });
         setDrivers(driverList);
+        
+        if (driverList.length > 0 && originalBaseRef.current > 0) {
+          let tempMin = originalBaseRef.current;
+          let tempMax = originalBaseRef.current;
+          driverList.forEach(d => {
+            const minFactor = 1 + ((d.low - d.base) / d.base) * 0.5;
+            const maxFactor = 1 + ((d.high - d.base) / d.base) * 0.5;
+            tempMin = tempMin * minFactor;
+            tempMax = tempMax * maxFactor;
+          });
+          setGlobalMin(tempMin);
+          setGlobalMax(tempMax);
+          console.log('📊 Global range:', { min: tempMin, max: tempMax });
+        }
+      }
+
+      if (data.scenarios) {
+        setScenarios(data.scenarios);
       }
 
       if (data.confidence_band) {
         setConfidenceLevel(data.confidence_band.confidence_level_percent || 85);
+      }
+
+      if (driverList.length > 0 && newBaseValue > 0) {
+        const { optimistic, pessimistic } = calculateScenarioValues(
+          driverList,
+          newBaseValue
+        );
+        setOptimisticValue(optimistic);
+        setPessimisticValue(pessimistic);
+        console.log('📊 Calculated values:', { 
+          optimistic, 
+          pessimistic, 
+          currentBase: newBaseValue 
+        });
       }
 
       setCalculating(false);
@@ -118,7 +188,7 @@ export function Step6_Sensitivity({
       setCalculating(false);
       pendingRequestRef.current = null;
     }
-  }, [valuationCaseId, methodId]);
+  }, [valuationCaseId, methodId, baseValue]);
 
   useEffect(() => {
     const init = async () => {
@@ -139,6 +209,23 @@ export function Step6_Sensitivity({
     newDrivers[index].current_value = value;
     setDrivers(newDrivers);
     
+    let newBase = originalBaseRef.current;
+    newDrivers.forEach(d => {
+      const change = ((d.current_value - d.base) / d.base);
+      newBase = newBase * (1 + change * 0.5);
+    });
+    setBaseValue(newBase);
+    
+    if (newBase > 0) {
+      const { optimistic, pessimistic } = calculateScenarioValues(
+        newDrivers,
+        newBase
+      );
+      setOptimisticValue(optimistic);
+      setPessimisticValue(pessimistic);
+      console.log('🔄 Quick update:', { optimistic, pessimistic, newBase });
+    }
+    
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -150,14 +237,6 @@ export function Step6_Sensitivity({
     }, 300);
   };
 
-  const displayPercent = (value: number) => {
-    if (value === undefined || value === null) return '۰%';
-    if (value > 1) {
-      return value.toFixed(1) + '%';
-    }
-    return (value * 100).toFixed(1) + '%';
-  };
-
   const formatCurrency = (value: number) => {
     if (!value || value === 0) return '۰';
     const isNegative = value < 0;
@@ -167,16 +246,16 @@ export function Step6_Sensitivity({
     else if (absValue >= 1e9) formatted = (absValue / 1e9).toFixed(1) + 'B';
     else if (absValue >= 1e6) formatted = (absValue / 1e6).toFixed(1) + 'M';
     else formatted = absValue.toFixed(0);
-    return isNegative ? `-${formatted}` : formatted;
+    const result = isNegative ? `-${formatted}` : formatted;
+    return result.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)]);
   };
 
-  const toPersianNumber = (num: number) => {
-    if (!num && num !== 0) return '۰';
-    const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-    return String(Math.round(num)).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+  const displayPercent = (value: number) => {
+    if (value === undefined || value === null) return '۰%';
+    const num = value > 1 ? value : value * 100;
+    return toPersianNumber(num) + '%';
   };
 
-  // 🔥 ساخت tornadoData با useMemo
   const tornadoData = useMemo(() => {
     if (!drivers || drivers.length === 0) return [];
     const sorted = [...drivers].sort((a, b) => (b.impact_percent || 0) - (a.impact_percent || 0));
@@ -224,7 +303,7 @@ export function Step6_Sensitivity({
   }
 
   return (
-    <div className="space-y-6 p-4" dir="rtl">
+    <div className="space-y-6 p-4" dir="rtl" style={{ fontFamily: 'var(--font-vazir)' }}>
       {calculating && (
         <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-sm">
           <Loader2 className="h-4 w-4 inline-block ml-2 animate-spin" />
@@ -288,7 +367,7 @@ export function Step6_Sensitivity({
                   <span className="text-blue-600 font-medium">{displayPercent(driver.current_value)}</span>
                   <span>{displayPercent(driver.high)}</span>
                 </div>
-                <div className="text-xs text-gray-500">تأثیر: {driver.impact_percent.toFixed(1)}%</div>
+                <div className="text-xs text-gray-500">تأثیر: {toPersianNumber(driver.impact_percent)}%</div>
               </div>
             ))}
           </div>
@@ -302,9 +381,9 @@ export function Step6_Sensitivity({
             {impactTableData.map((item, index) => (
               <div key={index} className="relative">
                 <div className="flex items-center justify-between">
-                  <div className="text-right w-[30%]"><span className="text-red-600 font-medium">{formatCurrency(item.lowValue)}</span><span className="text-red-500 text-sm mr-1">({item.lowPercent}%)</span></div>
+                  <div className="text-right w-[30%]"><span className="text-red-600 font-medium">{formatCurrency(item.lowValue)}</span><span className="text-red-500 text-sm mr-1">({toPersianNumber(parseFloat(item.lowPercent))}%)</span></div>
                   <div className="text-center w-[40%]"><span className="text-sm font-medium text-gray-700 border-b-2 border-gray-300 px-4 py-1">{item.name}</span></div>
-                  <div className="text-left w-[30%]"><span className="text-green-600 font-medium">{formatCurrency(item.highValue)}</span><span className="text-green-500 text-sm mr-1">(+{item.highPercent}%)</span></div>
+                  <div className="text-left w-[30%]"><span className="text-green-600 font-medium">{formatCurrency(item.highValue)}</span><span className="text-green-500 text-sm mr-1">(+{toPersianNumber(parseFloat(item.highPercent))}%)</span></div>
                 </div>
                 {index < impactTableData.length - 1 && <div className="border-b border-gray-100 mt-3" />}
               </div>
@@ -313,7 +392,6 @@ export function Step6_Sensitivity({
         </CardContent>
       </Card>
 
-      {/* 🔥 نمودار تورنادو */}
       <Card>
         <CardHeader>
           <CardTitle className="text-sm font-medium text-muted-foreground">نمودار تورنادو</CardTitle>
@@ -323,33 +401,16 @@ export function Step6_Sensitivity({
         </CardContent>
       </Card>
 
-      {/* 🔥 بازه اطمینان - کامپوننت جدید */}
       <ConfidenceRange
         pessimisticValue={pessimisticValue}
         baseValue={baseValue}
         optimisticValue={optimisticValue}
         confidenceLevel={confidenceLevel}
+        globalMin={globalMin}
+        globalMax={globalMax}
       />
 
-      <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">مقایسه سناریوها</CardTitle></CardHeader>
-          <CardContent>
-            <div style={{ height: '150px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={scenariosList}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <RechartsTooltip formatter={(value: any) => `${value.toFixed(1)}B`} />
-                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                    {scenariosList.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      
 
       <MatrixTable drivers={drivers} baseValue={baseValue} methodId={methodId} />
 
