@@ -1,10 +1,12 @@
 import api from '@/lib/api';
 
-export async function calculateSensitivity(valuationCaseId: number, methodId: string) {
+export async function calculateSensitivity(valuationCaseId: number, methodId: string, drivers?: any[]) {
   try {
+    // 🔥 حتماً / در انتهای آدرس باشد
     const response = await api.post('/intangible/sensitivity/calculate/', {
       valuation_case_id: valuationCaseId,
-      method_id: methodId
+      method_id: methodId,
+      drivers: drivers || []
     });
     return response.data;
   } catch (error) {

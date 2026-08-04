@@ -15,6 +15,7 @@ import {
   Cell,
 } from 'recharts';
 import api from '@/lib/api';
+import { MatrixTable } from '../sensitivity/MatrixTable';
 
 export function Step6_Sensitivity({
   valuationCaseId = 6,
@@ -36,49 +37,10 @@ export function Step6_Sensitivity({
   const [drivers, setDrivers] = useState<any[]>([]);
   const [tornadoData, setTornadoData] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any>({});
-  const [matrixData, setMatrixData] = useState<any>(null);
   
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingRequestRef = useRef<AbortController | null>(null);
   const isFirstLoad = useRef<boolean>(true);
-
-  const generateRange = (low: number, high: number, steps: number = 4) => {
-    const values = [];
-    const step = (high - low) / steps;
-    for (let i = 0; i <= steps; i++) {
-      values.push(Number((low + i * step).toFixed(4)));
-    }
-    return values;
-  };
-
-  const buildTwoWayMatrix = (driverList: any[], baseVal: number) => {
-    if (!driverList || driverList.length < 2 || !baseVal || baseVal === 0) return null;
-    
-    const d1 = driverList[0];
-    const d2 = driverList[1];
-    const xValues = generateRange(d1.low, d1.high, 4);
-    const yValues = generateRange(d2.low, d2.high, 4);
-    const data: number[][] = [];
-    
-    for (let y of yValues) {
-      const row: number[] = [];
-      for (let x of xValues) {
-        const factor = 1 + ((x - d1.base) / d1.base) * 0.5 + ((y - d2.base) / d2.base) * 0.3;
-        row.push(Math.round(baseVal * factor / 1e9));
-      }
-      data.push(row);
-    }
-    
-    return { xValues, yValues, data, xLabel: d1.name_fa, yLabel: d2.name_fa };
-  };
-
-  useEffect(() => {
-    if (drivers.length >= 2 && baseValue > 0) {
-      setMatrixData(buildTwoWayMatrix(drivers, baseValue));
-    } else {
-      setMatrixData(null);
-    }
-  }, [drivers, baseValue]);
 
   const loadData = useCallback(async (customDrivers?: any[]) => {
     if (pendingRequestRef.current) {
@@ -112,7 +74,6 @@ export function Step6_Sensitivity({
       
       console.log('📊 API Response:', data);
       
-      // 🔥 دریافت همه مقادیر از API
       if (data.sensitivity_dashboard) {
         setBaseValue(data.sensitivity_dashboard.base_value || 0);
         setOptimisticValue(data.sensitivity_dashboard.optimistic_value || 0);
@@ -168,6 +129,7 @@ export function Step6_Sensitivity({
   useEffect(() => {
     const init = async () => {
       setLoading(true);
+      isFirstLoad.current = true;
       await loadData();
       setLoading(false);
     };
@@ -259,20 +221,6 @@ export function Step6_Sensitivity({
       </Card>
     );
   }
-
-  const findBaseCell = () => {
-    if (!matrixData) return null;
-    const d1 = drivers[0];
-    const d2 = drivers[1];
-    if (!d1 || !d2) return null;
-    const xIndex = matrixData.xValues.findIndex(v => Math.abs(v - d1.base) < 0.001);
-    const yIndex = matrixData.yValues.findIndex(v => Math.abs(v - d2.base) < 0.001);
-    if (xIndex === -1 || yIndex === -1) return null;
-    return { xIndex, yIndex };
-  };
-
-  const baseCell = findBaseCell();
-  const showMatrix = matrixData && matrixData.data && matrixData.data.length > 0 && matrixData.data[0] && matrixData.data[0].length > 0;
 
   return (
     <div className="space-y-6 p-4" dir="rtl">
@@ -409,45 +357,8 @@ export function Step6_Sensitivity({
         </Card>
       </div>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">ماتریس حساسیت</CardTitle></CardHeader>
-        <CardContent>
-          {showMatrix ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead><tr><th className="p-2 border bg-gray-50 w-16"></th>
-                  {matrixData.xValues.map((x: number, idx: number) => <th key={idx} className="p-2 border text-center font-medium bg-gray-50 min-w-[70px]">{(x * 100).toFixed(1)}%</th>)}
-                </tr></thead>
-                <tbody>
-                  {matrixData.data.map((row: number[], i: number) => (
-                    <tr key={i}>
-                      <td className="p-2 border text-center font-medium bg-gray-50 whitespace-nowrap">{(matrixData.yValues[i] * 100).toFixed(1)}%</td>
-                      {row.map((val: number, j: number) => {
-                        const isBase = baseCell && i === baseCell.yIndex && j === baseCell.xIndex;
-                        const allValues = matrixData.data.flat();
-                        const minVal = Math.min(...allValues);
-                        const maxVal = Math.max(...allValues);
-                        const range = maxVal - minVal || 1;
-                        const normalized = (val - minVal) / range;
-                        let r, g, b;
-                        if (normalized < 0.5) { const t = normalized / 0.5; r = 255; g = Math.round(255 * t); b = Math.round(255 * t); } 
-                        else { const t = (normalized - 0.5) / 0.5; r = Math.round(255 * (1 - t)); g = 255; b = Math.round(255 * (1 - t)); }
-                        const bgColor = isBase ? '#dbeafe' : `rgb(${r}, ${g}, ${b})`;
-                        const textColor = normalized > 0.7 ? '#ffffff' : '#1a1a1a';
-                        return <td key={j} className={`p-2 border text-center font-mono text-sm min-w-[60px] ${isBase ? 'ring-2 ring-blue-500 font-bold' : ''}`} style={{ backgroundColor: bgColor, color: textColor }}>{val.toFixed(0)}</td>;
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              {drivers.length < 2 ? 'برای نمایش ماتریس به حداقل ۲ متغیر نیاز است' : 'در حال بارگذاری ماتریس...'}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* 🔥 ماتریس حساسیت - با MatrixTable */}
+      <MatrixTable drivers={drivers} baseValue={baseValue} methodId={methodId} />
 
       <div className="flex justify-between items-center pt-4 border-t">
         <div className="text-sm text-muted-foreground">شناسه مورد: {valuationCaseId}</div>
