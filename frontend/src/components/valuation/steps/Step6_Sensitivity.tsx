@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ChevronRight } from 'lucide-react';
@@ -10,12 +10,14 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Cell,
 } from 'recharts';
 import api from '@/lib/api';
 import { MatrixTable } from '../sensitivity/MatrixTable';
+import { TornadoChart } from '../sensitivity/TornadoChart';
+import { ConfidenceRange } from '../sensitivity/ConfidenceRange';
 
 export function Step6_Sensitivity({
   valuationCaseId = 6,
@@ -35,7 +37,6 @@ export function Step6_Sensitivity({
   const [pessimisticValue, setPessimisticValue] = useState(0);
   const [confidenceLevel, setConfidenceLevel] = useState(0);
   const [drivers, setDrivers] = useState<any[]>([]);
-  const [tornadoData, setTornadoData] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any>({});
   
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -98,17 +99,10 @@ export function Step6_Sensitivity({
             low: d.low_range,
             high: d.high_range,
             current_value: currentVal,
-            impact_percent: d.impact_percent,
+            impact_percent: d.impact_percent || 0,
           };
         });
         setDrivers(driverList);
-      }
-
-      if (data.tornado_ranking && data.tornado_ranking.length > 0) {
-        setTornadoData(data.tornado_ranking.map((d: any) => ({
-          name: d.driver_name,
-          impact: d.impact_percent,
-        })));
       }
 
       if (data.confidence_band) {
@@ -156,6 +150,14 @@ export function Step6_Sensitivity({
     }, 300);
   };
 
+  const displayPercent = (value: number) => {
+    if (value === undefined || value === null) return '۰%';
+    if (value > 1) {
+      return value.toFixed(1) + '%';
+    }
+    return (value * 100).toFixed(1) + '%';
+  };
+
   const formatCurrency = (value: number) => {
     if (!value || value === 0) return '۰';
     const isNegative = value < 0;
@@ -174,10 +176,15 @@ export function Step6_Sensitivity({
     return String(Math.round(num)).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
   };
 
-  const tornadoChartData = tornadoData.map(d => ({
-    name: d.name,
-    value: d.impact,
-  })).sort((a, b) => b.value - a.value);
+  // 🔥 ساخت tornadoData با useMemo
+  const tornadoData = useMemo(() => {
+    if (!drivers || drivers.length === 0) return [];
+    const sorted = [...drivers].sort((a, b) => (b.impact_percent || 0) - (a.impact_percent || 0));
+    return sorted.map(d => ({
+      name: d.name_fa,
+      impact: d.impact_percent || 0,
+    }));
+  }, [drivers]);
 
   const impactTableData = drivers.map(d => {
     const lowChange = ((d.low - d.base) / d.base * 100);
@@ -190,12 +197,6 @@ export function Step6_Sensitivity({
       highValue: baseValue * (1 + highChange / 100),
     };
   });
-
-  const confidenceData = [
-    { name: 'بدبینانه', value: pessimisticValue / 1e9 },
-    { name: 'مبنا', value: baseValue / 1e9 },
-    { name: 'خوش‌بینانه', value: optimisticValue / 1e9 }
-  ];
 
   const scenariosList = Object.values(scenarios).map((s: any) => ({
     name: s.label_fa,
@@ -271,13 +272,21 @@ export function Step6_Sensitivity({
               <div key={driver.id} className="space-y-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium">{driver.name_fa}</span>
-                  <span className="text-sm font-bold text-blue-600">{(driver.current_value * 100).toFixed(1)}%</span>
+                  <span className="text-sm font-bold text-blue-600">{displayPercent(driver.current_value)}</span>
                 </div>
-                <input type="range" min={driver.low * 100} max={driver.high * 100} step={(driver.high - driver.low) * 100 / 50} value={driver.current_value * 100} onChange={(e) => handleDriverChange(index, parseFloat(e.target.value) / 100)} className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" />
+                <input 
+                  type="range" 
+                  min={driver.low * 100} 
+                  max={driver.high * 100} 
+                  step={(driver.high - driver.low) * 100 / 50} 
+                  value={driver.current_value * 100} 
+                  onChange={(e) => handleDriverChange(index, parseFloat(e.target.value) / 100)} 
+                  className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" 
+                />
                 <div className="flex justify-between text-xs text-gray-400">
-                  <span>{(driver.low * 100).toFixed(1)}%</span>
-                  <span className="text-blue-600 font-medium">{(driver.current_value * 100).toFixed(1)}%</span>
-                  <span>{(driver.high * 100).toFixed(1)}%</span>
+                  <span>{displayPercent(driver.low)}</span>
+                  <span className="text-blue-600 font-medium">{displayPercent(driver.current_value)}</span>
+                  <span>{displayPercent(driver.high)}</span>
                 </div>
                 <div className="text-xs text-gray-500">تأثیر: {driver.impact_percent.toFixed(1)}%</div>
               </div>
@@ -304,40 +313,25 @@ export function Step6_Sensitivity({
         </CardContent>
       </Card>
 
+      {/* 🔥 نمودار تورنادو */}
       <Card>
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">نمودار تورنادو</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-muted-foreground">نمودار تورنادو</CardTitle>
+        </CardHeader>
         <CardContent>
-          <div style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={tornadoChartData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={100} />
-                <Tooltip formatter={(value: any) => `${value.toFixed(1)}%`} />
-                <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <TornadoChart data={tornadoData} key={JSON.stringify(tornadoData.map(d => d.impact))} />
         </CardContent>
       </Card>
 
+      {/* 🔥 بازه اطمینان - کامپوننت جدید */}
+      <ConfidenceRange
+        pessimisticValue={pessimisticValue}
+        baseValue={baseValue}
+        optimisticValue={optimisticValue}
+        confidenceLevel={confidenceLevel}
+      />
+
       <div className="grid grid-cols-2 gap-6">
-        <Card>
-          <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">بازه اطمینان</CardTitle></CardHeader>
-          <CardContent>
-            <div style={{ height: '150px' }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={confidenceData} layout="vertical">
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" width={60} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="text-center mt-2"><span className="text-sm text-muted-foreground">سطح اطمینان: </span><span className="font-bold text-blue-600">{toPersianNumber(confidenceLevel)}%</span></div>
-          </CardContent>
-        </Card>
         <Card>
           <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">مقایسه سناریوها</CardTitle></CardHeader>
           <CardContent>
@@ -346,7 +340,7 @@ export function Step6_Sensitivity({
                 <BarChart data={scenariosList}>
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value: any) => `${value.toFixed(1)}B`} />
+                  <RechartsTooltip formatter={(value: any) => `${value.toFixed(1)}B`} />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                     {scenariosList.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Bar>
@@ -357,7 +351,6 @@ export function Step6_Sensitivity({
         </Card>
       </div>
 
-      {/* 🔥 ماتریس حساسیت - با MatrixTable */}
       <MatrixTable drivers={drivers} baseValue={baseValue} methodId={methodId} />
 
       <div className="flex justify-between items-center pt-4 border-t">
