@@ -19,22 +19,98 @@ class SensitivityEngine:
         try:
             from ..valuation_formulas import calculate_value
             
+            # 🔥 حذف base_value و original_base_value از params
+            clean_params = {}
+            for k, v in params.items():
+                if k not in ['base_value', 'original_base_value']:
+                    clean_params[k] = v
+            
+            # 🔥 نگاشت برای M-01
+            if self.method_id == 'M-01':
+                if 'terminal_growth' in clean_params:
+                    clean_params['terminal_growth_rate'] = clean_params['terminal_growth']
+                if 'revenue_growth' in clean_params:
+                    clean_params['revenue_growth_rate'] = clean_params['revenue_growth']
+            
+            # 🔥 نگاشت برای M-05 (RCM)
+            if self.method_id == 'M-05':
+                # دریافت مقادیر از clean_params
+                labor_factor = clean_params.get('labor_cost', 100) / 100
+                material_factor = clean_params.get('material_cost', 100) / 100
+                
+                # دریافت مقادیر اصلی از case_data
+                original_labor = self.case_data.get('labor_breakdown', [])
+                original_material = self.case_data.get('material_infra_cost', 0)
+                
+                print(f'📊 M-05 Mapping:')
+                print(f'  labor_factor: {labor_factor}')
+                print(f'  material_factor: {material_factor}')
+                print(f'  original_labor: {original_labor}')
+                print(f'  original_material: {original_material}')
+                
+                # اعمال ضریب به labor_breakdown
+                if original_labor:
+                    new_labor = []
+                    for item in original_labor:
+                        new_item = item.copy()
+                        new_item['person_months'] = item.get('person_months', 0) * labor_factor
+                        new_item['monthly_rate'] = item.get('monthly_rate', 0)
+                        new_labor.append(new_item)
+                    clean_params['labor_breakdown'] = new_labor
+                else:
+                    clean_params['labor_breakdown'] = self.case_data.get('labor_breakdown', [])
+                
+                # اعمال ضریب به material_infra_cost
+                clean_params['material_infra_cost'] = original_material * material_factor
+                
+                # حذف labor_cost و material_cost از clean_params
+                clean_params.pop('labor_cost', None)
+                clean_params.pop('material_cost', None)
+                
+                # تبدیل obsolescence_pct به functional_obs_pct و economic_obs_pct
+                if 'obsolescence_pct' in clean_params:
+                    total_obs = clean_params['obsolescence_pct'] / 100
+                    clean_params['functional_obs_pct'] = total_obs * 0.5
+                    clean_params['economic_obs_pct'] = total_obs * 0.5
+                    clean_params.pop('obsolescence_pct', None)
+                
+                # اطمینان از وجود developer_profit_pct
+                if 'developer_profit_pct' not in clean_params:
+                    clean_params['developer_profit_pct'] = self.case_data.get('developer_profit_pct', 15)
+            
             # اطمینان از وجود forecast_horizon
-            if 'forecast_horizon' not in params:
-                params['forecast_horizon'] = self.case_data.get('forecast_horizon', 5)
+            if 'forecast_horizon' not in clean_params:
+                clean_params['forecast_horizon'] = self.case_data.get('forecast_horizon', 5)
             
             # اطمینان از وجود current_revenue
-            if 'current_revenue' not in params:
-                params['current_revenue'] = self.case_data.get('current_revenue', 10000000000)
+            if 'current_revenue' not in clean_params:
+                clean_params['current_revenue'] = self.case_data.get('current_revenue', 10000000000)
             
-            result = calculate_value(self.method_id, params)
-            print(f'📊 Calculating: {self.method_id} -> {result}')
+            # اطمینان از وجود سایر پارامترهای کلیدی
+            if 'revenue_attribution' not in clean_params:
+                clean_params['revenue_attribution'] = self.case_data.get('revenue_attribution', 0.80)
+            
+            if 'quality_multiplier' not in clean_params:
+                clean_params['quality_multiplier'] = self.case_data.get('quality_multiplier', 0.92)
+            
+            if 'tax_rate' not in clean_params:
+                clean_params['tax_rate'] = self.case_data.get('tax_rate', 0.25)
+            
+            print(f'📊 Clean params keys: {list(clean_params.keys())}')
+            result = calculate_value(self.method_id, clean_params)
+            print(f'📊 Result: {result}')
             return result
         except Exception as e:
             print(f'❌ Error calculating with formula: {e}')
             import traceback
             traceback.print_exc()
             return params.get('base_value', 0)
+    
+    def recalculate_value(self, driver_id: str, new_value: float) -> float:
+        """محاسبه مجدد ارزش با تغییر یک متغیر"""
+        params = self.case_data.copy()
+        params[driver_id] = new_value
+        return self._calculate_with_formula(params)
     
     def _apply_driver_changes(self, driver_list: List[Dict], base_value: float, changes: Dict) -> float:
         """اعمال تغییرات درایورها روی base_value"""
@@ -127,12 +203,8 @@ class SensitivityEngine:
                 t = i / steps
                 driver_value = low + t * (high - low)
                 
-                # 🔥 استفاده از فرمول واقعی
-                params = self.case_data.copy()
-                params[driver_id] = driver_value
-                
-                # محاسبه مجدد ارزش با فرمول واقعی
-                result_value = self._calculate_with_formula(params)
+                # 🔥 استفاده از recalculate_value
+                result_value = self.recalculate_value(driver_id, driver_value)
                 
                 results.append({
                     'driver_value': driver_value,

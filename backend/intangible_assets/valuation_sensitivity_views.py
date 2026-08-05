@@ -68,28 +68,49 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
                 'tax_rate': float(valuation_case.tax_rate) if valuation_case.tax_rate else 0.25,
                 'terminal_growth': float(valuation_case.terminal_growth_rate) if valuation_case.terminal_growth_rate else 0.05,
                 'current_revenue': float(valuation_case.current_revenue) if valuation_case.current_revenue else 1000000000,
-                'forecast_horizon': forecast_horizon,  # 🔥 از STEP 3
+                'forecast_horizon': forecast_horizon,
             }
             
             print(f'📊 Forecast horizon from STEP 3: {forecast_horizon}')
             
-            # اضافه کردن پارامترهای STEP 3
+            # 🔥 اضافه کردن پارامترهای STEP 3 بر اساس method_id
             if inputs:
                 # پارامترهای M-01
-                if 'royalty_rate' in inputs:
-                    case_data['royalty_rate'] = float(inputs.get('royalty_rate', 0.04))
-                if 'revenue_attribution' in inputs:
-                    case_data['revenue_attribution'] = float(inputs.get('revenue_attribution', 0.80))
-                if 'revenue_growth_rate' in inputs:
-                    case_data['revenue_growth_rate'] = float(inputs.get('revenue_growth_rate', 0.08))
-                if 'quality_multiplier' in inputs:
-                    case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
+                if method_id == 'M-01':
+                    if 'royalty_rate' in inputs:
+                        case_data['royalty_rate'] = float(inputs.get('royalty_rate', 0.04))
+                    if 'revenue_attribution' in inputs:
+                        case_data['revenue_attribution'] = float(inputs.get('revenue_attribution', 0.80))
+                    if 'revenue_growth_rate' in inputs:
+                        case_data['revenue_growth_rate'] = float(inputs.get('revenue_growth_rate', 0.08))
+                    if 'quality_multiplier' in inputs:
+                        case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
+                
+                # 🔥 پارامترهای M-05 (RCM)
+                if method_id == 'M-05':
+                    if 'labor_breakdown' in inputs:
+                        case_data['labor_breakdown'] = inputs.get('labor_breakdown', [])
+                        print(f'📊 labor_breakdown: {case_data["labor_breakdown"]}')
+                    if 'material_infra_cost' in inputs:
+                        case_data['material_infra_cost'] = float(inputs.get('material_infra_cost', 0))
+                        print(f'📊 material_infra_cost: {case_data["material_infra_cost"]}')
+                    if 'overhead_pct' in inputs:
+                        case_data['overhead_pct'] = float(inputs.get('overhead_pct', 12))
+                    if 'developer_profit_pct' in inputs:
+                        case_data['developer_profit_pct'] = float(inputs.get('developer_profit_pct', 12))
+                    if 'functional_obs_pct' in inputs:
+                        case_data['functional_obs_pct'] = float(inputs.get('functional_obs_pct', 0))
+                    if 'economic_obs_pct' in inputs:
+                        case_data['economic_obs_pct'] = float(inputs.get('economic_obs_pct', 7))
+                    if 'quality_multiplier' in inputs:
+                        case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
                 
                 # پارامترهای M-04
-                if 'with_asset_growth' in inputs:
-                    case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
-                if 'without_asset_growth' in inputs:
-                    case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
+                if method_id == 'M-04':
+                    if 'with_asset_growth' in inputs:
+                        case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
+                    if 'without_asset_growth' in inputs:
+                        case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
             
             # اضافه کردن مقادیر سفارشی drivers به case_data
             for driver in custom_drivers:

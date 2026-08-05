@@ -19,35 +19,67 @@ class SensitivityEngine:
         try:
             from ..valuation_formulas import calculate_value
             
-            # حذف base_value و original_base_value از params
+            # 🔥 حذف base_value و original_base_value از params
             clean_params = {}
             for k, v in params.items():
                 if k not in ['base_value', 'original_base_value']:
                     clean_params[k] = v
             
-            # 🔥 نگاشت نام پارامترها به نام‌های صحیح برای فرمول
-            if 'terminal_growth' in clean_params:
-                clean_params['terminal_growth_rate'] = clean_params['terminal_growth']
+            # 🔥 نگاشت برای M-01
+            if self.method_id == 'M-01':
+                if 'terminal_growth' in clean_params:
+                    clean_params['terminal_growth_rate'] = clean_params['terminal_growth']
+                if 'revenue_growth' in clean_params:
+                    clean_params['revenue_growth_rate'] = clean_params['revenue_growth']
             
-            if 'revenue_growth' in clean_params:
-                clean_params['revenue_growth_rate'] = clean_params['revenue_growth']
+            # 🔥 نگاشت برای M-05 (RCM)
+            if self.method_id == 'M-05':
+                labor_factor = clean_params.get('labor_cost', 100) / 100
+                material_factor = clean_params.get('material_cost', 100) / 100
+                
+                original_labor = self.case_data.get('labor_breakdown', [])
+                original_material = self.case_data.get('material_infra_cost', 0)
+                
+                if original_labor:
+                    new_labor = []
+                    for item in original_labor:
+                        new_item = item.copy()
+                        new_item['person_months'] = item.get('person_months', 0) * labor_factor
+                        new_item['monthly_rate'] = item.get('monthly_rate', 0)
+                        new_labor.append(new_item)
+                    clean_params['labor_breakdown'] = new_labor
+                else:
+                    clean_params['labor_breakdown'] = self.case_data.get('labor_breakdown', [])
+                
+                clean_params['material_infra_cost'] = original_material * material_factor
+                
+                clean_params.pop('labor_cost', None)
+                clean_params.pop('material_cost', None)
+                
+                if 'obsolescence_pct' in clean_params:
+                    total_obs = clean_params['obsolescence_pct'] / 100
+                    clean_params['functional_obs_pct'] = total_obs * 0.5
+                    clean_params['economic_obs_pct'] = total_obs * 0.5
+                    clean_params.pop('obsolescence_pct', None)
+                
+                if 'developer_profit_pct' not in clean_params:
+                    clean_params['developer_profit_pct'] = self.case_data.get('developer_profit_pct', 15)
             
-            # اطمینان از وجود همه پارامترهای کلیدی
-            default_params = {
-                'forecast_horizon': 5,
-                'current_revenue': 500000000000,
-                'revenue_attribution': 0.80,
-                'quality_multiplier': 0.92,
-                'tax_rate': 0.25,
-                'terminal_growth_rate': 0.05,
-                'revenue_growth_rate': 0.08,
-                'discount_rate': 0.18,
-                'royalty_rate': 0.04
-            }
+            # اطمینان از وجود forecast_horizon
+            if 'forecast_horizon' not in clean_params:
+                clean_params['forecast_horizon'] = self.case_data.get('forecast_horizon', 5)
             
-            for key, default_val in default_params.items():
-                if key not in clean_params:
-                    clean_params[key] = self.case_data.get(key, default_val)
+            if 'current_revenue' not in clean_params:
+                clean_params['current_revenue'] = self.case_data.get('current_revenue', 10000000000)
+            
+            if 'revenue_attribution' not in clean_params:
+                clean_params['revenue_attribution'] = self.case_data.get('revenue_attribution', 0.80)
+            
+            if 'quality_multiplier' not in clean_params:
+                clean_params['quality_multiplier'] = self.case_data.get('quality_multiplier', 0.92)
+            
+            if 'tax_rate' not in clean_params:
+                clean_params['tax_rate'] = self.case_data.get('tax_rate', 0.25)
             
             print(f'📊 Clean params keys: {list(clean_params.keys())}')
             result = calculate_value(self.method_id, clean_params)

@@ -29,7 +29,7 @@ const toPersianNumber = (num: number) => {
 
 export function Step6_Sensitivity({
   valuationCaseId = 6,
-  methodId = 'M-04',
+  methodId = 'M-01',
   onNext,
 }: {
   valuationCaseId?: number;
@@ -137,7 +137,7 @@ export function Step6_Sensitivity({
             low: d.low_range,
             high: d.high_range,
             current_value: currentVal,
-            impact_percent: d.impact_percent || 0,
+            impact_percent: d.impact_percent !== undefined ? d.impact_percent : 0,
           };
         });
         setDrivers(driverList);
@@ -261,7 +261,7 @@ export function Step6_Sensitivity({
     const sorted = [...drivers].sort((a, b) => (b.impact_percent || 0) - (a.impact_percent || 0));
     return sorted.map(d => ({
       name: d.name_fa,
-      impact: d.impact_percent || 0,
+      impact: d.impact_percent !== undefined ? d.impact_percent : 0,
     }));
   }, [drivers]);
 
@@ -367,7 +367,8 @@ export function Step6_Sensitivity({
                   <span className="text-blue-600 font-medium">{displayPercent(driver.current_value)}</span>
                   <span>{displayPercent(driver.high)}</span>
                 </div>
-                <div className="text-xs text-gray-500">تأثیر: {toPersianNumber(driver.impact_percent)}%</div>
+                {/* 🔥 اصلاح: استفاده از displayPercent به جای toPersianNumber */}
+                <div className="text-xs text-gray-500">تأثیر: {displayPercent(driver.impact_percent)}%</div>
               </div>
             ))}
           </div>
@@ -409,8 +410,6 @@ export function Step6_Sensitivity({
         globalMin={globalMin}
         globalMax={globalMax}
       />
-
-      
 
       <MatrixTable drivers={drivers} baseValue={baseValue} methodId={methodId} />
 
