@@ -175,7 +175,7 @@ export function Step2_InputData({
     inflation_basis: 'cost',
     tax_rate: 25,
     discount_rate: 18,
-    forecast_horizon: 5,
+    forecast_horizon: 4,
     terminal_growth_rate: 5,
     current_revenue: 500000000000,
     useful_life: 5,
@@ -295,7 +295,7 @@ const saveToDatabase = useCallback(async (data: any) => {
       // 🔥 اگر مقدار > 1 باشه یعنی درصد هست و باید تقسیم بشه
       tax_rate: taxRate > 1 ? taxRate / 100 : taxRate,
       discount_rate: discountRate > 1 ? discountRate / 100 : discountRate,
-      forecast_horizon: Number(data.forecast_horizon) || 5,
+      forecast_horizon: Number(data.forecast_horizon) || 4,
       terminal_growth_rate: terminalGrowth > 1 ? terminalGrowth / 100 : terminalGrowth,
       current_revenue: Number(data.current_revenue) || 500000000000,
       useful_life: Number(data.useful_life) || 5,

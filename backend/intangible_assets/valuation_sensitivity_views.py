@@ -10,6 +10,7 @@ from .valuation_sensitivity_serializers import (
 from .services.sensitivity_engine import SensitivityEngine
 from .valuation_step4_models import ValuationStep4
 from .valuation_models import ValuationCase
+from .valuation_step3_models import ValuationStep3
 
 
 class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
@@ -47,12 +48,16 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
             valuation_case = ValuationCase.objects.get(id=valuation_case_id)
             
             # 🔥 دریافت STEP 3 برای پارامترهای اضافی
-            from .valuation_step3_models import ValuationStep3
             step3 = ValuationStep3.objects.filter(valuation_case_id=valuation_case_id).first()
             inputs = step3.method_inputs if step3 else {}
             
             # 🔥 مقدار پایه اصلی
             original_base_value = float(step4.final_value)
+            
+            # 🔥 دریافت forecast_horizon از STEP 3
+            forecast_horizon = inputs.get('forecast_horizon', 5)
+            if isinstance(forecast_horizon, str):
+                forecast_horizon = int(forecast_horizon)
             
             # 🔥 ساخت case_data با تمام پارامترها
             case_data = {
@@ -63,16 +68,14 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
                 'tax_rate': float(valuation_case.tax_rate) if valuation_case.tax_rate else 0.25,
                 'terminal_growth': float(valuation_case.terminal_growth_rate) if valuation_case.terminal_growth_rate else 0.05,
                 'current_revenue': float(valuation_case.current_revenue) if valuation_case.current_revenue else 1000000000,
-                'forecast_horizon': int(valuation_case.forecast_horizon) if valuation_case.forecast_horizon else 5,
+                'forecast_horizon': forecast_horizon,  # 🔥 از STEP 3
             }
             
-            # 🔥 اضافه کردن پارامترهای STEP 3
+            print(f'📊 Forecast horizon from STEP 3: {forecast_horizon}')
+            
+            # اضافه کردن پارامترهای STEP 3
             if inputs:
-                # پارامترهای M-04
-                if 'with_asset_growth' in inputs:
-                    case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
-                if 'without_asset_growth' in inputs:
-                    case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
+                # پارامترهای M-01
                 if 'royalty_rate' in inputs:
                     case_data['royalty_rate'] = float(inputs.get('royalty_rate', 0.04))
                 if 'revenue_attribution' in inputs:
@@ -81,8 +84,14 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
                     case_data['revenue_growth_rate'] = float(inputs.get('revenue_growth_rate', 0.08))
                 if 'quality_multiplier' in inputs:
                     case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
+                
+                # پارامترهای M-04
+                if 'with_asset_growth' in inputs:
+                    case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
+                if 'without_asset_growth' in inputs:
+                    case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
             
-            # 🔥 اضافه کردن مقادیر سفارشی drivers به case_data
+            # اضافه کردن مقادیر سفارشی drivers به case_data
             for driver in custom_drivers:
                 driver_id = driver.get('id')
                 value = driver.get('value')

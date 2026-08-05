@@ -2,7 +2,6 @@ import json
 import os
 from typing import Dict, List, Any
 from django.conf import settings
-from ..valuation_formulas import calculate_value
 
 
 class SensitivityEngine:
@@ -15,11 +14,56 @@ class SensitivityEngine:
         print(f'📁 Base path: {self.base_path}')
         print(f'📁 Case data keys: {list(case_data.keys())}')
     
+    def _calculate_with_formula(self, params: Dict) -> float:
+        """محاسبه ارزش با استفاده از فرمول واقعی روش"""
+        try:
+            from ..valuation_formulas import calculate_value
+            
+            # حذف base_value و original_base_value از params
+            clean_params = {}
+            for k, v in params.items():
+                if k not in ['base_value', 'original_base_value']:
+                    clean_params[k] = v
+            
+            # 🔥 نگاشت نام پارامترها به نام‌های صحیح برای فرمول
+            if 'terminal_growth' in clean_params:
+                clean_params['terminal_growth_rate'] = clean_params['terminal_growth']
+            
+            if 'revenue_growth' in clean_params:
+                clean_params['revenue_growth_rate'] = clean_params['revenue_growth']
+            
+            # اطمینان از وجود همه پارامترهای کلیدی
+            default_params = {
+                'forecast_horizon': 5,
+                'current_revenue': 500000000000,
+                'revenue_attribution': 0.80,
+                'quality_multiplier': 0.92,
+                'tax_rate': 0.25,
+                'terminal_growth_rate': 0.05,
+                'revenue_growth_rate': 0.08,
+                'discount_rate': 0.18,
+                'royalty_rate': 0.04
+            }
+            
+            for key, default_val in default_params.items():
+                if key not in clean_params:
+                    clean_params[key] = self.case_data.get(key, default_val)
+            
+            print(f'📊 Clean params keys: {list(clean_params.keys())}')
+            result = calculate_value(self.method_id, clean_params)
+            print(f'📊 Result: {result}')
+            return result
+        except Exception as e:
+            print(f'❌ Error calculating with formula: {e}')
+            import traceback
+            traceback.print_exc()
+            return params.get('base_value', 0)
+    
     def recalculate_value(self, driver_id: str, new_value: float) -> float:
         """محاسبه مجدد ارزش با تغییر یک متغیر"""
         params = self.case_data.copy()
         params[driver_id] = new_value
-        return calculate_value(self.method_id, params)
+        return self._calculate_with_formula(params)
     
     def _apply_driver_changes(self, driver_list: List[Dict], base_value: float, changes: Dict) -> float:
         """اعمال تغییرات درایورها روی base_value"""
@@ -37,23 +81,27 @@ class SensitivityEngine:
         return result
     
     def run_analysis(self) -> Dict:
+        """اجرای تحلیل حساسیت با استفاده از فرمول‌های واقعی"""
+        
         drivers = self._load_drivers()
         scenarios = self._load_scenarios()
+        
+        print(f'📊 Drivers loaded: {len(drivers)}')
+        print(f'📊 Scenarios loaded: {len(scenarios)}')
         
         original_base_value = float(self.case_data.get('original_base_value', 0))
         if original_base_value == 0:
             original_base_value = float(self.case_data.get('base_value', 0))
         
-        print(f'📊 Original base value: {original_base_value}')
+        base_value = original_base_value
+        print(f'📊 Base value: {base_value}')
         
         if not drivers:
             drivers = [
-                {'id': 'with_asset_growth', 'name_fa': 'نرخ رشد با دارایی', 'base': 0.08, 'low': 0.05, 'high': 0.12},
-                {'id': 'without_asset_growth', 'name_fa': 'نرخ رشد بدون دارایی', 'base': 0.06, 'low': 0.03, 'high': 0.10},
-                {'id': 'discount_rate', 'name_fa': 'نرخ تنزیل', 'base': 0.18, 'low': 0.16, 'high': 0.20},
+                {'id': 'test_driver', 'name_fa': 'درایور تست', 'base': 0.5, 'low': 0.3, 'high': 0.7, 'enabled': True}
             ]
+            print('⚠️ از درایورهای نمونه استفاده شد')
         
-        # استفاده از مقادیر سفارشی از case_data
         for driver in drivers:
             driver_id = driver['id']
             if driver_id in self.case_data:
@@ -62,17 +110,16 @@ class SensitivityEngine:
             else:
                 driver['current_value'] = driver['base']
         
-        # 🔥 محاسبه base_value جدید با درایورهای فعلی
-        base_value = original_base_value
+        new_base_value = original_base_value
         for driver in drivers:
             current_val = driver.get('current_value', driver['base'])
             base_val = driver['base']
             factor = 1 + ((current_val - base_val) / base_val) * 0.5
-            base_value = base_value * factor
+            new_base_value = new_base_value * factor
         
+        base_value = new_base_value
         print(f'📊 New base value: {base_value}')
         
-        # 🔥 محاسبه optimistic و pessimistic با درایورهای فعلی
         optimistic_value = base_value
         pessimistic_value = base_value
         
@@ -87,26 +134,30 @@ class SensitivityEngine:
                 pessimistic_value = self._apply_driver_changes(drivers, base_value, pes_changes)
                 print(f'📊 Pessimistic value: {pessimistic_value}')
         
-        # تحلیل یک‌متغیره
         one_way_results = []
         for driver in drivers:
+            if not driver.get('enabled', True):
+                continue
+            
             driver_id = driver['id']
             low = driver['low']
             high = driver['high']
             
             results = []
             steps = 20
+            
             for i in range(steps + 1):
                 t = i / steps
-                val = low + t * (high - low)
-                params = self.case_data.copy()
-                params[driver_id] = val
-                result_value = calculate_value(self.method_id, params)
-                results.append({'driver_value': val, 'result_value': result_value})
+                driver_value = low + t * (high - low)
+                result_value = self.recalculate_value(driver_id, driver_value)
+                results.append({
+                    'driver_value': driver_value,
+                    'result_value': result_value
+                })
             
             min_result = min([r['result_value'] for r in results])
             max_result = max([r['result_value'] for r in results])
-            impact = ((max_result - min_result) / original_base_value * 100) if original_base_value != 0 else 0
+            impact = ((max_result - min_result) / min_result * 100) if min_result != 0 else 0
             
             one_way_results.append({
                 'driver_id': driver_id,
@@ -122,18 +173,48 @@ class SensitivityEngine:
         
         tornado_ranking = sorted(one_way_results, key=lambda x: x['impact_percent'], reverse=True)
         
-        # سناریوها
         scenario_results = {}
-        for key, scenario in scenarios.items():
-            value = self._apply_driver_changes(
-                drivers, 
-                base_value, 
-                scenario.get('driver_changes', {})
-            )
-            scenario_results[key] = {
-                **scenario,
-                'value': value,
-                'change_percent': ((value - base_value) / base_value * 100) if base_value != 0 else 0
+        if scenarios:
+            for key, scenario in scenarios.items():
+                params = self.case_data.copy()
+                for driver_id, change in scenario.get('driver_changes', {}).items():
+                    driver = next((d for d in drivers if d['id'] == driver_id), None)
+                    if driver:
+                        if change.get('type') == 'relative':
+                            new_val = driver['base'] * (1 + change.get('value', 0))
+                        else:
+                            new_val = driver['base'] + change.get('value', 0)
+                        params[driver_id] = new_val
+                
+                value = self._calculate_with_formula(params)
+                scenario_results[key] = {
+                    **scenario,
+                    'value': value,
+                    'change_percent': ((value - base_value) / base_value * 100) if base_value != 0 else 0
+                }
+        else:
+            scenario_results = {
+                'pessimistic': {
+                    'id': 'pessimistic',
+                    'label_fa': 'بدبینانه',
+                    'color': '#EF4444',
+                    'value': base_value * 0.7,
+                    'change_percent': -30
+                },
+                'base': {
+                    'id': 'base',
+                    'label_fa': 'مبنا',
+                    'color': '#3B82F6',
+                    'value': base_value,
+                    'change_percent': 0
+                },
+                'optimistic': {
+                    'id': 'optimistic',
+                    'label_fa': 'خوش‌بینانه',
+                    'color': '#22C55E',
+                    'value': base_value * 1.3,
+                    'change_percent': 30
+                }
             }
         
         all_values = [base_value]
@@ -164,24 +245,28 @@ class SensitivityEngine:
                 'base': base_value,
                 'high': high,
                 'confidence_level_percent': round(confidence),
-                'range_percent': ((high - low) / original_base_value * 100) if original_base_value != 0 else 0
+                'range_percent': ((high - low) / base_value * 100) if base_value != 0 else 0
             }
         }
     
     def _load_drivers(self) -> List[Dict]:
         path = os.path.join(self.base_path, f'drivers/{self.method_id}_drivers.json')
+        print(f'🔍 Loading drivers from: {path}')
         try:
-            with open(path, 'r') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return data.get('drivers', [])
-        except:
+        except Exception as e:
+            print(f'❌ Error loading drivers: {e}')
             return []
     
     def _load_scenarios(self) -> Dict:
         path = os.path.join(self.base_path, f'scenarios/{self.method_id}_scenarios.json')
+        print(f'🔍 Loading scenarios from: {path}')
         try:
-            with open(path, 'r') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return data.get('scenarios', {})
-        except:
+        except Exception as e:
+            print(f'❌ Error loading scenarios: {e}')
             return {}

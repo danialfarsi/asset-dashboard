@@ -167,7 +167,7 @@ export function Step3_Parameters({
         setStep2Data({
           tax_rate: data.tax_rate * 100 || 25,
           discount_rate: data.discount_rate * 100 || 18,
-          forecast_horizon: data.forecast_horizon || step2Data?.forecast_horizon || 5,
+          forecast_horizon: data.forecast_horizon || 4,
           terminal_growth_rate: data.terminal_growth_rate * 100 || 5,
           current_revenue: data.current_revenue || 500000000000,
           useful_life: data.useful_life || 5,
@@ -202,7 +202,7 @@ export function Step3_Parameters({
           ...prev,
           tax_rate: Number(data.tax_rate) || 25,
           discount_rate: Number(data.discount_rate) || 18,
-          forecast_horizon: Number(data.forecast_horizon) || Number(step2Data?.forecast_horizon) || 5,
+          forecast_horizon: Number(data.forecast_horizon) || 4,
           terminal_growth_rate: Number(data.terminal_growth_rate) || 5,
           current_revenue: Number(data.current_revenue) || 500000000000,
           useful_life: Number(data.useful_life) || 5,
