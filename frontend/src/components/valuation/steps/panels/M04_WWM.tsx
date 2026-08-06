@@ -109,8 +109,11 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      // 🔥 فیلتر کردن بر اساس valuation_case_id
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m04Data: any = {};
         
         if (inputs.with_asset_fcf) m04Data.with_asset_fcf = inputs.with_asset_fcf;
@@ -247,7 +250,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // 🔥 ذخیره در دیتابیس
+  // 🔥 ذخیره در دیتابیس - اصلاح شده
   // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) {
@@ -259,38 +262,66 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       setSaving(true);
       setSaveError(null);
 
+      // 🔥 داده‌های STEP 2 را از step2Data بگیر
+      const methodInputs = {
+        with_asset_fcf: withAssetRows,
+        without_asset_fcf: withoutAssetRows,
+        ramp_up_period: formData.ramp_up_period || 0,
+        revenue_attribution: formData.revenue_attribution || 0,
+        revenue_growth_rate: formData.revenue_growth_rate || 0,
+        expert_signoffs: expertSignoffs,
+        scenario_report: formData.scenario_report || null,
+        expert_approval: formData.expert_approval || null,
+        // 🔥 داده‌های STEP 2
+        forecast_horizon: step2Data?.forecast_horizon || formData.forecast_horizon || 5,
+        tax_rate: step2Data?.tax_rate || formData.tax_rate || 25,
+        discount_rate: step2Data?.discount_rate || formData.discount_rate || 18,
+        terminal_growth_rate: step2Data?.terminal_growth_rate || formData.terminal_growth_rate || 5,
+        quality_multiplier: step2Data?.quality_multiplier || formData.quality_multiplier || 0.85,
+        current_revenue: step2Data?.current_revenue || formData.current_revenue || 0,
+        useful_life: step2Data?.useful_life || formData.useful_life || 5,
+        source_reliability: step2Data?.source_reliability || formData.source_reliability || 'high',
+        category: step2Data?.category || formData.category || 'operational',
+        business_unit: step2Data?.business_unit || formData.business_unit || 'واحد مرکزی',
+        lifecycle_stage: step2Data?.lifecycle_stage || formData.lifecycle_stage || 'growth',
+      };
+
       const payload = {
         valuation_case: valuationCaseId,
         method_id: 'M-04',
-        method_inputs: {
-          with_asset_fcf: withAssetRows,
-          without_asset_fcf: withoutAssetRows,
-          ramp_up_period: formData.ramp_up_period || 0,
-          revenue_attribution: formData.revenue_attribution || 0,
-          revenue_growth_rate: formData.revenue_growth_rate || 0,
-          expert_signoffs: expertSignoffs,
-          scenario_report: formData.scenario_report || null,
-          expert_approval: formData.expert_approval || null,
-        },
+        method_inputs: methodInputs,
       };
 
       console.log('📤 ذخیره M04 در دیتابیس:', payload);
+      console.log('📤 valuationCaseId:', valuationCaseId);
       
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
       
+      // 🔥 فیلتر کردن بر اساس valuation_case_id
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
       let response;
-      if (items.length > 0) {
-        const step3Id = items[0].id;
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        console.log(`📤 به‌روزرسانی STEP 3 ID: ${step3Id} برای Case: ${valuationCaseId}`);
         response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M04 به‌روزرسانی شد (PUT)');
       } else {
-        response = await api.post('/intangible/valuation-step3/', payload);
+        console.log(`📤 ایجاد STEP 3 جدید برای Case: ${valuationCaseId}`);
+        const createPayload = {
+          ...payload,
+          valuation_case: valuationCaseId,
+        };
+        response = await api.post('/intangible/valuation-step3/', createPayload);
+        console.log('✅ M04 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
       console.log('✅ M04 در دیتابیس ذخیره شد:', response.data);
     } catch (error: any) {
       console.error('❌ خطا در ذخیره M04:', error);
+      console.error('❌ پاسخ خطا:', error.response?.data);
       setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
     } finally {
       setSaving(false);

@@ -16,6 +16,7 @@ from .notification_views import NotificationViewSet
 from .discovery_views import DiscoveryAssessmentViewSet, DiscoveryAssetViewSet
 from .views_discovery import SuggestTemplateView
 from .valuation_sensitivity_views import SensitivityAnalysisViewSet
+from .valuation_qc_views import QualityControlViewSet
 
 router = DefaultRouter()
 
@@ -46,7 +47,7 @@ router.register(r'notifications', NotificationViewSet, basename='notifications')
 # Discovery routers (موتور شناسایی)
 router.register(r'discovery', DiscoveryAssessmentViewSet, basename='discovery')
 router.register(r'discovery-assets', DiscoveryAssetViewSet, basename='discovery-asset')
-
+router.register(r'valuation-qc', QualityControlViewSet, basename='valuation-qc')
 # Sensitivity routers (STEP 6 - تحلیل حساسیت)
 router.register(r'sensitivity', SensitivityAnalysisViewSet, basename='sensitivity')
 

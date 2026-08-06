@@ -248,6 +248,61 @@ export default function ValuationPage() {
     return true;
   };
 
+  // ============================================
+  // 🔥 تابع ذخیره QC در دیتابیس
+  // ============================================
+  const handleSaveQC = async (data: any) => {
+  try {
+    console.log('💾 ذخیره QC در دیتابیس:', data);
+    
+    const payload = {
+      valuation_case: valuationCaseId,
+      method_id: selectedMethod,
+      completeness_score: data.summary.completeness_score,
+      total_rules: data.summary.total_rules,
+      passed: data.summary.passed,
+      warnings: data.summary.warnings,
+      errors: data.summary.errors,
+      blocking_issues: data.summary.blocking_issues,
+      decision: data.decision,
+      reviewer_comment: data.reviewerComment || '',
+      qc_data: data.qcRules || [],
+    };
+    
+    // 🔥 ابتدا چک کن که QC وجود دارد یا نه
+    try {
+      const { data: existing } = await api.get(`/intangible/valuation-qc/?valuation_case=${valuationCaseId}`);
+      const items = existing.results || existing || [];
+      
+      if (items.length > 0) {
+        // اگر وجود دارد → UPDATE (PUT)
+        const qcId = items[0].id;
+        console.log(`📤 به‌روزرسانی QC ID: ${qcId}`);
+        const response = await api.put(`/intangible/valuation-qc/${qcId}/`, payload);
+        console.log('✅ QC results updated successfully:', response.data);
+      } else {
+        // اگر وجود ندارد → CREATE (POST)
+        console.log('📤 ایجاد QC جدید');
+        const response = await api.post('/intangible/valuation-qc/save_result/', payload);
+        console.log('✅ QC results created successfully:', response.data);
+      }
+    } catch (error: any) {
+      // اگر خطا 404 بود، یعنی QC وجود ندارد → CREATE
+      if (error.response?.status === 404) {
+        console.log('📤 ایجاد QC جدید (404)');
+        const response = await api.post('/intangible/valuation-qc/save_result/', payload);
+        console.log('✅ QC results created successfully:', response.data);
+      } else {
+        throw error;
+      }
+    }
+  } catch (error: any) {
+    console.error('❌ Error saving QC results:', error);
+    console.error('Error details:', error.response?.data);
+    alert('خطا در ذخیره نتایج کنترل کیفیت: ' + (error.response?.data?.detail || error.message));
+  }
+};
+
   if (loading) {
     return (
       <div className="p-6">
@@ -315,9 +370,7 @@ export default function ValuationPage() {
             assetId={selectedAsset?.id}
             valuationCaseId={valuationCaseId}
             methodId={currentMethodId}
-            onSave={(data) => {
-              console.log('💾 ذخیره QC:', data);
-            }}
+            onSave={handleSaveQC}  // 🔥 اضافه شد
           />
         );
       case 6:
@@ -332,14 +385,20 @@ export default function ValuationPage() {
           />
         );
       case 7:
-        return (
-          <Step7_Report
-            onPrev={prevStep}
-            selectedMethod={selectedMethod}
-            methods={VALUATION_METHODS}
-            formData={formData}
-          />
-        );
+  return (
+    <Step7_Report
+      onPrev={prevStep}
+      valuationCaseId={valuationCaseId}  
+      methodId={currentMethodId}        
+      assetId={selectedAsset?.id}       
+      selectedMethod={selectedMethod}
+      methods={VALUATION_METHODS}
+      formData={formData}
+      onComplete={(data) => {
+        console.log('✅ STEP 7 کامل شد:', data);
+      }}
+    />
+  );
       default:
         return null;
     }
