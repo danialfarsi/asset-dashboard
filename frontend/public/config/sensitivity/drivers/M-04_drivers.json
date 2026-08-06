@@ -5,29 +5,19 @@
   "drivers": [
     {
       "id": "with_asset_growth",
-      "name": "With Asset Growth Rate",
       "name_fa": "نرخ رشد با دارایی",
       "base": 0.08,
-      "low": 0.05,
-      "high": 0.12,
-      "step": 0.01,
-      "unit": "percent",
-      "decimal_places": 2,
-      "is_editable": true,
-      "enabled": true
+      "low": 0.06,
+      "high": 0.10,
+      "step": 0.005
     },
     {
       "id": "without_asset_growth",
-      "name": "Without Asset Growth Rate",
       "name_fa": "نرخ رشد بدون دارایی",
       "base": 0.06,
-      "low": 0.03,
-      "high": 0.10,
-      "step": 0.01,
-      "unit": "percent",
-      "decimal_places": 2,
-      "is_editable": true,
-      "enabled": true
+      "low": 0.04,
+      "high": 0.08,
+      "step": 0.005
     },
     {
       "id": "discount_rate",

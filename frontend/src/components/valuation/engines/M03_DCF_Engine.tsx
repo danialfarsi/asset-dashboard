@@ -145,7 +145,7 @@ export function M03_DCF_Engine({
       ['سال', 'FCF', 'ضریب تنزیل', 'ارزش فعلی (PV)'],
     ];
     yearlyData.forEach((row: any) => {
-      rows.push([row.year, row.fcf, row.discount_factor, row.pv]);
+      rows.push([row.year || 0, row.fcf || 0, row.discount_factor || 0, row.pv || 0]);
     });
     rows.push(['']);
     rows.push(['خلاصه نتایج']);
@@ -353,11 +353,11 @@ export function M03_DCF_Engine({
                 <tbody>
                   {yearlyData.map((row: any, index: number) => (
                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">{toPersianDigit(row.year)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.fcf)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{row.discount_factor.toFixed(4)}</td>
+                      <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">{toPersianDigit(row.year || 0)}</td>
+                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.fcf || 0)}</td>
+                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{(row.discount_factor || 0).toFixed(4)}</td>
                       <td className="border p-2 text-right font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
-                        {formatRial(row.pv)}
+                        {formatRial(row.pv || 0)}
                       </td>
                     </tr>
                   ))}

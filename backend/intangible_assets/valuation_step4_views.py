@@ -327,31 +327,44 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
     def calculate_m03(self, inputs):
         print('🔥 calculate_m03 called!')
         
-        # دریافت از STEP 3
+        # دریافت از STEP 3 - پشتیبانی از هر دو نام
         fcf_data = inputs.get('fcf_data', [])
-        intangible_share = inputs.get('intangible_share', 70) / 100
+        if not fcf_data:
+            fcf_data = inputs.get('fcf_schedule', [])
+        
+        intangible_share = inputs.get('intangible_share_percent', inputs.get('intangible_share', 70)) / 100
         forecast_horizon = inputs.get('forecast_horizon', 5)
         tax_rate = inputs.get('tax_rate', 25) / 100
         discount_rate = inputs.get('discount_rate', 18) / 100
         terminal_growth_rate = inputs.get('terminal_growth_rate', 5) / 100
         quality_multiplier = inputs.get('quality_multiplier', 0.85)
         
-        # گام ۱: محاسبه ارزش تنزیل‌شده FCFهای سالانه
+        print(f'📊 M-03: forecast_horizon = {forecast_horizon}')
+        print(f'📊 M-03: fcf_data = {fcf_data}')
+        
+        # اگر fcf_data خالی بود، خطا بده
+        if not fcf_data:
+            return {
+                'final_value': 0,
+                'confidence_level': 0.80,
+                'qc_score': 80,
+                'details': {
+                    'summary': {
+                        'error': 'داده‌های FCF در STEP 3 وجود ندارد',
+                        'forecast_horizon': forecast_horizon
+                    }
+                }
+            }
+        
+        # فقط به تعداد forecast_horizon سال محاسبه کن
         yearly_data = []
         total_pv = 0
         
-        # اگر fcf_data خالی بود، از مقادیر پیش‌فرض استفاده کن
-        if not fcf_data:
-            fcf_data = [
-                {'year': 1, 'fcf': 80000000},
-                {'year': 2, 'fcf': 90000000},
-                {'year': 3, 'fcf': 100000000},
-                {'year': 4, 'fcf': 110000000},
-                {'year': 5, 'fcf': 120000000},
-            ]
+        # محدود کردن به forecast_horizon
+        fcf_data_limited = fcf_data[:forecast_horizon]
         
-        for item in fcf_data:
-            year = item.get('year', 1)
+        for i, item in enumerate(fcf_data_limited):
+            year = i + 1
             fcf = item.get('fcf', 0)
             pv_factor = 1 / ((1 + discount_rate) ** year)
             pv = fcf * pv_factor
@@ -364,18 +377,32 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'pv': round(pv)
             })
         
-        # گام ۳: ارزش پایانی
-        last_fcf = yearly_data[-1]['fcf']
-        terminal_value = (last_fcf * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
+        # اگر تعداد FCF ها کمتر از forecast_horizon بود، با ۰ پر کن
+        while len(yearly_data) < forecast_horizon:
+            year = len(yearly_data) + 1
+            pv_factor = 1 / ((1 + discount_rate) ** year)
+            yearly_data.append({
+                'year': year,
+                'fcf': 0,
+                'pv_factor': round(pv_factor, 4),
+                'pv': 0
+            })
+        
+        # ارزش پایانی
+        last_fcf = yearly_data[-1]['fcf'] if yearly_data else 0
+        if discount_rate > terminal_growth_rate:
+            terminal_value = (last_fcf * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
+        else:
+            terminal_value = 0
         pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
         
-        # گام ۵: ارزش کل شرکت (Enterprise Value)
+        # ارزش کل شرکت
         enterprise_value = total_pv + pv_terminal
         
-        # گام ۶: اعمال سهم دارایی نامشهود
+        # اعمال سهم دارایی نامشهود
         intangible_value = enterprise_value * intangible_share
         
-        # گام ۷: اعمال ضریب کیفیت
+        # اعمال ضریب کیفیت
         final_value = intangible_value * quality_multiplier
         
         # Waterfall
@@ -463,7 +490,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'final_value': round(final_value),
                 }
             }
-        }
+    }
     # ============================================
     # M-04: With-and-Without Method
     # ============================================
@@ -830,6 +857,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
     # ============================================
     def calculate_m07(self, inputs):
         print('🔥 calculate_m07 called!')
+        print(f'📥 Inputs: {inputs}')
         
         # دریافت از STEP 3
         team_members = inputs.get('team_members', [])
@@ -837,8 +865,16 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         productivity_loss = inputs.get('productivity_loss', 30) / 100
         turnover_rate = inputs.get('turnover_rate', 8) / 100
         quality_multiplier = inputs.get('quality_multiplier', 0.87)
+        discount_rate = inputs.get('discount_rate', 18) / 100
+        tax_rate = inputs.get('tax_rate', 25) / 100
         
-        # گام ۱: هزینه جذب کل
+        print(f'📊 team_members: {team_members}')
+        print(f'📊 ramp_up_duration: {ramp_up_duration}')
+        print(f'📊 productivity_loss: {productivity_loss}')
+        print(f'📊 turnover_rate: {turnover_rate}')
+        print(f'📊 quality_multiplier: {quality_multiplier}')
+        
+        # گام ۱: محاسبه هزینه‌ها
         recruit_total = 0
         train_total = 0
         salary_total = 0
@@ -848,7 +884,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             headcount = member.get('headcount', 0)
             recruit_cost = member.get('recruit_cost', 0)
             train_cost = member.get('train_cost', 0)
-            salary = member.get('salary', 0)
+            salary = member.get('avg_salary', member.get('salary', 0))
             
             recruit_total += headcount * recruit_cost
             train_total += headcount * train_cost
@@ -865,19 +901,24 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'salary_total': headcount * salary
             })
         
-        # گام ۲: هزینه آموزش کل (همان train_total)
+        print(f'📊 recruit_total: {recruit_total}')
+        print(f'📊 train_total: {train_total}')
+        print(f'📊 salary_total: {salary_total}')
         
-        # گام ۳: هزینه کاهش بهره‌وری
+        # گام ۲: هزینه کاهش بهره‌وری
         productivity_loss_cost = salary_total * (ramp_up_duration / 12) * productivity_loss
         
-        # گام ۴: هزینه جابجایی (اختیاری)
+        # گام ۳: هزینه جابجایی
         turnover_cost = (recruit_total + train_total) * turnover_rate
         
-        # گام ۵: جمع هزینه کل بازسازی
+        # گام ۴: جمع هزینه کل بازسازی
         total_replacement_cost = recruit_total + train_total + productivity_loss_cost + turnover_cost
         
-        # گام ۶: اعمال ضریب کیفیت
+        # گام ۵: اعمال ضریب کیفیت
         final_value = total_replacement_cost * quality_multiplier
+        
+        print(f'📊 total_replacement_cost: {total_replacement_cost}')
+        print(f'📊 final_value: {final_value}')
         
         # Waterfall
         waterfall = []
@@ -972,7 +1013,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'final_value': round(final_value),
                 }
             }
-        }
+    }
         # ============================================
     # M-08: CTM (Comparable Transactions Method)
     # ============================================
@@ -1327,3 +1368,4 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 }
             }
         }
+

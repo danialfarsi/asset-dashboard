@@ -8,9 +8,11 @@ import api from '@/lib/api';
 
 import { M01_RfR_Engine } from '../engines/M01_RfR_Engine';
 import { M02_MEEM_Engine } from '../engines/M02_MEEM_Engine';
+import { M03_DCF_Engine } from '../engines/M03_DCF_Engine';
 import { M04_WWM_Engine } from '../engines/M04_WWM_Engine';
 import { M05_RCM_Engine } from '../engines/M05_RCM_Engine';
 import { M06_RPCM_Engine } from '../engines/M06_RPCM_Engine';
+import { M07_TWC_Engine } from '../engines/M07_TWC_Engine';
 import { M08_CTM_Engine } from '../engines/M08_CTM_Engine';
 import { M09_MMM_Engine } from '../engines/M09_MMM_Engine';
 
@@ -28,7 +30,7 @@ export function Step4_Calculation({
   onNext, 
   onPrev, 
   valuationCaseId: propValuationCaseId,
-  methodId: propMethodId = 'M-06',
+  methodId: propMethodId = 'M-01',
   assetId
 }: Step4Props) {
   const [loading, setLoading] = useState(true);
@@ -190,7 +192,7 @@ export function Step4_Calculation({
       console.log('📥 ایجاد STEP 4 جدید...');
       const createRes = await api.post('/intangible/valuation-step4/', {
         valuation_case: valuationCaseId,
-        method_id: finalMethodId || propMethodId || 'M-03',
+        method_id: finalMethodId || propMethodId || 'M-01',
       });
       const newStep4Id = createRes.data.id;
       setStep4Id(newStep4Id);
@@ -225,9 +227,11 @@ export function Step4_Calculation({
     const labels: Record<string, string> = {
       'M-01': 'RfR - روش حق‌الامتیاز (Relief-from-Royalty)',
       'M-02': 'MEEM - روش سود مازاد چند دوره‌ای (Multi-Period Excess Earnings)',
+      'M-03': 'DCF - روش جریان نقدی تنزیل‌شده (Discounted Cash Flow)',
       'M-04': 'WWM - روش با و بدون',
       'M-05': 'RCM - روش هزینه جایگزینی',
       'M-06': 'RPCM - روش هزینه بازتولید',
+      'M-07': 'TWC - روش هزینه نیروی کار آموزش‌دیده (Trained Workforce Cost)',
       'M-08': 'CTM - روش معاملات مشابه (Comparable Transactions)',
       'M-09': 'MMM - روش ضریب بازار (Market Multiples Method)',
     };
@@ -235,7 +239,7 @@ export function Step4_Calculation({
   };
 
   // 🔥 مهم: finalMethodId رو درست تنظیم کن
-  const finalMethodId = actualMethodId || propMethodId || 'M-03';
+  const finalMethodId = actualMethodId || propMethodId || 'M-01';
 
   const renderEngine = () => {
     console.log('🔧 renderEngine - finalMethodId:', finalMethodId);
@@ -250,7 +254,6 @@ export function Step4_Calculation({
       error,
     };
 
-    // 🔥 اضافه کردن M-09
     switch (finalMethodId) {
       case 'M-01':
         console.log('✅ رندر M01_RfR_Engine');
@@ -258,6 +261,9 @@ export function Step4_Calculation({
       case 'M-02':
         console.log('✅ رندر M02_MEEM_Engine');
         return <M02_MEEM_Engine {...commonProps} />;
+      case 'M-03':
+        console.log('✅ رندر M03_DCF_Engine');
+        return <M03_DCF_Engine {...commonProps} />;
       case 'M-04':
         console.log('✅ رندر M04_WWM_Engine');
         return <M04_WWM_Engine {...commonProps} />;
@@ -267,6 +273,9 @@ export function Step4_Calculation({
       case 'M-06':
         console.log('✅ رندر M06_RPCM_Engine');
         return <M06_RPCM_Engine {...commonProps} />;
+      case 'M-07':
+        console.log('✅ رندر M07_TWC_Engine');
+        return <M07_TWC_Engine {...commonProps} />;
       case 'M-08':
         console.log('✅ رندر M08_CTM_Engine');
         return <M08_CTM_Engine {...commonProps} />;

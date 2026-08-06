@@ -105,7 +105,8 @@ export function M07_TWC_Engine({
   // استخراج داده‌ها
   // ============================================
   const summary = data?.summary || data;
-  const teamMembers = data?.team_members || data?.inputs_used?.team_composition || [];
+  // 🔥 اصلاح: پشتیبانی از team_details
+  const teamMembers = data?.team_details || data?.team_members || data?.inputs_used?.team_composition || [];
   const hasData = summary && (summary.final_value || finalValue);
 
   // ============================================
@@ -115,8 +116,8 @@ export function M07_TWC_Engine({
     const headcount = member.headcount || 0;
     const recruitCost = member.recruit_cost_per_person || member.recruit_cost || 0;
     const trainCost = member.train_cost_per_person || member.train_cost || 0;
-    const salary = member.salary_per_year || member.avg_salary || 0;
-    const rampUpLoss = salary * (summary?.ramp_up_duration_months || 6) / 12 * (summary?.productivity_loss_percent || 0.3);
+    const salary = member.salary_per_year || member.avg_salary || member.salary || 0;
+    const rampUpLoss = salary * (summary?.ramp_up_duration || 6) / 12 * (summary?.productivity_loss || 0.3);
     const total = (headcount * recruitCost) + (headcount * trainCost) + (headcount * rampUpLoss);
     
     return {

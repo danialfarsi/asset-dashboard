@@ -25,30 +25,45 @@ class SensitivityEngine:
                 if k not in ['base_value', 'original_base_value']:
                     clean_params[k] = v
             
-            # 🔥 نگاشت برای M-01
+            # ============================================
+            # 🔥 نگاشت برای M-01 (RfR)
+            # ============================================
             if self.method_id == 'M-01':
                 if 'terminal_growth' in clean_params:
                     clean_params['terminal_growth_rate'] = clean_params['terminal_growth']
+                    clean_params.pop('terminal_growth', None)
                 if 'revenue_growth' in clean_params:
                     clean_params['revenue_growth_rate'] = clean_params['revenue_growth']
+                    clean_params.pop('revenue_growth', None)
             
+            # ============================================
+            # 🔥 نگاشت برای M-04 (WWM)
+            # ============================================
+            if self.method_id == 'M-04':
+                # اطمینان از وجود with_asset_growth
+                if 'with_asset_growth' in clean_params:
+                    clean_params['with_asset_growth'] = clean_params['with_asset_growth']
+                if 'without_asset_growth' in clean_params:
+                    clean_params['without_asset_growth'] = clean_params['without_asset_growth']
+                if 'discount_rate' in clean_params:
+                    clean_params['discount_rate'] = clean_params['discount_rate']
+                if 'forecast_horizon' not in clean_params:
+                    clean_params['forecast_horizon'] = self.case_data.get('forecast_horizon', 5)
+                if 'tax_rate' not in clean_params:
+                    clean_params['tax_rate'] = self.case_data.get('tax_rate', 0.25)
+                if 'current_revenue' not in clean_params:
+                    clean_params['current_revenue'] = self.case_data.get('current_revenue', 1000000000)
+            
+            # ============================================
             # 🔥 نگاشت برای M-05 (RCM)
+            # ============================================
             if self.method_id == 'M-05':
-                # دریافت مقادیر از clean_params
                 labor_factor = clean_params.get('labor_cost', 100) / 100
                 material_factor = clean_params.get('material_cost', 100) / 100
                 
-                # دریافت مقادیر اصلی از case_data
                 original_labor = self.case_data.get('labor_breakdown', [])
                 original_material = self.case_data.get('material_infra_cost', 0)
                 
-                print(f'📊 M-05 Mapping:')
-                print(f'  labor_factor: {labor_factor}')
-                print(f'  material_factor: {material_factor}')
-                print(f'  original_labor: {original_labor}')
-                print(f'  original_material: {original_material}')
-                
-                # اعمال ضریب به labor_breakdown
                 if original_labor:
                     new_labor = []
                     for item in original_labor:
@@ -60,33 +75,86 @@ class SensitivityEngine:
                 else:
                     clean_params['labor_breakdown'] = self.case_data.get('labor_breakdown', [])
                 
-                # اعمال ضریب به material_infra_cost
                 clean_params['material_infra_cost'] = original_material * material_factor
                 
-                # حذف labor_cost و material_cost از clean_params
                 clean_params.pop('labor_cost', None)
                 clean_params.pop('material_cost', None)
                 
-                # تبدیل obsolescence_pct به functional_obs_pct و economic_obs_pct
                 if 'obsolescence_pct' in clean_params:
                     total_obs = clean_params['obsolescence_pct'] / 100
                     clean_params['functional_obs_pct'] = total_obs * 0.5
                     clean_params['economic_obs_pct'] = total_obs * 0.5
                     clean_params.pop('obsolescence_pct', None)
                 
-                # اطمینان از وجود developer_profit_pct
                 if 'developer_profit_pct' not in clean_params:
                     clean_params['developer_profit_pct'] = self.case_data.get('developer_profit_pct', 15)
             
-            # اطمینان از وجود forecast_horizon
+            # ============================================
+            # 🔥 نگاشت برای M-06 (RPCM)
+            # ============================================
+            if self.method_id == 'M-06':
+                labor_factor = clean_params.get('labor_cost', 100) / 100
+                direct_factor = clean_params.get('direct_cost', 100) / 100
+                
+                original_labor = self.case_data.get('labor_breakdown', [])
+                original_direct = self.case_data.get('direct_reproduction_cost', 0)
+                
+                if original_labor:
+                    new_labor = []
+                    for item in original_labor:
+                        new_item = item.copy()
+                        new_item['person_days'] = item.get('person_days', 0) * labor_factor
+                        new_item['daily_rate'] = item.get('daily_rate', 0)
+                        new_labor.append(new_item)
+                    clean_params['labor_breakdown'] = new_labor
+                else:
+                    clean_params['labor_breakdown'] = self.case_data.get('labor_breakdown', [])
+                
+                clean_params['direct_reproduction_cost'] = original_direct * direct_factor
+                
+                clean_params.pop('labor_cost', None)
+                clean_params.pop('direct_cost', None)
+                
+                if 'overhead_pct' in clean_params:
+                    clean_params['coordination_overhead'] = clean_params['overhead_pct']
+                    clean_params.pop('overhead_pct', None)
+                
+                if 'obsolescence_pct' in clean_params:
+                    clean_params['relevance_obsolescence'] = clean_params['obsolescence_pct'] / 100
+                    clean_params.pop('obsolescence_pct', None)
+                
+                if 'age_factor' not in clean_params:
+                    clean_params['age_factor'] = self.case_data.get('age_factor', 0)
+            
+            # ============================================
+            # 🔥 نگاشت برای M-09 (MMM)
+            # ============================================
+            if self.method_id == 'M-09':
+                if 'control_premium' in clean_params:
+                    clean_params['control_premium_percent'] = clean_params['control_premium'] * 100
+                    clean_params.pop('control_premium', None)
+                
+                if 'marketability_discount' in clean_params:
+                    clean_params['marketability_discount_percent'] = clean_params['marketability_discount'] * 100
+                    clean_params.pop('marketability_discount', None)
+                
+                if 'intangible_share' in clean_params:
+                    clean_params['intangible_share_percent'] = clean_params['intangible_share'] * 100
+                    clean_params.pop('intangible_share', None)
+                
+                # اطمینان از وجود base_metric
+                if 'base_metric' not in clean_params:
+                    clean_params['base_metric'] = self.case_data.get('base_metric', 'revenue')
+            
+            # ============================================
+            # اطمینان از وجود پارامترهای پایه
+            # ============================================
             if 'forecast_horizon' not in clean_params:
                 clean_params['forecast_horizon'] = self.case_data.get('forecast_horizon', 5)
             
-            # اطمینان از وجود current_revenue
             if 'current_revenue' not in clean_params:
                 clean_params['current_revenue'] = self.case_data.get('current_revenue', 10000000000)
             
-            # اطمینان از وجود سایر پارامترهای کلیدی
             if 'revenue_attribution' not in clean_params:
                 clean_params['revenue_attribution'] = self.case_data.get('revenue_attribution', 0.80)
             
@@ -95,6 +163,9 @@ class SensitivityEngine:
             
             if 'tax_rate' not in clean_params:
                 clean_params['tax_rate'] = self.case_data.get('tax_rate', 0.25)
+            
+            if 'discount_rate' not in clean_params:
+                clean_params['discount_rate'] = self.case_data.get('discount_rate', 0.18)
             
             print(f'📊 Clean params keys: {list(clean_params.keys())}')
             result = calculate_value(self.method_id, clean_params)

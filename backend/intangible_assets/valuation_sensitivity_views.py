@@ -75,7 +75,9 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
             
             # 🔥 اضافه کردن پارامترهای STEP 3 بر اساس method_id
             if inputs:
-                # پارامترهای M-01
+                # ============================================
+                # پارامترهای M-01 (RfR)
+                # ============================================
                 if method_id == 'M-01':
                     if 'royalty_rate' in inputs:
                         case_data['royalty_rate'] = float(inputs.get('royalty_rate', 0.04))
@@ -86,14 +88,29 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
                     if 'quality_multiplier' in inputs:
                         case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
                 
-                # 🔥 پارامترهای M-05 (RCM)
+                # ============================================
+                # پارامترهای M-04 (WWM)
+                # ============================================
+                if method_id == 'M-04':
+                    if 'with_asset_growth' in inputs:
+                        case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
+                    if 'without_asset_growth' in inputs:
+                        case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
+                    if 'discount_rate' in inputs:
+                        case_data['discount_rate'] = float(inputs.get('discount_rate', 0.18))
+                    if 'tax_rate' in inputs:
+                        case_data['tax_rate'] = float(inputs.get('tax_rate', 0.25))
+                    if 'forecast_horizon' in inputs:
+                        case_data['forecast_horizon'] = int(inputs.get('forecast_horizon', 5))
+                
+                # ============================================
+                # پارامترهای M-05 (RCM)
+                # ============================================
                 if method_id == 'M-05':
                     if 'labor_breakdown' in inputs:
                         case_data['labor_breakdown'] = inputs.get('labor_breakdown', [])
-                        print(f'📊 labor_breakdown: {case_data["labor_breakdown"]}')
                     if 'material_infra_cost' in inputs:
                         case_data['material_infra_cost'] = float(inputs.get('material_infra_cost', 0))
-                        print(f'📊 material_infra_cost: {case_data["material_infra_cost"]}')
                     if 'overhead_pct' in inputs:
                         case_data['overhead_pct'] = float(inputs.get('overhead_pct', 12))
                     if 'developer_profit_pct' in inputs:
@@ -105,12 +122,49 @@ class SensitivityAnalysisViewSet(viewsets.ModelViewSet):
                     if 'quality_multiplier' in inputs:
                         case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
                 
-                # پارامترهای M-04
-                if method_id == 'M-04':
-                    if 'with_asset_growth' in inputs:
-                        case_data['with_asset_growth'] = float(inputs.get('with_asset_growth', 0.08))
-                    if 'without_asset_growth' in inputs:
-                        case_data['without_asset_growth'] = float(inputs.get('without_asset_growth', 0.06))
+                # ============================================
+                # پارامترهای M-06 (RPCM)
+                # ============================================
+                if method_id == 'M-06':
+                    if 'labor_breakdown' in inputs:
+                        case_data['labor_breakdown'] = inputs.get('labor_breakdown', [])
+                    if 'direct_reproduction_cost' in inputs:
+                        case_data['direct_reproduction_cost'] = float(inputs.get('direct_reproduction_cost', 0))
+                    if 'coordination_overhead' in inputs:
+                        case_data['coordination_overhead'] = float(inputs.get('coordination_overhead', 20))
+                    if 'relevance_obsolescence' in inputs:
+                        case_data['relevance_obsolescence'] = float(inputs.get('relevance_obsolescence', 0))
+                    if 'age_factor' in inputs:
+                        case_data['age_factor'] = float(inputs.get('age_factor', 0))
+                    if 'quality_multiplier' in inputs:
+                        case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.92))
+                    if 'tax_rate' in inputs:
+                        case_data['tax_rate'] = float(inputs.get('tax_rate', 0.25))
+                    if 'discount_rate' in inputs:
+                        case_data['discount_rate'] = float(inputs.get('discount_rate', 0.18))
+                
+                # ============================================
+                # پارامترهای M-09 (MMM)
+                # ============================================
+                if method_id == 'M-09':
+                    if 'base_metric' in inputs:
+                        case_data['base_metric'] = inputs.get('base_metric', 'revenue')
+                    if 'base_metric_value' in inputs:
+                        case_data['base_metric_value'] = float(inputs.get('base_metric_value', 100000000000))
+                    if 'market_multiple' in inputs:
+                        case_data['market_multiple'] = float(inputs.get('market_multiple', 2.5))
+                    if 'control_premium_percent' in inputs:
+                        case_data['control_premium_percent'] = float(inputs.get('control_premium_percent', 10))
+                    if 'marketability_discount_percent' in inputs:
+                        case_data['marketability_discount_percent'] = float(inputs.get('marketability_discount_percent', 20))
+                    if 'intangible_share_percent' in inputs:
+                        case_data['intangible_share_percent'] = float(inputs.get('intangible_share_percent', 40))
+                    if 'quality_multiplier' in inputs:
+                        case_data['quality_multiplier'] = float(inputs.get('quality_multiplier', 0.86))
+                    if 'tax_rate' in inputs:
+                        case_data['tax_rate'] = float(inputs.get('tax_rate', 0.25))
+                    if 'discount_rate' in inputs:
+                        case_data['discount_rate'] = float(inputs.get('discount_rate', 0.18))
             
             # اضافه کردن مقادیر سفارشی drivers به case_data
             for driver in custom_drivers:
