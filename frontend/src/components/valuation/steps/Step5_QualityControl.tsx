@@ -36,108 +36,6 @@ interface QCSummary {
   blocking_issues: number;
 }
 
-interface FCFValidationResult {
-  status: 'PASS' | 'WARN' | 'FAIL';
-  messages: string[];
-  metrics: {
-    avg_growth: number;
-    max_volatility: number;
-    years: number;
-    growth_rates: number[];
-    is_positive_trend: boolean;
-  };
-}
-
-// ============================================
-// تابع اعتبارسنجی FCF Trend برای M-03
-// ============================================
-const validateFCFTrend = (fcfs: number[]): FCFValidationResult => {
-  // 1. حداقل ۲ سال FCF
-  if (fcfs.length < 2) {
-    return {
-      status: 'WARN',
-      messages: ['حداقل ۲ سال FCF لازم است'],
-      metrics: {
-        avg_growth: 0,
-        max_volatility: 0,
-        years: fcfs.length,
-        growth_rates: [],
-        is_positive_trend: false,
-      },
-    };
-  }
-
-  // 2. همه FCFها مثبت باشند
-  const hasNegative = fcfs.some(f => f <= 0);
-  const messages: string[] = [];
-  
-  if (hasNegative) {
-    messages.push('برخی FCFها منفی یا صفر هستند - این موضوع باید توجیه شود');
-  }
-
-  // 3. محاسبه نرخ رشد هر سال
-  const growthRates: number[] = [];
-  for (let i = 1; i < fcfs.length; i++) {
-    const growth = (fcfs[i] - fcfs[i - 1]) / fcfs[i - 1];
-    growthRates.push(growth);
-  }
-
-  // 4. میانگین نرخ رشد
-  const avgGrowth = growthRates.reduce((a, b) => a + b, 0) / growthRates.length;
-
-  // 5. حداکثر نوسان
-  const maxVolatility = Math.max(...growthRates.map(Math.abs));
-
-  // 6. بررسی روند کلی (صعودی/نزولی)
-  const increasingYears = growthRates.filter(g => g > 0).length;
-  const decreasingYears = growthRates.filter(g => g < 0).length;
-  const isPositiveTrend = increasingYears > decreasingYears;
-
-  // 7. قوانین هشدار
-  const threshold = 0.30;
-
-  if (Math.abs(avgGrowth) > threshold) {
-    messages.push(
-      `میانگین نرخ رشد (${(avgGrowth * 100).toFixed(1)}%) از حد مجاز (${threshold * 100}%) بیشتر است`
-    );
-  }
-
-  if (maxVolatility > threshold * 1.5) {
-    messages.push(
-      `نوسان شدید (${(maxVolatility * 100).toFixed(1)}%) در رشد FCF وجود دارد`
-    );
-  }
-
-  if (avgGrowth < 0) {
-    messages.push('روند کلی FCF نزولی است، این موضوع باید توجیه شود');
-  }
-
-  if (growthRates.some(g => g > 1.0)) {
-    messages.push('رشد بیش از ۱۰۰% در یک سال غیرمنطقی است');
-  }
-
-  // 8. تعیین وضعیت نهایی
-  let status: 'PASS' | 'WARN' | 'FAIL' = 'PASS';
-  
-  if (messages.length > 2) {
-    status = 'FAIL';
-  } else if (messages.length > 0) {
-    status = 'WARN';
-  }
-
-  return {
-    status,
-    messages,
-    metrics: {
-      avg_growth: avgGrowth,
-      max_volatility: maxVolatility,
-      years: fcfs.length,
-      growth_rates: growthRates,
-      is_positive_trend: isPositiveTrend,
-    },
-  };
-};
-
 // ============================================
 // تبدیل اعداد به فارسی
 // ============================================
@@ -153,7 +51,6 @@ const toPersianNumber = (num: number | string): string => {
 // ============================================
 const getRuleNameInPersian = (id: string, name: string): string => {
   const translations: Record<string, string> = {
-    // قوانین مشترک
     'Asset Profile کامل باشد': 'پروفایل دارایی کامل باشد',
     'Quality Scores ثبت شده باشد': 'امتیازات کیفی ثبت شده باشد',
     'Base Inputs کامل باشد': 'ورودی‌های پایه کامل باشد',
@@ -161,47 +58,28 @@ const getRuleNameInPersian = (id: string, name: string): string => {
     'وضعیت Double-Count مشخص شده باشد': 'وضعیت شمارش مضاعف مشخص شده باشد',
     'مفروضات عمومی ثبت شده باشد': 'مفروضات عمومی ثبت شده باشد',
     'Source Reliability از حداقل مجاز کمتر نباشد': 'قابلیت اتکای منبع از حداقل مجاز کمتر نباشد',
-    
-    // M-01
     'فایل Benchmark صنعت آپلود شده باشد': 'فایل معیار صنعت بارگذاری شده باشد',
     'منبع درآمدی آپلود شده باشد': 'منبع درآمدی بارگذاری شده باشد',
     'مستندات توصیف دارایی آپلود شده باشد': 'مستندات توصیف دارایی بارگذاری شده باشد',
     'ماهیت قابل لایسنس بودن مستند شده باشد': 'ماهیت قابل مجوزدهی مستند شده باشد',
-    
-    // M-03
-    'FCFها روند رشد منطقی داشته باشند': 'FCFها روند رشد منطقی داشته باشند',
-    'بودجه/برنامه مالی آپلود شده باشد': 'بودجه/برنامه مالی بارگذاری شده باشد',
-    'نرخ تنزیل در بازه منطقی باشد': 'نرخ تنزیل در بازه منطقی باشد',
-    
-    // M-04
     'سناریوی "With" مستند شده باشد': 'سناریوی "با دارایی" مستند شده باشد',
     'سناریوی "Without" مستند شده باشد': 'سناریوی "بدون دارایی" مستند شده باشد',
     'توجیه تفاضل منطقی باشد': 'توجیه تفاضل منطقی باشد',
     'دوره Ramp-up معقول باشد': 'دوره رشد (Ramp-up) معقول باشد',
-    
-    // M-05
     'درصد سربار در بازه ۸% تا ۱۵% باشد': 'درصد سربار در بازه ۸% تا ۱۵% باشد',
     'مجموع منسوخ‌شدگی ≤ ۶۰% باشد': 'مجموع منسوخ‌شدگی ≤ ۶۰% باشد',
     'تاریخ آخرین بازنگری تأیید شده باشد': 'تاریخ آخرین بازنگری تأیید شده باشد',
     'جایگزینی با معادل مدرن تأیید شده باشد': 'جایگزینی با معادل مدرن تأیید شده باشد',
-    
-    // M-06
     'درصد سربار هماهنگی در بازه ۸% تا ۱۵% باشد': 'درصد سربار هماهنگی در بازه ۸% تا ۱۵% باشد',
     'بازتولید دقیق (نه مدرن) تأیید شده باشد': 'بازتولید دقیق (نه مدرن) تأیید شده باشد',
-    
-    // M-07
     'فایل خروجی HR آپلود شده باشد': 'فایل خروجی HR بارگذاری شده باشد',
     'داده‌های هزینه جذب آپلود شده باشد': 'داده‌های هزینه جذب بارگذاری شده باشد',
     'شواهد هزینه آموزش آپلود شده باشد': 'شواهد هزینه آموزش بارگذاری شده باشد',
     'منبع کاهش بهره‌وری مستند شده باشد': 'منبع کاهش بهره‌وری مستند شده باشد',
-    
-    // M-08
     'حداقل ۳ معامله وارد شده باشد': 'حداقل ۳ معامله وارد شده باشد',
     'مجموع تعدیلات بین -۴۰% تا +۴۰% باشد': 'مجموع تعدیلات بین -۴۰% تا +۴۰% باشد',
     'تاریخ معامله ≤ ۵ سال قبل باشد': 'تاریخ معامله ≤ ۵ سال قبل باشد',
     'وزن هر معامله ≤ ۵۰% باشد': 'وزن هر معامله ≤ ۵۰% باشد',
-    
-    // M-09
     'ضریب بازار در بازه ۲.۰x - ۳.۵x باشد': 'ضریب بازار در بازه ۲.۰x - ۳.۵x باشد',
     'منبع ضریب معتبر باشد': 'منبع ضریب معتبر باشد',
     'سهم دارایی نامشهود منطقی باشد': 'سهم دارایی نامشهود منطقی باشد',
@@ -239,200 +117,101 @@ export function Step5_QualityControl({
   const [loaded, setLoaded] = useState(false);
   const loadingRef = useRef(false);
   
-  // state برای شواهد آپلود شده
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
-  const [hasEvidence, setHasEvidence] = useState(false);
   const [step3Data, setStep3Data] = useState<any>(null);
+  const [savedQC, setSavedQC] = useState<any>(null);
+  const [qcLoaded, setQcLoaded] = useState(false);
 
-  // بررسی شواهد آپلود شده
-  const checkUploadedEvidence = async () => {
-    if (!valuationCaseId) return;
+  // ============================================
+  // 🔥 قوانین QC بر اساس داده‌های واقعی
+  // ============================================
+  const getQCRules = (method: string, step3Inputs: any): QCRule[] => {
+    const inputs = step3Inputs || {};
     
-    try {
-      const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
-      const items = data.results || data || [];
-      
-      if (items.length > 0) {
-        const step3 = items[0];
-        setStep3Data(step3);
-        const inputs = step3.method_inputs || {};
-        
-        const fileFields: Record<string, string[]> = {
-          'M-01': ['benchmark_report', 'revenue_file', 'asset_description', 'licensable_evidence'],
-          'M-03': ['budget_file', 'financial_plan'],
-          'M-04': ['with_scenario_doc', 'without_scenario_doc', 'differential_justification'],
-          'M-05': ['labor_breakdown', 'material_infra_cost', 'overhead_pct', 'functional_obs_pct', 'economic_obs_pct'],
-          'M-07': ['hr_file', 'recruit_cost_data', 'training_evidence'],
-          'M-09': ['external_multiples', 'industry_context', 'ppa_note'],
-        };
-        
-        const fields = fileFields[actualMethodId] || [];
-        const uploaded: string[] = [];
-        
-        for (const field of fields) {
-          if (inputs[field]) {
-            uploaded.push(field);
-          }
-        }
-        
-        setUploadedFiles(uploaded);
-        setHasEvidence(uploaded.length > 0);
-      }
-    } catch (error) {
-      console.error('Error checking evidence:', error);
-    }
-  };
-
-  // ============================================
-  // قوانین QC بر اساس روش (داینامیک)
-  // ============================================
-  const getQCRules = (method: string, hasEvidence: boolean, fcfs?: number[]): QCRule[] => {
-    // قوانین مشترک (S5-01 تا S5-08)
     const commonRules: QCRule[] = [
-      { id: 'S5-01', name: 'Asset Profile کامل باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'اطلاعات پایه دارایی تکمیل شده است' },
-      { id: 'S5-02', name: 'Quality Scores ثبت شده باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'امتیازات کیفی وارد شده است' },
-      { id: 'S5-03', name: 'Base Inputs کامل باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'ورودی‌های پایه تکمیل شده است' },
+      { 
+        id: 'S5-01', 
+        name: 'Asset Profile کامل باشد', 
+        status: inputs.asset_name && inputs.description ? 'PASS' : 'FAIL',
+        priority: 'High', 
+        evidence: 'خودکار', 
+        description: inputs.asset_name && inputs.description ? 'اطلاعات پایه دارایی تکمیل شده است' : 'اطلاعات پایه دارایی کامل نیست' 
+      },
+      { 
+        id: 'S5-02', 
+        name: 'Quality Scores ثبت شده باشد', 
+        status: inputs.quality_scores ? 'PASS' : 'WARN',
+        priority: 'High', 
+        evidence: 'خودکار', 
+        description: inputs.quality_scores ? 'امتیازات کیفی وارد شده است' : 'امتیازات کیفی وارد نشده است' 
+      },
+      { 
+        id: 'S5-03', 
+        name: 'Base Inputs کامل باشد', 
+        status: inputs.tax_rate && inputs.discount_rate ? 'PASS' : 'FAIL',
+        priority: 'High', 
+        evidence: 'خودکار', 
+        description: 'ورودی‌های پایه تکمیل شده است' 
+      },
       { 
         id: 'S5-04', 
         name: 'حداقل شواهد مورد نیاز آپلود شده باشد', 
-        status: hasEvidence ? 'PASS' : 'WARN', 
+        status: inputs.evidence_files && inputs.evidence_files.length > 0 ? 'PASS' : 'WARN',
         priority: 'High', 
-        evidence: hasEvidence ? '✅ آپلود شده' : 'دستی', 
-        description: hasEvidence ? `${uploadedFiles.length} شاهد آپلود شده است` : 'یک شاهد مورد نیاز بارگذاری نشده است' 
+        evidence: inputs.evidence_files && inputs.evidence_files.length > 0 ? '✅ آپلود شده' : 'دستی', 
+        description: inputs.evidence_files && inputs.evidence_files.length > 0 ? `${inputs.evidence_files.length} شاهد آپلود شده است` : 'یک شاهد مورد نیاز بارگذاری نشده است' 
       },
-      { id: 'S5-05', name: 'وضعیت Double-Count مشخص شده باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'وضعیت شمارش مضاعف مشخص شده است' },
-      { id: 'S5-06', name: 'مفروضات عمومی ثبت شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'برخی مفروضات ثبت نشده است' },
-      { id: 'S5-07', name: 'Source Reliability از حداقل مجاز کمتر نباشد', status: 'PASS', priority: 'Medium', evidence: 'خودکار', description: 'قابلیت اتکای منبع قابل قبول است' },
-      { id: 'S5-08', name: 'Completeness Score ≥ ۸۰% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'امتیاز کامل بودن بالای ۸۰% است' },
+      { 
+        id: 'S5-05', 
+        name: 'وضعیت Double-Count مشخص شده باشد', 
+        status: inputs.double_count_status ? 'PASS' : 'WARN',
+        priority: 'High', 
+        evidence: 'خودکار', 
+        description: inputs.double_count_status ? 'وضعیت شمارش مضاعف مشخص شده است' : 'وضعیت شمارش مضاعف مشخص نشده است' 
+      },
+      { 
+        id: 'S5-06', 
+        name: 'مفروضات عمومی ثبت شده باشد', 
+        status: inputs.assumptions && inputs.assumptions.length > 0 ? 'PASS' : 'WARN',
+        priority: 'Medium', 
+        evidence: 'دستی', 
+        description: inputs.assumptions && inputs.assumptions.length > 0 ? 'مفروضات عمومی ثبت شده است' : 'برخی مفروضات ثبت نشده است' 
+      },
+      { 
+        id: 'S5-07', 
+        name: 'Source Reliability از حداقل مجاز کمتر نباشد', 
+        status: inputs.source_reliability && inputs.source_reliability !== 'low' ? 'PASS' : 'WARN',
+        priority: 'Medium', 
+        evidence: 'خودکار', 
+        description: inputs.source_reliability && inputs.source_reliability !== 'low' ? 'قابلیت اتکای منبع قابل قبول است' : 'قابلیت اتکای منبع پایین است' 
+      },
+      { 
+        id: 'S5-08', 
+        name: 'Completeness Score ≥ ۸۰% باشد', 
+        status: 'PENDING',
+        priority: 'High', 
+        evidence: 'خودکار', 
+        description: 'امتیاز کامل بودن محاسبه خواهد شد' 
+      },
     ];
 
-    // قوانین اختصاصی هر روش
     const methodSpecificRules: Record<string, QCRule[]> = {
-      // ============================================
-      // M-01: RfR (صفحه 47)
-      // ============================================
       'M-01': [
-        { id: 'M01-01', name: 'فایل Benchmark صنعت آپلود شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'فایل معیار صنعت بارگذاری شده است' },
-        { id: 'M01-02', name: 'منبع درآمدی آپلود شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'منبع درآمدی بارگذاری شده است' },
-        { id: 'M01-03', name: 'مستندات توصیف دارایی آپلود شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'مستندات توصیف دارایی بارگذاری نشده است' },
-        { id: 'M01-04', name: 'ماهیت قابل لایسنس بودن مستند شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'ماهیت قابل مجوزدهی مستند نشده است' },
+        { id: 'M01-01', name: 'فایل Benchmark صنعت آپلود شده باشد', status: inputs.benchmark_report ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.benchmark_report ? '✅ آپلود شده' : 'دستی', description: inputs.benchmark_report ? 'فایل معیار صنعت بارگذاری شده است' : 'فایل معیار صنعت بارگذاری نشده است' },
+        { id: 'M01-02', name: 'منبع درآمدی آپلود شده باشد', status: inputs.revenue_file ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.revenue_file ? '✅ آپلود شده' : 'دستی', description: inputs.revenue_file ? 'منبع درآمدی بارگذاری شده است' : 'منبع درآمدی بارگذاری نشده است' },
+        { id: 'M01-03', name: 'مستندات توصیف دارایی آپلود شده باشد', status: inputs.asset_description ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.asset_description ? '✅ آپلود شده' : 'دستی', description: inputs.asset_description ? 'مستندات توصیف دارایی بارگذاری شده است' : 'مستندات توصیف دارایی بارگذاری نشده است' },
+        { id: 'M01-04', name: 'ماهیت قابل لایسنس بودن مستند شده باشد', status: inputs.licensable_evidence ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.licensable_evidence ? '✅ آپلود شده' : 'دستی', description: inputs.licensable_evidence ? 'ماهیت قابل مجوزدهی مستند شده است' : 'ماهیت قابل مجوزدهی مستند نشده است' },
       ],
-
-      // ============================================
-      // M-03: DCF (صفحه 48-49)
-      // ============================================
-      'M-03': [
-        { 
-          id: 'M03-01', 
-          name: 'FCFها روند رشد منطقی داشته باشند', 
-          status: 'PASS', 
-          priority: 'Medium', 
-          evidence: 'خودکار', 
-          description: 'بررسی نرخ رشد و نوسانات FCF' 
-        },
-        { 
-          id: 'M03-02', 
-          name: 'بودجه/برنامه مالی آپلود شده باشد', 
-          status: 'PASS', 
-          priority: 'High', 
-          evidence: 'دستی', 
-          description: 'بودجه یا برنامه مالی بارگذاری شده است' 
-        },
-        { 
-          id: 'M03-03', 
-          name: 'نرخ تنزیل در بازه منطقی باشد', 
-          status: 'PASS', 
-          priority: 'High', 
-          evidence: 'خودکار', 
-          description: 'نرخ تنزیل بین ۱۰% تا ۳۰% است' 
-        },
-      ],
-
-      // ============================================
-      // M-04: WWM (صفحه 49)
-      // ============================================
       'M-04': [
-        { id: 'M04-01', name: 'سناریوی "With" مستند شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'سناریوی "با دارایی" مستند شده است' },
-        { id: 'M04-02', name: 'سناریوی "Without" مستند شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'سناریوی "بدون دارایی" مستند شده است' },
-        { id: 'M04-03', name: 'توجیه تفاضل منطقی باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'توجیه تفاضل نیاز به بررسی دارد' },
-        { id: 'M04-04', name: 'دوره Ramp-up معقول باشد', status: 'PASS', priority: 'Medium', evidence: 'خودکار', description: 'دوره رشد (Ramp-up) معقول است' },
-      ],
-
-      // ============================================
-      // M-05: RCM (صفحه 50)
-      // ============================================
-      'M-05': [
-        { id: 'M05-01', name: 'درصد سربار در بازه ۸% تا ۱۵% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'درصد سربار باید بین ۸% تا ۱۵% باشد' },
-        { id: 'M05-02', name: 'مجموع منسوخ‌شدگی ≤ ۶۰% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'مجموع منسوخ‌شدگی نباید از ۶۰% بیشتر باشد' },
-        { id: 'M05-03', name: 'تاریخ آخرین بازنگری تأیید شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'تاریخ آخرین بازنگری باید تأیید شود' },
-        { id: 'M05-04', name: 'جایگزینی با معادل مدرن تأیید شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'جایگزینی با معادل مدرن تأیید شده است' },
-      ],
-
-      // ============================================
-      // M-06: RPCM (صفحه 51)
-      // ============================================
-      'M-06': [
-        { id: 'M06-01', name: 'درصد سربار هماهنگی در بازه ۸% تا ۱۵% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'درصد سربار هماهنگی باید بین ۸% تا ۱۵% باشد' },
-        { id: 'M06-02', name: 'مجموع منسوخ‌شدگی ≤ ۶۰% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'مجموع منسوخ‌شدگی نباید از ۶۰% بیشتر باشد' },
-        { id: 'M06-03', name: 'تاریخ آخرین بازنگری تأیید شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'تاریخ آخرین بازنگری باید تأیید شود' },
-        { id: 'M06-04', name: 'بازتولید دقیق (نه مدرن) تأیید شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'بازتولید دقیق تأیید شده است' },
-      ],
-
-      // ============================================
-      // M-07: TWC (صفحه 52)
-      // ============================================
-      'M-07': [
-        { id: 'M07-01', name: 'فایل خروجی HR آپلود شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'فایل خروجی HR بارگذاری شده است' },
-        { id: 'M07-02', name: 'داده‌های هزینه جذب آپلود شده باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'داده‌های هزینه جذب بارگذاری شده است' },
-        { id: 'M07-03', name: 'شواهد هزینه آموزش آپلود شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'شواهد هزینه آموزش بارگذاری نشده است' },
-        { id: 'M07-04', name: 'منبع کاهش بهره‌وری مستند شده باشد', status: 'WARN', priority: 'Medium', evidence: 'دستی', description: 'منبع کاهش بهره‌وری مستند نشده است' },
-      ],
-
-      // ============================================
-      // M-08: CTM (صفحه 53)
-      // ============================================
-      'M-08': [
-        { id: 'M08-01', name: 'حداقل ۳ معامله وارد شده باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'حداقل ۳ معامله وارد شده است' },
-        { id: 'M08-02', name: 'مجموع تعدیلات بین -۴۰% تا +۴۰% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'مجموع تعدیلات در بازه مجاز است' },
-        { id: 'M08-03', name: 'تاریخ معامله ≤ ۵ سال قبل باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'تاریخ معاملات معتبر است' },
-        { id: 'M08-04', name: 'وزن هر معامله ≤ ۵۰% باشد', status: 'PASS', priority: 'High', evidence: 'خودکار', description: 'وزن هر معامله از ۵۰% کمتر است' },
-      ],
-
-      // ============================================
-      // M-09: MMM (صفحه 54)
-      // ============================================
-      'M-09': [
-        { id: 'M09-01', name: 'ضریب بازار در بازه ۲.۰x - ۳.۵x باشد', status: 'WARN', priority: 'Medium', evidence: 'خودکار', description: 'ضریب بازار در بازه منطقی است' },
-        { id: 'M09-02', name: 'منبع ضریب معتبر باشد', status: 'PASS', priority: 'High', evidence: 'دستی', description: 'منبع ضریب معتبر است' },
-        { id: 'M09-03', name: 'سهم دارایی نامشهود منطقی باشد', status: 'WARN', priority: 'Medium', evidence: 'خودکار', description: 'سهم دارایی نامشهود نیاز به بررسی دارد' },
+        { id: 'M04-01', name: 'سناریوی "With" مستند شده باشد', status: inputs.with_scenario_doc ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.with_scenario_doc ? '✅ آپلود شده' : 'دستی', description: inputs.with_scenario_doc ? 'سناریوی "با دارایی" مستند شده است' : 'سناریوی "با دارایی" مستند نشده است' },
+        { id: 'M04-02', name: 'سناریوی "Without" مستند شده باشد', status: inputs.without_scenario_doc ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.without_scenario_doc ? '✅ آپلود شده' : 'دستی', description: inputs.without_scenario_doc ? 'سناریوی "بدون دارایی" مستند شده است' : 'سناریوی "بدون دارایی" مستند نشده است' },
+        { id: 'M04-03', name: 'توجیه تفاضل منطقی باشد', status: inputs.differential_justification ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.differential_justification ? '✅ ثبت شده' : 'دستی', description: inputs.differential_justification ? 'توجیه تفاضل ثبت شده است' : 'توجیه تفاضل ثبت نشده است' },
+        { id: 'M04-04', name: 'دوره Ramp-up معقول باشد', status: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'PASS' : 'WARN', priority: 'Medium', evidence: 'خودکار', description: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'دوره رشد (Ramp-up) معقول است' : 'دوره رشد (Ramp-up) نامشخص است' },
       ],
     };
 
     const specific = methodSpecificRules[method] || [];
     let allRules = [...commonRules, ...specific];
 
-    // ============================================
-    // بررسی FCF Trend برای M-03
-    // ============================================
-    if (method === 'M-03' && fcfs && fcfs.length > 0) {
-      const fcfResult = validateFCFTrend(fcfs);
-      allRules = allRules.map(rule => {
-        if (rule.id === 'M03-01') {
-          return {
-            ...rule,
-            status: fcfResult.status,
-            description: fcfResult.messages.length > 0 
-              ? fcfResult.messages.join(' - ') 
-              : 'FCFها روند رشد منطقی دارند',
-          };
-        }
-        return rule;
-      });
-    }
-
-    // ============================================
-    // محاسبه QC Score وزنی
-    // ============================================
     const priorityWeights: Record<string, number> = {
       'High': 10,
       'Medium': 5,
@@ -451,12 +230,10 @@ export function Step5_QualityControl({
       } else if (rule.status === 'WARN') {
         earnedWeight += weight * 0.5;
       }
-      // FAIL = 0
     }
 
     const weightedScore = Math.round((earnedWeight / totalWeight) * 100);
     
-    // به‌روزرسانی S5-08 با امتیاز وزنی
     allRules = allRules.map(rule => {
       if (rule.id === 'S5-08') {
         return {
@@ -473,7 +250,9 @@ export function Step5_QualityControl({
     return allRules;
   };
 
+  // ============================================
   // بارگذاری داده‌ها
+  // ============================================
   useEffect(() => {
     if (loaded || loadingRef.current) return;
     loadingRef.current = true;
@@ -481,8 +260,14 @@ export function Step5_QualityControl({
     const loadData = async () => {
       try {
         setLoading(true);
+        
         let method = propMethodId || 'M-01';
-        let fcfs: number[] = [];
+        let step3Inputs = {};
+
+        console.log('🔍 بارگذاری QC با:')
+        console.log('  propMethodId:', propMethodId)
+        console.log('  valuationCaseId:', valuationCaseId)
+        console.log('  assetId:', assetId)
 
         if (assetId) {
           try {
@@ -496,23 +281,26 @@ export function Step5_QualityControl({
           }
         }
 
+        // دریافت STEP 3
         if (valuationCaseId) {
           try {
             const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
             const items = data.results || data || [];
-            if (items.length > 0) {
-              const step3 = items[0];
+            
+            // 🔥 فیلتر کردن برای valuation_case درست
+            const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+            
+            if (filteredItems.length > 0) {
+              const step3 = filteredItems[0];
               setStep3Data(step3);
+              
               if (step3.method_id) {
                 method = step3.method_id;
+                console.log(`✅ روش از STEP 3: ${method}`);
               }
-              const inputs = step3.method_inputs || {};
-              
-              // استخراج FCF برای M-03
-              if (method === 'M-03') {
-                const fcfSchedule = inputs.fcf_schedule || [];
-                fcfs = fcfSchedule.map((item: any) => item.fcf || 0);
-              }
+              step3Inputs = step3.method_inputs || {};
+            } else {
+              console.log(`ℹ️ هیچ STEP 3 برای valuation_case ${valuationCaseId} یافت نشد`);
             }
           } catch (e) {
             console.error('Error fetching step3:', e);
@@ -524,9 +312,9 @@ export function Step5_QualityControl({
         }
 
         setActualMethodId(method);
-        await checkUploadedEvidence();
+        console.log('✅ روش نهایی برای QC:', method);
 
-        const rules = getQCRules(method, hasEvidence, fcfs);
+        const rules = getQCRules(method, step3Inputs);
         setQcRules(rules);
 
         const passed = rules.filter(r => r.status === 'PASS').length;
@@ -534,7 +322,6 @@ export function Step5_QualityControl({
         const errors = rules.filter(r => r.status === 'FAIL').length;
         const total = rules.length;
         
-        // محاسبه امتیاز وزنی
         const priorityWeights: Record<string, number> = {
           'High': 10,
           'Medium': 5,
@@ -582,57 +369,71 @@ export function Step5_QualityControl({
   const runQCChecks = async () => {
     setIsRunning(true);
     
-    await checkUploadedEvidence();
-    
-    setTimeout(() => {
-      const fcfs: number[] = [];
-      if (actualMethodId === 'M-03' && step3Data) {
-        const inputs = step3Data.method_inputs || {};
-        const fcfSchedule = inputs.fcf_schedule || [];
-        fcfs.push(...fcfSchedule.map((item: any) => item.fcf || 0));
-      }
-
-      const rules = getQCRules(actualMethodId, hasEvidence, fcfs);
-      setQcRules(rules);
-      
-      const passed = rules.filter(r => r.status === 'PASS').length;
-      const warnings = rules.filter(r => r.status === 'WARN').length;
-      const errors = rules.filter(r => r.status === 'FAIL').length;
-      const total = rules.length;
-      
-      const priorityWeights: Record<string, number> = {
-        'High': 10,
-        'Medium': 5,
-        'Low': 3,
-      };
-
-      let totalWeight = 0;
-      let earnedWeight = 0;
-
-      for (const rule of rules) {
-        const weight = priorityWeights[rule.priority] || 5;
-        totalWeight += weight;
+    if (valuationCaseId) {
+      try {
+        const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+        const items = data.results || data || [];
         
-        if (rule.status === 'PASS') {
-          earnedWeight += weight;
-        } else if (rule.status === 'WARN') {
-          earnedWeight += weight * 0.5;
+        // 🔥 فیلتر کردن برای valuation_case درست
+        const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+        
+        if (filteredItems.length > 0) {
+          const step3 = filteredItems[0];
+          setStep3Data(step3);
+          
+          if (step3.method_id) {
+            setActualMethodId(step3.method_id);
+            console.log('✅ روش به‌روزرسانی شد:', step3.method_id);
+          }
+          
+          const step3Inputs = step3.method_inputs || {};
+          const method = step3.method_id || actualMethodId;
+          
+          const rules = getQCRules(method, step3Inputs);
+          setQcRules(rules);
+          
+          const passed = rules.filter(r => r.status === 'PASS').length;
+          const warnings = rules.filter(r => r.status === 'WARN').length;
+          const errors = rules.filter(r => r.status === 'FAIL').length;
+          const total = rules.length;
+          
+          const priorityWeights: Record<string, number> = {
+            'High': 10,
+            'Medium': 5,
+            'Low': 3,
+          };
+
+          let totalWeight = 0;
+          let earnedWeight = 0;
+
+          for (const rule of rules) {
+            const weight = priorityWeights[rule.priority] || 5;
+            totalWeight += weight;
+            
+            if (rule.status === 'PASS') {
+              earnedWeight += weight;
+            } else if (rule.status === 'WARN') {
+              earnedWeight += weight * 0.5;
+            }
+          }
+
+          const weightedScore = Math.round((earnedWeight / totalWeight) * 100);
+
+          setSummary({
+            completeness_score: weightedScore,
+            total_rules: total,
+            passed: passed,
+            warnings: warnings,
+            errors: errors,
+            blocking_issues: errors,
+          });
         }
+      } catch (error) {
+        console.error('Error running QC checks:', error);
       }
-
-      const weightedScore = Math.round((earnedWeight / totalWeight) * 100);
-
-      setSummary({
-        completeness_score: weightedScore,
-        total_rules: total,
-        passed: passed,
-        warnings: warnings,
-        errors: errors,
-        blocking_issues: errors,
-      });
-      
-      setIsRunning(false);
-    }, 1000);
+    }
+    
+    setIsRunning(false);
   };
 
   const handleSave = async () => {
@@ -721,11 +522,6 @@ export function Step5_QualityControl({
             {assetDetails && (
               <span className="mr-2 text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
                 دارایی: {assetDetails.asset_name}
-              </span>
-            )}
-            {hasEvidence && (
-              <span className="mr-2 text-xs text-green-600 font-[family-name:var(--font-vazir)]">
-                📎 {uploadedFiles.length} شاهد آپلود شده
               </span>
             )}
           </p>
@@ -946,14 +742,8 @@ export function Step5_QualityControl({
         </div>
       </div>
 
-      {/* پیام‌های وضعیت */}
-      {summary.errors > 0 && (
-        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
-          ❌ {toPersianNumber(summary.errors)} خطای کیو سی باید قبل از ادامه رفع شوند
-        </p>
-      )}
       {summary.errors === 0 && hasWarnings && (
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 mt-4">
           <p className="text-sm text-yellow-600 text-center font-[family-name:var(--font-vazir)]">
             ⚠️ {toPersianNumber(summary.warnings)} هشدار وجود دارد. در صورت تایید، می‌توانید ادامه دهید.
           </p>
@@ -965,6 +755,12 @@ export function Step5_QualityControl({
             ادامه با وجود هشدارها
           </Button>
         </div>
+      )}
+
+      {summary.errors > 0 && (
+        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
+          ❌ {toPersianNumber(summary.errors)} خطای کیو سی باید قبل از ادامه رفع شوند
+        </p>
       )}
       {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && (
         <p className="text-sm text-green-500 text-center font-[family-name:var(--font-vazir)]">

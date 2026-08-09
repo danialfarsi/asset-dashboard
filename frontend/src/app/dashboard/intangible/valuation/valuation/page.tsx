@@ -363,16 +363,18 @@ export default function ValuationPage() {
           />
         );
       case 5:
-        return (
-          <Step5_QualityControl
-            onNext={nextStep}
-            onPrev={prevStep}
-            assetId={selectedAsset?.id}
-            valuationCaseId={valuationCaseId}
-            methodId={currentMethodId}
-            onSave={handleSaveQC}  // 🔥 اضافه شد
-          />
-        );
+  return (
+    <Step5_QualityControl
+      onNext={nextStep}
+      onPrev={prevStep}
+      assetId={selectedAsset?.id}
+      valuationCaseId={valuationCaseId} 
+      methodId={currentMethodId}         
+      onSave={(data) => {
+        console.log('💾 ذخیره QC:', data);
+      }}
+    />
+  );
       case 6:
         return (
           <Step6_Sensitivity
