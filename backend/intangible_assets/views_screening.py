@@ -9,8 +9,6 @@ from .serializers import (
     ScreenedAssetSerializer, AssetFileSerializer
 )
 from .asset_codes import generate_asset_uid
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 
 
 class OrganizationTypeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -23,34 +21,44 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
     queryset = ScreeningTemplate.objects.filter(is_active=True)
     serializer_class = ScreeningTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['organization_type', 'category', 'result']
-    search_fields = ['item_name', 'description']
+    
+    # 🔥 غیرفعال کردن Pagination
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
-        queryset = super().get_queryset()
         
-        # فیلتر بر اساس سازمان کاربر
-        if user.role == 'super_admin':
-            return queryset
-        elif user.organization:
-            return queryset.filter(organization_type=user.organization.organization_type)
-        return queryset.none()
+        # شروع با همه قالب‌های فعال
+        queryset = ScreeningTemplate.objects.filter(is_active=True)
+        
+        # فیلتر بر اساس organization_type از query parameter
+        org_type_id = self.request.query_params.get('organization_type')
+        if org_type_id:
+            try:
+                queryset = queryset.filter(organization_type_id=int(org_type_id))
+                print(f"🔍 Filtering by organization_type_id: {org_type_id}, found: {queryset.count()}")
+            except (ValueError, TypeError):
+                pass
+        
+        # اگر کاربر super_admin نبود، بر اساس سازمانش فیلتر کن
+        if user.role != 'super_admin':
+            if user.organization_type:
+                queryset = queryset.filter(organization_type__name=user.organization_type)
+            else:
+                return queryset.none()
+        
+        print(f"📊 Final queryset count: {queryset.count()}")
+        return queryset
 
 
 class ScreenedAssetViewSet(viewsets.ModelViewSet):
     queryset = ScreenedAsset.objects.all().order_by('-created_at')
     serializer_class = ScreenedAssetSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['result', 'category']
-    search_fields = ['asset_name', 'asset_uid', 'description']
-    ordering_fields = ['created_at', 'asset_name']
 
     def get_queryset(self):
         user = self.request.user
-        queryset = super().get_queryset()
+        queryset = ScreenedAsset.objects.all().order_by('-created_at')
         
         if user.role == 'super_admin':
             return queryset
@@ -69,37 +77,29 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         )
 
 
-# ============================================
-# 🔥 اصلاح AssetFileViewSet - فیلتر کردن درست
-# ============================================
 class AssetFileViewSet(viewsets.ModelViewSet):
     queryset = AssetFile.objects.all().order_by('-uploaded_at')
     serializer_class = AssetFileSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['asset', 'file_type']
 
     def get_queryset(self):
-        """
-        🔥 اینجا فیلتر کردن بر اساس asset_id انجام می‌شود
-        """
         user = self.request.user
         queryset = AssetFile.objects.all().order_by('-uploaded_at')
         
-        # فیلتر بر اساس asset (مهم!)
+        # فیلتر بر اساس asset_id
         asset_id = self.request.query_params.get('asset')
         if asset_id:
-            queryset = queryset.filter(asset_id=asset_id)
-            print(f"🔍 Filtering files by asset_id: {asset_id}, found: {queryset.count()}")
+            try:
+                queryset = queryset.filter(asset_id=int(asset_id))
+            except (ValueError, TypeError):
+                pass
         
-        # اگر کاربر org_user است، فقط فایل‌های سازمان خودش را ببیند
-        if user.role == 'org_user' and user.organization:
-            queryset = queryset.filter(asset__created_by__organization=user.organization)
-        elif user.role == 'org_admin' and user.organization:
-            queryset = queryset.filter(asset__created_by__organization=user.organization)
-        # super_admin همه را می‌بیند
-        
-        return queryset
+        # فیلتر بر اساس دسترسی کاربر
+        if user.role == 'super_admin':
+            return queryset
+        elif user.organization:
+            return queryset.filter(asset__created_by__organization=user.organization)
+        return queryset.filter(asset__created_by=user)
 
     def perform_create(self, serializer):
         serializer.save(uploaded_by=self.request.user)
