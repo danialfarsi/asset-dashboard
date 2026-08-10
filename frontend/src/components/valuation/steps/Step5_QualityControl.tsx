@@ -36,9 +36,6 @@ interface QCSummary {
   blocking_issues: number;
 }
 
-// ============================================
-// تبدیل اعداد به فارسی
-// ============================================
 const toPersianNumber = (num: number | string): string => {
   if (num === undefined || num === null) return '۰';
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -46,9 +43,6 @@ const toPersianNumber = (num: number | string): string => {
   return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
 };
 
-// ============================================
-// ترجمه قوانین به فارسی
-// ============================================
 const getRuleNameInPersian = (id: string, name: string): string => {
   const translations: Record<string, string> = {
     'Asset Profile کامل باشد': 'پروفایل دارایی کامل باشد',
@@ -87,9 +81,6 @@ const getRuleNameInPersian = (id: string, name: string): string => {
   return translations[name] || name;
 };
 
-// ============================================
-// تابع اصلی کامپوننت
-// ============================================
 export function Step5_QualityControl({ 
   onNext, 
   onPrev, 
@@ -117,72 +108,110 @@ export function Step5_QualityControl({
   const [loaded, setLoaded] = useState(false);
   const loadingRef = useRef(false);
   
+  const [step2Data, setStep2Data] = useState<any>(null);
   const [step3Data, setStep3Data] = useState<any>(null);
-  const [savedQC, setSavedQC] = useState<any>(null);
-  const [qcLoaded, setQcLoaded] = useState(false);
+  const [step3Evidences, setStep3Evidences] = useState<any[]>([]);
+  const [step2Evidences, setStep2Evidences] = useState<any[]>([]);
+  const [step3Inputs, setStep3Inputs] = useState<any>({});
 
   // ============================================
-  // 🔥 قوانین QC بر اساس داده‌های واقعی
+  // 🔥 قوانین QC - با داده‌های واقعی از STEP 2 و STEP 3
   // ============================================
-  const getQCRules = (method: string, step3Inputs: any): QCRule[] => {
+  const getQCRules = (
+    method: string,
+    step2Data: any,
+    step3Inputs: any,
+    assetDetails: any,
+    step2Evidences: any[],
+    step3Evidences: any[]
+  ): QCRule[] => {
     const inputs = step3Inputs || {};
     
+    // 📍 بررسی داده‌های STEP 2
+    const hasAssetProfile = assetDetails && assetDetails.asset_name && assetDetails.asset_uid;
+    const hasQualityScores = step2Data && step2Data.final_score !== undefined;
+    const hasBaseInputs = step2Data && step2Data.tax_rate && step2Data.discount_rate;
+    const hasSourceReliability = step2Data && step2Data.source_reliability && step2Data.source_reliability !== 'low';
+    const hasDoubleCount = step2Data && step2Data.overlap_risk_level;
+    const hasAssumptions = step2Data && step2Data.assumptions && step2Data.assumptions.length > 0;
+    
+    // 📍 بررسی فایل‌های STEP 3
+    const hasWithScenarioFile = step3Evidences.some((e: any) => 
+      e.evidence_type === 'm04_with_scenario' || 
+      e.evidence_type === 'with_scenario'
+    );
+    
+    const hasWithoutScenarioFile = step3Evidences.some((e: any) => 
+      e.evidence_type === 'm04_without_scenario' || 
+      e.evidence_type === 'without_scenario'
+    );
+    
+    const hasAnyFile = step2Evidences.length > 0 || step3Evidences.length > 0;
+    const totalFiles = step2Evidences.length + step3Evidences.length;
+
+    console.log('🔍 تشخیص داده‌ها برای QC:');
+    console.log('  STEP 2 فایل‌ها:', step2Evidences.length);
+    console.log('  STEP 3 فایل‌ها:', step3Evidences.length);
+    console.log('  hasWithScenarioFile:', hasWithScenarioFile);
+    console.log('  hasWithoutScenarioFile:', hasWithoutScenarioFile);
+
+    // قوانین عمومی (از STEP 2)
     const commonRules: QCRule[] = [
       { 
         id: 'S5-01', 
         name: 'Asset Profile کامل باشد', 
-        status: inputs.asset_name && inputs.description ? 'PASS' : 'FAIL',
+        status: hasAssetProfile ? 'PASS' : 'FAIL',
         priority: 'High', 
-        evidence: 'خودکار', 
-        description: inputs.asset_name && inputs.description ? 'اطلاعات پایه دارایی تکمیل شده است' : 'اطلاعات پایه دارایی کامل نیست' 
+        evidence: hasAssetProfile ? '✅ موجود' : 'خودکار', 
+        description: hasAssetProfile ? 'اطلاعات پایه دارایی تکمیل شده است' : 'اطلاعات پایه دارایی کامل نیست' 
       },
       { 
         id: 'S5-02', 
         name: 'Quality Scores ثبت شده باشد', 
-        status: inputs.quality_scores ? 'PASS' : 'WARN',
+        status: hasQualityScores ? 'PASS' : 'WARN',
         priority: 'High', 
-        evidence: 'خودکار', 
-        description: inputs.quality_scores ? 'امتیازات کیفی وارد شده است' : 'امتیازات کیفی وارد نشده است' 
+        evidence: hasQualityScores ? '✅ ثبت شده' : 'خودکار', 
+        description: hasQualityScores ? 'امتیازات کیفی وارد شده است' : 'امتیازات کیفی وارد نشده است' 
       },
       { 
         id: 'S5-03', 
         name: 'Base Inputs کامل باشد', 
-        status: inputs.tax_rate && inputs.discount_rate ? 'PASS' : 'FAIL',
+        status: hasBaseInputs ? 'PASS' : 'FAIL',
         priority: 'High', 
-        evidence: 'خودکار', 
-        description: 'ورودی‌های پایه تکمیل شده است' 
+        evidence: hasBaseInputs ? '✅ تکمیل' : 'خودکار', 
+        description: hasBaseInputs ? 'ورودی‌های پایه تکمیل شده است' : 'ورودی‌های پایه تکمیل نشده است' 
       },
       { 
         id: 'S5-04', 
         name: 'حداقل شواهد مورد نیاز آپلود شده باشد', 
-        status: inputs.evidence_files && inputs.evidence_files.length > 0 ? 'PASS' : 'WARN',
+        status: hasAnyFile ? 'PASS' : 'WARN',
         priority: 'High', 
-        evidence: inputs.evidence_files && inputs.evidence_files.length > 0 ? '✅ آپلود شده' : 'دستی', 
-        description: inputs.evidence_files && inputs.evidence_files.length > 0 ? `${inputs.evidence_files.length} شاهد آپلود شده است` : 'یک شاهد مورد نیاز بارگذاری نشده است' 
+        evidence: hasAnyFile ? `✅ ${totalFiles} فایل` : 'دستی', 
+        description: hasAnyFile ? `${totalFiles} شاهد آپلود شده است` : 'یک شاهد مورد نیاز بارگذاری نشده است' 
       },
       { 
         id: 'S5-05', 
         name: 'وضعیت Double-Count مشخص شده باشد', 
-        status: inputs.double_count_status ? 'PASS' : 'WARN',
+        status: hasDoubleCount ? 'PASS' : 'WARN',
         priority: 'High', 
-        evidence: 'خودکار', 
-        description: inputs.double_count_status ? 'وضعیت شمارش مضاعف مشخص شده است' : 'وضعیت شمارش مضاعف مشخص نشده است' 
+        evidence: hasDoubleCount ? '✅ مشخص شده' : 'خودکار', 
+        description: hasDoubleCount ? 'وضعیت شمارش مضاعف مشخص شده است' : 'وضعیت شمارش مضاعف مشخص نشده است' 
       },
       { 
         id: 'S5-06', 
         name: 'مفروضات عمومی ثبت شده باشد', 
-        status: inputs.assumptions && inputs.assumptions.length > 0 ? 'PASS' : 'WARN',
+        status: hasAssumptions ? 'PASS' : 'WARN',
         priority: 'Medium', 
-        evidence: 'دستی', 
-        description: inputs.assumptions && inputs.assumptions.length > 0 ? 'مفروضات عمومی ثبت شده است' : 'برخی مفروضات ثبت نشده است' 
+        evidence: hasAssumptions ? '✅ ثبت شده' : 'دستی', 
+        description: hasAssumptions ? 'مفروضات عمومی ثبت شده است' : 'برخی مفروضات ثبت نشده است' 
       },
       { 
         id: 'S5-07', 
         name: 'Source Reliability از حداقل مجاز کمتر نباشد', 
-        status: inputs.source_reliability && inputs.source_reliability !== 'low' ? 'PASS' : 'WARN',
+        status: hasSourceReliability ? 'PASS' : 'WARN',
         priority: 'Medium', 
-        evidence: 'خودکار', 
-        description: inputs.source_reliability && inputs.source_reliability !== 'low' ? 'قابلیت اتکای منبع قابل قبول است' : 'قابلیت اتکای منبع پایین است' 
+        evidence: hasSourceReliability ? '✅ قابل قبول' : 'خودکار', 
+        description: hasSourceReliability ? 'قابلیت اتکای منبع قابل قبول است' : 'قابلیت اتکای منبع پایین است' 
       },
       { 
         id: 'S5-08', 
@@ -194,24 +223,51 @@ export function Step5_QualityControl({
       },
     ];
 
+    // 🔥 قوانین اختصاصی M-04
     const methodSpecificRules: Record<string, QCRule[]> = {
-      'M-01': [
-        { id: 'M01-01', name: 'فایل Benchmark صنعت آپلود شده باشد', status: inputs.benchmark_report ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.benchmark_report ? '✅ آپلود شده' : 'دستی', description: inputs.benchmark_report ? 'فایل معیار صنعت بارگذاری شده است' : 'فایل معیار صنعت بارگذاری نشده است' },
-        { id: 'M01-02', name: 'منبع درآمدی آپلود شده باشد', status: inputs.revenue_file ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.revenue_file ? '✅ آپلود شده' : 'دستی', description: inputs.revenue_file ? 'منبع درآمدی بارگذاری شده است' : 'منبع درآمدی بارگذاری نشده است' },
-        { id: 'M01-03', name: 'مستندات توصیف دارایی آپلود شده باشد', status: inputs.asset_description ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.asset_description ? '✅ آپلود شده' : 'دستی', description: inputs.asset_description ? 'مستندات توصیف دارایی بارگذاری شده است' : 'مستندات توصیف دارایی بارگذاری نشده است' },
-        { id: 'M01-04', name: 'ماهیت قابل لایسنس بودن مستند شده باشد', status: inputs.licensable_evidence ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.licensable_evidence ? '✅ آپلود شده' : 'دستی', description: inputs.licensable_evidence ? 'ماهیت قابل مجوزدهی مستند شده است' : 'ماهیت قابل مجوزدهی مستند نشده است' },
-      ],
       'M-04': [
-        { id: 'M04-01', name: 'سناریوی "With" مستند شده باشد', status: inputs.with_scenario_doc ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.with_scenario_doc ? '✅ آپلود شده' : 'دستی', description: inputs.with_scenario_doc ? 'سناریوی "با دارایی" مستند شده است' : 'سناریوی "با دارایی" مستند نشده است' },
-        { id: 'M04-02', name: 'سناریوی "Without" مستند شده باشد', status: inputs.without_scenario_doc ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.without_scenario_doc ? '✅ آپلود شده' : 'دستی', description: inputs.without_scenario_doc ? 'سناریوی "بدون دارایی" مستند شده است' : 'سناریوی "بدون دارایی" مستند نشده است' },
-        { id: 'M04-03', name: 'توجیه تفاضل منطقی باشد', status: inputs.differential_justification ? 'PASS' : 'WARN', priority: 'Medium', evidence: inputs.differential_justification ? '✅ ثبت شده' : 'دستی', description: inputs.differential_justification ? 'توجیه تفاضل ثبت شده است' : 'توجیه تفاضل ثبت نشده است' },
-        { id: 'M04-04', name: 'دوره Ramp-up معقول باشد', status: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'PASS' : 'WARN', priority: 'Medium', evidence: 'خودکار', description: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'دوره رشد (Ramp-up) معقول است' : 'دوره رشد (Ramp-up) نامشخص است' },
+        { 
+          id: 'M04-01', 
+          name: 'سناریوی "با دارایی" مستند شده باشد', 
+          status: hasWithScenarioFile ? 'PASS' : 'FAIL', 
+          priority: 'High', 
+          evidence: hasWithScenarioFile ? '✅ آپلود شده' : 'دستی', 
+          description: hasWithScenarioFile ? 'سناریوی "با دارایی" مستند شده است' : 'سناریوی "با دارایی" مستند نشده است' 
+        },
+        { 
+          id: 'M04-02', 
+          name: 'سناریوی "بدون دارایی" مستند شده باشد', 
+          status: hasWithoutScenarioFile ? 'PASS' : 'FAIL', 
+          priority: 'High', 
+          evidence: hasWithoutScenarioFile ? '✅ آپلود شده' : 'دستی', 
+          description: hasWithoutScenarioFile ? 'سناریوی "بدون دارایی" مستند شده است' : 'سناریوی "بدون دارایی" مستند نشده است' 
+        },
+        { 
+          id: 'M04-03', 
+          name: 'توجیه تفاضل منطقی باشد', 
+          status: inputs.differential_justification ? 'PASS' : 'WARN', 
+          priority: 'Medium', 
+          evidence: inputs.differential_justification ? '✅ ثبت شده' : 'دستی', 
+          description: inputs.differential_justification ? 'توجیه تفاضل ثبت شده است' : 'توجیه تفاضل ثبت نشده است' 
+        },
+        { 
+          id: 'M04-04', 
+          name: 'دوره رشد (Ramp-up) معقول باشد', 
+          status: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'PASS' : 'WARN', 
+          priority: 'Medium', 
+          evidence: 'خودکار', 
+          description: inputs.ramp_up_period && inputs.ramp_up_period > 0 ? 'دوره رشد (Ramp-up) معقول است' : 'دوره رشد (Ramp-up) نامشخص است' 
+        },
+      ],
+      'M-01': [
+        { id: 'M01-01', name: 'نرخ حق‌الامتیاز وارد شده باشد', status: inputs.royalty_rate ? 'PASS' : 'FAIL', priority: 'High', evidence: inputs.royalty_rate ? `✅ ${inputs.royalty_rate}%` : 'خودکار', description: inputs.royalty_rate ? `نرخ حق‌الامتیاز ${inputs.royalty_rate}% وارد شده است` : 'نرخ حق‌الامتیاز وارد نشده است' },
       ],
     };
 
     const specific = methodSpecificRules[method] || [];
     let allRules = [...commonRules, ...specific];
 
+    // محاسبه امتیاز وزنی
     const priorityWeights: Record<string, number> = {
       'High': 10,
       'Medium': 5,
@@ -251,7 +307,7 @@ export function Step5_QualityControl({
   };
 
   // ============================================
-  // بارگذاری داده‌ها
+  // بارگذاری داده‌ها از دیتابیس
   // ============================================
   useEffect(() => {
     if (loaded || loadingRef.current) return;
@@ -262,48 +318,97 @@ export function Step5_QualityControl({
         setLoading(true);
         
         let method = propMethodId || 'M-01';
-        let step3Inputs = {};
+        let step2DataRaw = null;
+        let step3InputsRaw = {};
+        let assetData = null;
+        let step2EvidenceList: any[] = [];
+        let step3EvidenceList: any[] = [];
 
         console.log('🔍 بارگذاری QC با:')
         console.log('  propMethodId:', propMethodId)
         console.log('  valuationCaseId:', valuationCaseId)
         console.log('  assetId:', assetId)
 
+        // ۱. دریافت اطلاعات دارایی
         if (assetId) {
           try {
             const { data } = await api.get(`/intangible/screened-assets/${assetId}/`);
+            assetData = data;
             setAssetDetails(data);
             if (data.valuation_method) {
               method = data.valuation_method;
             }
+            console.log('✅ اطلاعات دارایی:', assetData);
           } catch (e) {
             console.error('Error fetching asset:', e);
           }
         }
 
-        // دریافت STEP 3
+        // ۲. دریافت STEP 2 (ValuationCase)
+        if (valuationCaseId) {
+          try {
+            const { data } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
+            step2DataRaw = data;
+            setStep2Data(data);
+            console.log('✅ STEP 2 داده‌ها:', step2DataRaw);
+          } catch (e) {
+            console.error('Error fetching step2:', e);
+          }
+        }
+
+        // ۳. دریافت STEP 3 (پارامترهای اختصاصی روش)
+        let step3Id = null;
         if (valuationCaseId) {
           try {
             const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
             const items = data.results || data || [];
-            
-            // 🔥 فیلتر کردن برای valuation_case درست
             const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
             
             if (filteredItems.length > 0) {
               const step3 = filteredItems[0];
+              step3Id = step3.id;
               setStep3Data(step3);
-              
               if (step3.method_id) {
                 method = step3.method_id;
                 console.log(`✅ روش از STEP 3: ${method}`);
               }
-              step3Inputs = step3.method_inputs || {};
+              step3InputsRaw = step3.method_inputs || {};
+              setStep3Inputs(step3InputsRaw);
+              console.log('✅ STEP 3 داده‌ها (method_inputs):', step3InputsRaw);
             } else {
               console.log(`ℹ️ هیچ STEP 3 برای valuation_case ${valuationCaseId} یافت نشد`);
             }
           } catch (e) {
             console.error('Error fetching step3:', e);
+          }
+        }
+
+        // ۴. دریافت شواهد STEP 2 (فایل‌های AssetFile)
+        if (assetId) {
+          try {
+            const { data } = await api.get(`/intangible/asset-files/?asset=${assetId}`);
+            const items = data.results || data || [];
+            step2EvidenceList = items;
+            setStep2Evidences(items);
+            console.log(`✅ ${items.length} شاهد STEP 2 از دیتابیس بارگذاری شد`);
+          } catch (e) {
+            console.error('Error fetching step2 evidences:', e);
+          }
+        }
+
+        // ۵. 🔥 دریافت شواهد STEP 3 (فایل‌های ValuationStep3Evidence)
+        if (step3Id) {
+          try {
+            const { data } = await api.get(`/intangible/valuation-step3/${step3Id}/evidences/`);
+            const items = data.results || data || [];
+            step3EvidenceList = items;
+            setStep3Evidences(items);
+            console.log(`✅ ${items.length} شاهد STEP 3 از دیتابیس بارگذاری شد`);
+            items.forEach((f: any) => {
+              console.log(`   📄 STEP3 - ${f.file_name} (${f.evidence_type})`);
+            });
+          } catch (e) {
+            console.error('Error fetching step3 evidences:', e);
           }
         }
 
@@ -314,7 +419,15 @@ export function Step5_QualityControl({
         setActualMethodId(method);
         console.log('✅ روش نهایی برای QC:', method);
 
-        const rules = getQCRules(method, step3Inputs);
+        // 🔥 ساخت قوانین با داده‌های واقعی از هر دو منبع
+        const rules = getQCRules(
+          method, 
+          step2DataRaw, 
+          step3InputsRaw, 
+          assetData, 
+          step2EvidenceList,
+          step3EvidenceList
+        );
         setQcRules(rules);
 
         const passed = rules.filter(r => r.status === 'PASS').length;
@@ -365,69 +478,126 @@ export function Step5_QualityControl({
     loadData();
   }, [assetId, valuationCaseId, propMethodId]);
 
-  // اجرای QC Checks
+  // اجرای مجدد QC Checks
   const runQCChecks = async () => {
     setIsRunning(true);
     
-    if (valuationCaseId) {
+    if (valuationCaseId && assetId) {
       try {
-        const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
-        const items = data.results || data || [];
-        
-        // 🔥 فیلتر کردن برای valuation_case درست
-        const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
-        
-        if (filteredItems.length > 0) {
-          const step3 = filteredItems[0];
-          setStep3Data(step3);
-          
-          if (step3.method_id) {
-            setActualMethodId(step3.method_id);
-            console.log('✅ روش به‌روزرسانی شد:', step3.method_id);
-          }
-          
-          const step3Inputs = step3.method_inputs || {};
-          const method = step3.method_id || actualMethodId;
-          
-          const rules = getQCRules(method, step3Inputs);
-          setQcRules(rules);
-          
-          const passed = rules.filter(r => r.status === 'PASS').length;
-          const warnings = rules.filter(r => r.status === 'WARN').length;
-          const errors = rules.filter(r => r.status === 'FAIL').length;
-          const total = rules.length;
-          
-          const priorityWeights: Record<string, number> = {
-            'High': 10,
-            'Medium': 5,
-            'Low': 3,
-          };
+        let step2DataRaw = null;
+        let step3InputsRaw = {};
+        let assetData = null;
+        let step2EvidenceList: any[] = [];
+        let step3EvidenceList: any[] = [];
+        let step3Id = null;
 
-          let totalWeight = 0;
-          let earnedWeight = 0;
-
-          for (const rule of rules) {
-            const weight = priorityWeights[rule.priority] || 5;
-            totalWeight += weight;
-            
-            if (rule.status === 'PASS') {
-              earnedWeight += weight;
-            } else if (rule.status === 'WARN') {
-              earnedWeight += weight * 0.5;
-            }
-          }
-
-          const weightedScore = Math.round((earnedWeight / totalWeight) * 100);
-
-          setSummary({
-            completeness_score: weightedScore,
-            total_rules: total,
-            passed: passed,
-            warnings: warnings,
-            errors: errors,
-            blocking_issues: errors,
-          });
+        // دریافت اطلاعات دارایی
+        try {
+          const { data } = await api.get(`/intangible/screened-assets/${assetId}/`);
+          assetData = data;
+          setAssetDetails(data);
+        } catch (e) {
+          console.error('Error fetching asset:', e);
         }
+
+        // دریافت STEP 2
+        try {
+          const { data } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
+          step2DataRaw = data;
+          setStep2Data(data);
+        } catch (e) {
+          console.error('Error fetching step2:', e);
+        }
+
+        // دریافت STEP 3
+        try {
+          const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+          const items = data.results || data || [];
+          const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+          
+          if (filteredItems.length > 0) {
+            const step3 = filteredItems[0];
+            step3Id = step3.id;
+            setStep3Data(step3);
+            if (step3.method_id) {
+              setActualMethodId(step3.method_id);
+            }
+            step3InputsRaw = step3.method_inputs || {};
+            setStep3Inputs(step3InputsRaw);
+          }
+        } catch (e) {
+          console.error('Error fetching step3:', e);
+        }
+
+        // دریافت شواهد STEP 2
+        try {
+          const { data } = await api.get(`/intangible/asset-files/?asset=${assetId}`);
+          const items = data.results || data || [];
+          step2EvidenceList = items;
+          setStep2Evidences(items);
+        } catch (e) {
+          console.error('Error fetching step2 evidences:', e);
+        }
+
+        // 🔥 دریافت شواهد STEP 3
+        if (step3Id) {
+          try {
+            const { data } = await api.get(`/intangible/valuation-step3/${step3Id}/evidences/`);
+            const items = data.results || data || [];
+            step3EvidenceList = items;
+            setStep3Evidences(items);
+            console.log(`✅ ${items.length} شاهد STEP 3 بارگذاری شد`);
+          } catch (e) {
+            console.error('Error fetching step3 evidences:', e);
+          }
+        }
+
+        const method = actualMethodId || propMethodId || 'M-01';
+        const rules = getQCRules(
+          method, 
+          step2DataRaw, 
+          step3InputsRaw, 
+          assetData, 
+          step2EvidenceList,
+          step3EvidenceList
+        );
+        setQcRules(rules);
+        
+        const passed = rules.filter(r => r.status === 'PASS').length;
+        const warnings = rules.filter(r => r.status === 'WARN').length;
+        const errors = rules.filter(r => r.status === 'FAIL').length;
+        const total = rules.length;
+        
+        const priorityWeights: Record<string, number> = {
+          'High': 10,
+          'Medium': 5,
+          'Low': 3,
+        };
+
+        let totalWeight = 0;
+        let earnedWeight = 0;
+
+        for (const rule of rules) {
+          const weight = priorityWeights[rule.priority] || 5;
+          totalWeight += weight;
+          
+          if (rule.status === 'PASS') {
+            earnedWeight += weight;
+          } else if (rule.status === 'WARN') {
+            earnedWeight += weight * 0.5;
+          }
+        }
+
+        const weightedScore = Math.round((earnedWeight / totalWeight) * 100);
+
+        setSummary({
+          completeness_score: weightedScore,
+          total_rules: total,
+          passed: passed,
+          warnings: warnings,
+          errors: errors,
+          blocking_issues: errors,
+        });
       } catch (error) {
         console.error('Error running QC checks:', error);
       }
