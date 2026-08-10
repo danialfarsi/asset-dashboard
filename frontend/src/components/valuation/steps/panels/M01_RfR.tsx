@@ -33,24 +33,48 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M01_RfRProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  // 🔥 Props جدید برای شواهد
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Data }: M01_RfRProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
+export function M01_RfR({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M01_RfRProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
   const [showBenchmarkDetails, setShowBenchmarkDetails] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  // ✅ صنایع مرجع برای نرخ حق‌الامتیاز (بدون تکراری)
+  // ✅ صنایع مرجع برای نرخ حق‌الامتیاز
   const INDUSTRY_BENCHMARKS = [
     { value: 'software', label: 'نرم‌افزار (Software)' },
     { value: 'fmcg', label: 'کالاهای مصرفی سریع (FMCG)' },
@@ -73,6 +97,9 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     media: [3, 4, 5, 6, 7],
   };
 
+  // ============================================
+  // تشخیص تغییر مورد ارزش‌گذاری
+  // ============================================
   useEffect(() => {
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
       const hasExistingData = formData.royalty_rate !== undefined || formData.industry_benchmark;
@@ -93,6 +120,9 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [valuationCaseId, formData.royalty_rate]);
 
+  // ============================================
+  // مقداردهی اولیه با STEP 2
+  // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
       const updates: any = {};
@@ -108,6 +138,9 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [step2Data, initialized]);
 
+  // ============================================
+  // بارگذاری از دیتابیس
+  // ============================================
   useEffect(() => {
     if (valuationCaseId && initialized) {
       loadFromDatabase();
@@ -119,8 +152,11 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      // 🔥 فیلتر بر اساس valuation_case
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m01Data: any = {};
         
         const fields = [
@@ -170,22 +206,156 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     handleChange('expert_signoffs', expertSignoffs.filter(s => s.id !== id));
   };
 
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  // ============================================
+  // 🔥 آپلود فایل - استفاده از props
+  // ============================================
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده
+  // ============================================
+  const renderEvidences = () => {
+    const m01Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m01_')
+    );
+
+    if (m01Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m01Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm01_benchmark': 'فایل Benchmark صنعت',
+            'm01_revenue': 'منبع درآمدی',
+            'm01_asset_description': 'مستندات توصیف دارایی',
+            'm01_licensable': 'مستندات قابل لایسنس بودن',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-dark-green flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-dark-green hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
+  // ============================================
+  // 🔥 رندر دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm01_benchmark', label: 'فایل Benchmark صنعت', required: true },
+      { type: 'm01_revenue', label: 'منبع درآمدی', required: true },
+      { type: 'm01_asset_description', label: 'مستندات توصیف دارایی', required: false },
+      { type: 'm01_licensable', label: 'مستندات قابل لایسنس بودن', required: false },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ============================================
+  // ذخیره در دیتابیس
+  // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) return;
 
@@ -209,11 +379,16 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
       
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      // 🔥 فیلتر بر اساس valuation_case
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M01 به‌روزرسانی شد (PATCH)');
       } else {
         await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M01 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
@@ -225,6 +400,7 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   };
 
+  // Auto-save
   useEffect(() => {
     const timer = setTimeout(() => {
       saveToDatabase();
@@ -263,7 +439,32 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
+      {/* ========================================== */}
+      {/* 🔥 شواهد و مدارک - در بالای صفحه */}
+      {/* ========================================== */}
+      <div className="border rounded-lg p-4 border-blue-200 bg-blue-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m01_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
+        </div>
+
+        {/* دکمه‌های آپلود */}
+        {renderUploadButtons()}
+
+        {/* لیست شواهد آپلود شده */}
+        <div className="mt-4">
+          {renderEvidences()}
+        </div>
+      </div>
+
+      {/* ========================================== */}
       {/* پارامترهای اختصاصی M-01 */}
+      {/* ========================================== */}
       <div className="border rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
           🎯 پارامترهای اختصاصی روش M-01
@@ -306,7 +507,7 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
             <p className="text-[10px] text-gray-400">نرخ مبتنی بر بازار/قراردادهای مشابه</p>
           </div>
 
-          {/* ✅ انتخاب صنعت مرجع - اصلاح شده */}
+          {/* صنعت مرجع */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-1">
               صنعت مرجع <span className="text-red-500">*</span>
@@ -378,81 +579,6 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
               placeholder="توضیح دهید چرا این درصد تخصیص انتخاب شده است..."
               className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 min-h-[60px] resize-y"
             />
-          </div>
-        </div>
-
-        {/* آپلود فایل‌ها */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4 border-t">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              📎 فایل Benchmark صنعت <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-              {files.benchmark_report ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm truncate">{files.benchmark_report.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('benchmark_report')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="benchmark_report"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('benchmark_report', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="benchmark_report"
-                    className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل Benchmark
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400">PDF یا Excel شامل نرخ‌های حق‌الامتیاز در صنعت مربوطه</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              📎 فایل درآمدی <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-              {files.revenue_file ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm truncate">{files.revenue_file.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('revenue_file')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="revenue_file"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('revenue_file', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="revenue_file"
-                    className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل درآمدی
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400">فایل اکسل یا PDF حاوی داده‌های درآمدی (تاریخی و پیش‌بینی)</p>
           </div>
         </div>
       </div>
@@ -554,4 +680,3 @@ export function M01_RfR({ formData, onChange, assetId, valuationCaseId, step2Dat
     </div>
   );
 }
-

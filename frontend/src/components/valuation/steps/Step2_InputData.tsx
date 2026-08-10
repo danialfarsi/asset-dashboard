@@ -54,6 +54,7 @@ interface UploadedFile {
   valuation_score?: number;
   file?: File;
   required?: boolean;
+  is_uploaded?: boolean;
 }
 
 // ============================================
@@ -208,6 +209,12 @@ export function Step2_InputData({
         if (parsed.assumptions) setAssumptions(parsed.assumptions);
         if (parsed.linkedAssets) setLinkedAssets(parsed.linkedAssets);
         if (parsed.evidenceTags) setEvidenceTags(parsed.evidenceTags);
+        if (parsed.uploadedFiles) {
+          const validFiles = parsed.uploadedFiles.filter((f: any) => f.file_url);
+          if (validFiles.length > 0) {
+            setUploadedFiles(validFiles);
+          }
+        }
         console.log('📥 بارگذاری از localStorage:', parsed);
       }
     } catch (error) {
@@ -221,7 +228,6 @@ export function Step2_InputData({
     try {
       const { data } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
       
-      // بروزرسانی فرم با داده‌های دیتابیس
       setValuationForm(prev => ({
         ...prev,
         category: data.category || prev.category,
@@ -243,7 +249,6 @@ export function Step2_InputData({
         expert_note: data.expert_note || '',
       }));
       
-      // بارگذاری فرضیات از دیتابیس
       if (data.assumptions) {
         setAssumptions(data.assumptions.map((a: any) => ({
           text: a.assumption_text,
@@ -252,7 +257,6 @@ export function Step2_InputData({
         })));
       }
       
-      // بارگذاری وابستگی‌ها از دیتابیس
       if (data.linked_assets) {
         setLinkedAssets(data.linked_assets);
       }
@@ -263,101 +267,93 @@ export function Step2_InputData({
     }
   };
 
-// ============================================
-// 🔥 ذخیره‌سازی در دیتابیس
-// ============================================
-const saveToDatabase = useCallback(async (data: any) => {
-  if (!valuationCaseId) {
-    console.warn('⚠️ valuationCaseId موجود نیست');
-    return;
-  }
-  
-  try {
-    setSavingToDb(true);
-    setSaveError(null);
+  // ============================================
+  // ذخیره‌سازی در دیتابیس
+  // ============================================
+  const saveToDatabase = useCallback(async (data: any) => {
+    if (!valuationCaseId) {
+      console.warn('⚠️ valuationCaseId موجود نیست');
+      return;
+    }
     
-    console.log('📤 شروع ذخیره‌سازی در دیتابیس...');
-    console.log('📤 داده‌های ارسالی:', data);
-    
-    // 🔥 تبدیل هوشمند درصد به اعشار
-    const taxRate = Number(data.tax_rate);
-    const discountRate = Number(data.discount_rate);
-    const terminalGrowth = Number(data.terminal_growth_rate);
-    
-    const payload = {
-      category: data.category || 'operational',
-      business_unit: data.business_unit || 'واحد مرکزی',
-      lifecycle_stage: data.lifecycle_stage || 'growth',
-      quality_override_reason: data.quality_override_reason || '',
-      currency: data.currency || 'IRR',
-      inflation_basis: data.inflation_basis || 'cost',
+    try {
+      setSavingToDb(true);
+      setSaveError(null);
       
-      // 🔥 اگر مقدار > 1 باشه یعنی درصد هست و باید تقسیم بشه
-      tax_rate: taxRate > 1 ? taxRate / 100 : taxRate,
-      discount_rate: discountRate > 1 ? discountRate / 100 : discountRate,
-      forecast_horizon: Number(data.forecast_horizon) || 4,
-      terminal_growth_rate: terminalGrowth > 1 ? terminalGrowth / 100 : terminalGrowth,
-      current_revenue: Number(data.current_revenue) || 500000000000,
-      useful_life: Number(data.useful_life) || 5,
-      source_reliability: data.source_reliability || 'high',
-      overlap_risk_level: data.overlap_risk_level || 'medium',
-      overlap_type: data.overlap_type || 'revenue',
-      review_status: data.review_status || 'pending',
-      expert_note: data.expert_note || '',
-    };
-    
-    console.log('📤 ۱. ذخیره فیلدهای اصلی:', payload);
-    await api.patch(`/intangible/valuation-cases/${valuationCaseId}/`, payload);
-    
-    // 🔥 ۲. ذخیره فرضیات (Assumptions)
-    if (data.assumptions && data.assumptions.length > 0) {
-      console.log('📤 ۲. ذخیره فرضیات:', data.assumptions);
-      const assumptionsPayload = {
-        assumptions: data.assumptions.map((a: any) => ({
-          assumption_text: a.text,
-          assumption_tag: a.tag,
-          assumption_critical: a.critical,
-        }))
+      console.log('📤 شروع ذخیره‌سازی در دیتابیس...');
+      
+      const taxRate = Number(data.tax_rate);
+      const discountRate = Number(data.discount_rate);
+      const terminalGrowth = Number(data.terminal_growth_rate);
+      
+      const payload = {
+        category: data.category || 'operational',
+        business_unit: data.business_unit || 'واحد مرکزی',
+        lifecycle_stage: data.lifecycle_stage || 'growth',
+        quality_override_reason: data.quality_override_reason || '',
+        currency: data.currency || 'IRR',
+        inflation_basis: data.inflation_basis || 'cost',
+        tax_rate: taxRate > 1 ? taxRate / 100 : taxRate,
+        discount_rate: discountRate > 1 ? discountRate / 100 : discountRate,
+        forecast_horizon: Number(data.forecast_horizon) || 4,
+        terminal_growth_rate: terminalGrowth > 1 ? terminalGrowth / 100 : terminalGrowth,
+        current_revenue: Number(data.current_revenue) || 500000000000,
+        useful_life: Number(data.useful_life) || 5,
+        source_reliability: data.source_reliability || 'high',
+        overlap_risk_level: data.overlap_risk_level || 'medium',
+        overlap_type: data.overlap_type || 'revenue',
+        review_status: data.review_status || 'pending',
+        expert_note: data.expert_note || '',
       };
       
-      await api.post(
-        `/intangible/valuation-cases/${valuationCaseId}/sync_assumptions/`,
-        assumptionsPayload
-      );
-      console.log('✅ فرضیات ذخیره شدند');
+      console.log('📤 ۱. ذخیره فیلدهای اصلی:', payload);
+      await api.patch(`/intangible/valuation-cases/${valuationCaseId}/`, payload);
+      
+      if (data.assumptions && data.assumptions.length > 0) {
+        console.log('📤 ۲. ذخیره فرضیات:', data.assumptions);
+        await api.post(
+          `/intangible/valuation-cases/${valuationCaseId}/sync_assumptions/`,
+          {
+            assumptions: data.assumptions.map((a: any) => ({
+              assumption_text: a.text,
+              assumption_tag: a.tag,
+              assumption_critical: a.critical,
+            }))
+          }
+        );
+        console.log('✅ فرضیات ذخیره شدند');
+      }
+      
+      if (data.linkedAssets && data.linkedAssets.length > 0) {
+        console.log('📤 ۳. ذخیره وابستگی‌ها:', data.linkedAssets);
+        await api.patch(
+          `/intangible/valuation-cases/${valuationCaseId}/update_linked_assets/`,
+          { linked_assets: data.linkedAssets }
+        );
+        console.log('✅ وابستگی‌ها ذخیره شدند');
+      }
+      
+      if (data.evidenceTags && Object.keys(data.evidenceTags).length > 0) {
+        console.log('📤 ۴. ذخیره تگ‌های شواهد:', data.evidenceTags);
+        await api.post(
+          `/intangible/valuation-cases/${valuationCaseId}/sync_evidence_tags/`,
+          { evidence_tags: data.evidenceTags }
+        );
+        console.log('✅ تگ‌های شواهد ذخیره شدند');
+      }
+      
+      setLastSaved(new Date().toLocaleTimeString('fa-IR'));
+      console.log('✅ همه داده‌ها در دیتابیس ذخیره شدند');
+      
+    } catch (error: any) {
+      console.error('❌ خطا در ذخیره دیتابیس:', error);
+      console.error('❌ جزئیات خطا:', error?.response?.data);
+      setSaveError(error?.response?.data?.message || 'خطا در ذخیره دیتابیس');
+    } finally {
+      setSavingToDb(false);
     }
-    
-    // 🔥 ۳. ذخیره وابستگی‌ها (Linked Assets)
-    if (data.linkedAssets && data.linkedAssets.length > 0) {
-      console.log('📤 ۳. ذخیره وابستگی‌ها:', data.linkedAssets);
-      await api.patch(
-        `/intangible/valuation-cases/${valuationCaseId}/update_linked_assets/`,
-        { linked_assets: data.linkedAssets }
-      );
-      console.log('✅ وابستگی‌ها ذخیره شدند');
-    }
-    
-    // 🔥 ۴. ذخیره تگ‌های شواهد (Evidence Tags)
-    if (data.evidenceTags && Object.keys(data.evidenceTags).length > 0) {
-      console.log('📤 ۴. ذخیره تگ‌های شواهد:', data.evidenceTags);
-      await api.post(
-        `/intangible/valuation-cases/${valuationCaseId}/sync_evidence_tags/`,
-        { evidence_tags: data.evidenceTags }
-      );
-      console.log('✅ تگ‌های شواهد ذخیره شدند');
-    }
-    
-    setLastSaved(new Date().toLocaleTimeString('fa-IR'));
-    console.log('✅ همه داده‌ها در دیتابیس ذخیره شدند');
-    
-  } catch (error: any) {
-    console.error('❌ خطا در ذخیره دیتابیس:', error);
-    console.error('❌ جزئیات خطا:', error?.response?.data);
-    setSaveError(error?.response?.data?.message || 'خطا در ذخیره دیتابیس');
-  } finally {
-    setSavingToDb(false);
-  }
-}, [valuationCaseId]);
+  }, [valuationCaseId]);
+
   // ============================================
   // ذخیره در localStorage
   // ============================================
@@ -374,7 +370,7 @@ const saveToDatabase = useCallback(async (data: any) => {
   }, [assetId, onFormDataUpdate]);
 
   // ============================================
-  // 🔥 ذخیره همزمان در دیتابیس + localStorage
+  // ذخیره همزمان در دیتابیس + localStorage
   // ============================================
   const saveFormData = useCallback(() => {
     const data = {
@@ -382,15 +378,18 @@ const saveToDatabase = useCallback(async (data: any) => {
       assumptions,
       linkedAssets,
       evidenceTags,
+      uploadedFiles: uploadedFiles.filter(f => f.file_url).map(f => ({ 
+        id: f.id, 
+        name: f.name, 
+        type: f.type, 
+        file_url: f.file_url 
+      })),
     };
     
-    // همیشه در localStorage ذخیره کن
     saveToLocalStorage(data);
-    
-    // در دیتابیس ذخیره کن
     saveToDatabase(data);
     
-  }, [valuationForm, assumptions, linkedAssets, evidenceTags, saveToLocalStorage, saveToDatabase]);
+  }, [valuationForm, assumptions, linkedAssets, evidenceTags, uploadedFiles, saveToLocalStorage, saveToDatabase]);
 
   // ============================================
   // Auto-save با debounce
@@ -425,52 +424,42 @@ const saveToDatabase = useCallback(async (data: any) => {
     }
   };
 
+  // ============================================
+  // دریافت فایل‌های شواهد از دیتابیس
+  // ============================================
   const fetchEvidenceFiles = async () => {
+    if (!assetId) return;
+    
     try {
       setLoadingFiles(true);
-      const allValuations = await fetchAllValuations();
-      const assetValuations = allValuations.filter((v: any) => v.asset === assetId && v.status === 'completed');
+      console.log('📥 بارگذاری فایل‌های شواهد برای assetId:', assetId);
       
-      if (assetValuations.length === 0) {
-        setUploadedFiles([]);
-        return;
-      }
-
-      const allFiles: UploadedFile[] = [];
-      for (const v of assetValuations) {
-        try {
-          const { data: valData } = await api.get(`/intangible/asset-valuations/${v.id}/`);
-          const answers = valData.answers || [];
-          answers.forEach((answer: any) => {
-            const types = [
-              { key: 'interview', label: 'مصاحبه', url: answer.evidence_interview },
-              { key: 'document', label: 'سند', url: answer.evidence_document },
-              { key: 'process', label: 'فرآیند', url: answer.evidence_process },
-              { key: 'database', label: 'پایگاه داده', url: answer.evidence_database },
-            ];
-            types.forEach(({ key, label, url }) => {
-              if (url) {
-                allFiles.push({
-                  id: `evidence-${answer.id}-${key}`,
-                  name: url.split('/').pop() || 'فایل',
-                  size: '—',
-                  type: key,
-                  uploadedAt: new Date(answer.updated_at).toLocaleDateString('fa-IR'),
-                  file_url: url,
-                  file_type_label: label,
-                  valuation_id: v.id,
-                  valuation_score: v.final_score || 0,
-                });
-              }
-            });
-          });
-        } catch (e) {
-          console.error(`Error fetching valuation ${v.id}:`, e);
-        }
-      }
-      setUploadedFiles(allFiles);
+      const { data } = await api.get(`/intangible/asset-files/?asset=${assetId}`);
+      const items = data.results || data || [];
+      
+      const files: UploadedFile[] = items.map((file: any) => ({
+        id: file.id,
+        name: file.title || file.file?.split('/').pop() || 'فایل',
+        size: '—',
+        type: file.file_type || 'document',
+        uploadedAt: new Date(file.uploaded_at).toLocaleDateString('fa-IR'),
+        file_url: file.file,
+        file_type_label: file.file_type || 'سند',
+        is_uploaded: true,
+      }));
+      
+      setUploadedFiles(files);
+      console.log(`✅ ${files.length} فایل از دیتابیس بارگذاری شد`);
+      
     } catch (error) {
       console.error('Error fetching evidence files:', error);
+      const saved = localStorage.getItem(`valuation_form_${assetId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.uploadedFiles) {
+          setUploadedFiles(parsed.uploadedFiles);
+        }
+      }
     } finally {
       setLoadingFiles(false);
     }
@@ -499,22 +488,96 @@ const saveToDatabase = useCallback(async (data: any) => {
     });
   };
 
+  // ============================================
+  // آپلود فایل به دیتابیس
+  // ============================================
   const handleFileUpload = async (files: FileList | null, type: string) => {
-    if (!files || !assetId) return;
+    if (!files || !assetId) {
+      alert('شناسه دارایی موجود نیست');
+      return;
+    }
+    
     setIsUploading(true);
     try {
-      const newFiles: UploadedFile[] = Array.from(files).map((file) => ({
-        id: `new-${Date.now()}-${Math.random()}`,
-        name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        type: type,
-        uploadedAt: new Date().toLocaleDateString('fa-IR'),
-        file: file,
-      }));
-      setUploadedFiles(prev => [...newFiles, ...prev]);
+      const uploadedFilesList: UploadedFile[] = [];
+      
+      for (const file of Array.from(files)) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('file_type', type);
+          formData.append('title', file.name);
+          formData.append('asset', String(assetId));
+          
+          console.log(`📤 آپلود فایل ${file.name} به سرور...`);
+          
+          const response = await api.post(
+            `/intangible/asset-files/`,
+            formData,
+            { 
+              headers: { 'Content-Type': 'multipart/form-data' },
+              timeout: 30000,
+            }
+          );
+          
+          const fileData = response.data;
+          console.log(`✅ فایل ${file.name} با موفقیت آپلود شد:`, fileData);
+          
+          uploadedFilesList.push({
+            id: fileData.id || `new-${Date.now()}-${Math.random()}`,
+            name: file.name,
+            size: (file.size / 1024).toFixed(1) + ' KB',
+            type: type,
+            uploadedAt: new Date().toLocaleDateString('fa-IR'),
+            file_url: fileData.file,
+            file_type_label: fileData.file_type || type,
+            is_uploaded: true,
+          });
+          
+        } catch (error: any) {
+          console.error(`❌ خطا در آپلود فایل ${file.name}:`, error);
+          console.error('❌ پاسخ خطا:', error.response?.data);
+          
+          if (error.response?.status === 400) {
+            alert(`خطا در آپلود فایل ${file.name}: داده‌های ارسالی نامعتبر است.`);
+          } else if (error.response?.status === 404) {
+            alert(`خطا در آپلود فایل ${file.name}: مسیر API یافت نشد.`);
+          } else {
+            uploadedFilesList.push({
+              id: `local-${Date.now()}-${Math.random()}`,
+              name: file.name,
+              size: (file.size / 1024).toFixed(1) + ' KB',
+              type: type,
+              uploadedAt: new Date().toLocaleDateString('fa-IR'),
+              file: file,
+              file_type_label: type + ' (محلی - آپلود نشده)',
+              is_uploaded: false,
+            });
+          }
+        }
+      }
+      
+      setUploadedFiles(prev => {
+        const existingIds = new Set(prev.map(f => f.id));
+        const newFiles = uploadedFilesList.filter(f => !existingIds.has(f.id));
+        return [...newFiles, ...prev];
+      });
+      
+      const data = {
+        ...valuationForm,
+        assumptions,
+        linkedAssets,
+        evidenceTags,
+      };
+      saveToLocalStorage(data);
+      
+      if (uploadedFilesList.some(f => f.is_uploaded)) {
+        saveToDatabase(data);
+      }
+      
     } catch (error) {
       console.error('Error uploading files:', error);
-      alert('خطا در آپلود فایل');
+      alert('خطا در آپلود فایل. لطفاً دوباره تلاش کنید.');
     } finally {
       setIsUploading(false);
     }
@@ -965,7 +1028,7 @@ const saveToDatabase = useCallback(async (data: any) => {
               </div>
               {uploadedFiles.length > 0 && (
                 <span className="text-xs bg-white/20 text-white px-2.5 py-0.5 rounded-full">
-                  {uploadedFiles.length} فایل
+                  {uploadedFiles.filter(f => f.is_uploaded !== false).length} فایل
                 </span>
               )}
             </div>
@@ -1058,54 +1121,70 @@ const saveToDatabase = useCallback(async (data: any) => {
 
             {loadingFiles ? (
               <div className="text-center py-4 text-gray-400 text-sm">در حال بارگذاری شواهد...</div>
-            ) : uploadedFiles.length > 0 ? (
-              <div className="space-y-2 mt-4">
-                {uploadedFiles.map((file) => {
-                  const fileType = FILE_TYPE_ICONS[file.type as keyof typeof FILE_TYPE_ICONS] || FILE_TYPE_ICONS.document;
-                  const FileIcon = fileType.icon;
-                  const isNew = file.id.startsWith('new-');
-                  
-                  return (
-                    <div key={file.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`p-2 rounded-lg ${fileType.bg} flex-shrink-0`}>
-                          <FileIcon className={`w-4 h-4 ${fileType.color}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                          <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <span className="flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-green-500" />
-                              {file.file_type_label || 'فایل'}
-                            </span>
-                            <span>•</span>
-                            <span>{file.uploadedAt}</span>
-                            {isNew && (
-                              <span className="text-dark-green font-medium">جدید</span>
+            ) : (
+              <div className="mt-4">
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {uploadedFiles.length > 0 ? (
+                    uploadedFiles.map((file) => {
+                      const fileType = FILE_TYPE_ICONS[file.type as keyof typeof FILE_TYPE_ICONS] || FILE_TYPE_ICONS.document;
+                      const FileIcon = fileType.icon;
+                      const isUploaded = file.is_uploaded !== false;
+                      
+                      return (
+                        <div key={file.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all group">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`p-2 rounded-lg ${fileType.bg} flex-shrink-0`}>
+                              <FileIcon className={`w-4 h-4 ${fileType.color}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                              <div className="flex items-center gap-2 text-xs text-gray-400">
+                                <span className="flex items-center gap-1">
+                                  {isUploaded ? (
+                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                  ) : (
+                                    <AlertCircle className="w-3 h-3 text-red-500" />
+                                  )}
+                                  {file.file_type_label || 'فایل'}
+                                </span>
+                                <span>•</span>
+                                <span>{file.uploadedAt}</span>
+                                {isUploaded ? (
+                                  <span className="text-green-500 text-[10px]">✅ آپلود شده</span>
+                                ) : (
+                                  <span className="text-red-500 text-[10px]">⚠️ آپلود نشده</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {file.file_url && isUploaded && (
+                              <a href={file.file_url} target="_blank" rel="noopener noreferrer">
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                                  <Eye className="w-4 h-4 text-gray-400 hover:text-dark-green" />
+                                </Button>
+                              </a>
                             )}
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50" onClick={() => removeFile(file.id)}>
+                              <X className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {file.file_url && (
-                          <a href={file.file_url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
-                              <Eye className="w-4 h-4 text-gray-400 hover:text-dark-green" />
-                            </Button>
-                          </a>
-                        )}
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-red-50" onClick={() => removeFile(file.id)}>
-                          <X className="w-4 h-4 text-gray-400 hover:text-red-500" />
-                        </Button>
-                      </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6">
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                      <p className="text-sm text-gray-400">هیچ شواهدی برای این دارایی ثبت نشده است</p>
+                      <p className="text-xs text-gray-400 mt-1">برای آپلود فایل، از قسمت بالا استفاده کنید</p>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm text-gray-400">هیچ شواهدی برای این دارایی ثبت نشده است</p>
+                  )}
+                </div>
+                {uploadedFiles.length > 5 && (
+                  <div className="text-center text-xs text-gray-400 mt-2">
+                    {uploadedFiles.length} فایل • برای مشاهده همه اسکرول کنید
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

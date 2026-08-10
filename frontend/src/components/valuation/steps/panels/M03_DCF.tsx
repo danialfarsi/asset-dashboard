@@ -32,21 +32,44 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M03_DCFProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Data }: M03_DCFProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
+export function M03_DCF({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M03_DCFProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
 
   // ============================================
   // تشخیص تغییر دارایی
@@ -75,31 +98,18 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
   }, [valuationCaseId, formData.fcf_schedule]);
 
   // ============================================
-  // مقداردهی اولیه با داده‌های STEP 2
+  // مقداردهی اولیه با STEP 2
   // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
       const updates: any = {};
       
-      // 🔥 از step2Data استفاده کن
-      if (formData.forecast_horizon === undefined) {
-        updates.forecast_horizon = step2Data.forecast_horizon || 5;
-      }
-      if (formData.tax_rate === undefined) {
-        updates.tax_rate = step2Data.tax_rate || 25;
-      }
-      if (formData.discount_rate === undefined) {
-        updates.discount_rate = step2Data.discount_rate || 18;
-      }
-      if (formData.terminal_growth_rate === undefined) {
-        updates.terminal_growth_rate = step2Data.terminal_growth_rate || 5;
-      }
-      if (formData.quality_multiplier === undefined) {
-        updates.quality_multiplier = step2Data.quality_multiplier || 0.85;
-      }
-      if (formData.current_revenue === undefined) {
-        updates.current_revenue = step2Data.current_revenue || 0;
-      }
+      ['forecast_horizon', 'tax_rate', 'discount_rate', 
+       'terminal_growth_rate', 'quality_multiplier', 'current_revenue'].forEach(field => {
+        if (formData[field] === undefined && step2Data[field] !== undefined) {
+          updates[field] = step2Data[field];
+        }
+      });
       
       if (Object.keys(updates).length > 0) {
         onChange(updates);
@@ -110,7 +120,7 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
   }, [step2Data, initialized]);
 
   // ============================================
-  // بارگذاری داده‌های ذخیره‌شده
+  // بارگذاری از دیتابیس
   // ============================================
   useEffect(() => {
     if (valuationCaseId && initialized) {
@@ -123,8 +133,10 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m03Data: any = {};
         
         const fields = [
@@ -201,7 +213,7 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // توابع تأیید خبرگان
+  // توابع خبرگان
   // ============================================
   const addExpertSignoff = () => {
     const newSignoff: ExpertSignoff = {
@@ -225,26 +237,152 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // آپلود فایل
+  // 🔥 آپلود فایل - استفاده از props
   // ============================================
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده
+  // ============================================
+  const renderEvidences = () => {
+    const m03Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m03_')
+    );
+
+    if (m03Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m03Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm03_budget_plan': 'فایل Budget/Plan',
+            'm03_fcf_calculation': 'فایل FCF Calculation',
+            'm03_asset_description': 'مستندات توصیف دارایی',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // ============================================
-  // ذخیره در دیتابیس - PUT به جای POST
+  // 🔥 دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm03_budget_plan', label: 'فایل Budget/Plan', required: true },
+      { type: 'm03_fcf_calculation', label: 'فایل FCF Calculation', required: true },
+      { type: 'm03_asset_description', label: 'مستندات توصیف دارایی', required: false },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ============================================
+  // ذخیره در دیتابیس
   // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) return;
@@ -271,7 +409,6 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
             signature_date: s.signature_date,
             notes: s.notes,
           })),
-          // 🔥 از step2Data استفاده کن (همون مقداری که در STEP 2 هست)
           forecast_horizon: formData.forecast_horizon || step2Data?.forecast_horizon || 5,
           tax_rate: formData.tax_rate || step2Data?.tax_rate || 25,
           discount_rate: formData.discount_rate || step2Data?.discount_rate || 18,
@@ -283,25 +420,22 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
 
       console.log('📤 ذخیره M03:', payload);
 
-      // 🔥 اول چک کن STEP 3 وجود داره یا نه
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
-      if (items.length > 0) {
-        // اگر وجود داره → PUT
-        const step3Id = items[0].id;
-        await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
-        console.log('✅ STEP 3 به‌روزرسانی شد (PUT)');
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M03 به‌روزرسانی شد (PATCH)');
       } else {
-        // اگر وجود نداره → POST
         await api.post('/intangible/valuation-step3/', payload);
-        console.log('✅ STEP 3 جدید ایجاد شد (POST)');
+        console.log('✅ M03 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
     } catch (error: any) {
       console.error('❌ خطا در ذخیره M03:', error);
-      console.error('❌ پاسخ خطا:', error.response?.data);
       setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
     } finally {
       setSaving(false);
@@ -315,9 +449,6 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
     return () => clearTimeout(timer);
   }, [formData, fcfSchedule, expertSignoffs]);
 
-  // ============================================
-  // نمایش داده‌های STEP 2 (فقط برای نمایش، نه در پنل)
-  // ============================================
   const step2Display = step2Data || formData;
 
   return (
@@ -351,9 +482,25 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
-      {/* ============================================
-          داده‌های STEP 2 (نمایش به‌روز)
-      ============================================ */}
+      {/* ========================================== */}
+      {/* 🔥 شواهد و مدارک - در بالای صفحه */}
+      {/* ========================================== */}
+      <div className="border rounded-lg p-4 border-blue-200 bg-blue-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m03_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
+        </div>
+
+        {renderUploadButtons()}
+        <div className="mt-4">{renderEvidences()}</div>
+      </div>
+
+      {/* داده‌های STEP 2 */}
       <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
         <p className="font-medium text-blue-700 mb-1 font-[family-name:var(--font-vazir)]">📥 داده‌های ورودی از STEP 2:</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1 font-[family-name:var(--font-vazir)]">
@@ -364,9 +511,7 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
-      {/* ============================================
-          پارامترهای اختصاصی M-03
-      ============================================ */}
+      {/* پارامترهای اختصاصی M-03 */}
       <div className="border rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
           🎯 پارامترهای اختصاصی روش M-03
@@ -500,84 +645,6 @@ export function M03_DCF({ formData, onChange, assetId, valuationCaseId, step2Dat
                 {formData.intangible_share_percent || 70}%
               </p>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* آپلود فایل‌ها */}
-      <div className="border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">📎 شواهد و مدارک</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              فایل Budget/Plan <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-              {files.budget_plan ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm truncate">{files.budget_plan.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('budget_plan')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="budget_plan"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('budget_plan', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="budget_plan"
-                    className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل Budget
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400">فایل بودجه یا برنامه مالی</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              فایل FCF Calculation <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-blue-400 transition-colors">
-              {files.fcf_calculation ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm truncate">{files.fcf_calculation.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('fcf_calculation')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="fcf_calculation"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('fcf_calculation', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="fcf_calculation"
-                    className="flex items-center gap-2 text-sm text-blue-600 cursor-pointer hover:text-blue-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل FCF
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400">محاسبات دقیق جریان نقدی آزاد</p>
           </div>
         </div>
       </div>

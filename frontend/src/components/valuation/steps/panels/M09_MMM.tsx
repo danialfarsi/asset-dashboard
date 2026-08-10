@@ -33,12 +33,25 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M09_MMMProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
 // ============================================
@@ -58,14 +71,24 @@ const toPersianNumberWithComma = (num: number): string => {
   return formatted.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
 };
 
-export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Data }: M09_MMMProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
+export function M09_MMM({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M09_MMMProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
   const [showDetails, setShowDetails] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // ============================================
   // گزینه‌های انتخاب
@@ -134,18 +157,11 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
     if (step2Data && !initialized) {
       const updates: any = {};
       
-      if (formData.discount_rate === undefined && step2Data.discount_rate) {
-        updates.discount_rate = step2Data.discount_rate;
-      }
-      if (formData.tax_rate === undefined && step2Data.tax_rate) {
-        updates.tax_rate = step2Data.tax_rate;
-      }
-      if (formData.quality_multiplier === undefined && step2Data.quality_multiplier) {
-        updates.quality_multiplier = step2Data.quality_multiplier;
-      }
-      if (formData.source_reliability === undefined && step2Data.source_reliability) {
-        updates.source_reliability = step2Data.source_reliability;
-      }
+      ['discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability'].forEach(field => {
+        if (formData[field] === undefined && step2Data[field] !== undefined) {
+          updates[field] = step2Data[field];
+        }
+      });
       
       if (Object.keys(updates).length > 0) {
         onChange(updates);
@@ -168,8 +184,10 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m09Data: any = {};
         
         const fields = [
@@ -239,22 +257,148 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // آپلود فایل
+  // 🔥 آپلود فایل - استفاده از props
   // ============================================
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده
+  // ============================================
+  const renderEvidences = () => {
+    const m09Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m09_')
+    );
+
+    if (m09Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m09Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm09_external_multiples': 'فایل ضرایب بازار',
+            'm09_industry_context': 'فایل تحلیل صنعت',
+            'm09_ppa_note': 'یادداشت PPA',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-amber-600 hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ============================================
+  // 🔥 دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm09_external_multiples', label: 'فایل ضرایب بازار', required: true },
+      { type: 'm09_industry_context', label: 'فایل تحلیل صنعت', required: true },
+      { type: 'm09_ppa_note', label: 'یادداشت PPA', required: false },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-amber-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // ============================================
@@ -290,12 +434,15 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
 
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M09 به‌روزرسانی شد (PATCH)');
       } else {
         await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M09 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
@@ -323,8 +470,8 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
     
     return (
       <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
-        <p className="font-medium text-blue-700 mb-1 font-[family-name:var(--font-vazir)]">📥 داده‌های ورودی از مرحله ۲:</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1 font-[family-name:var(--font-vazir)]">
+        <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از مرحله ۲:</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
           <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{toPersianNumber(data.discount_rate || 18)}%</span></div>
           <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{toPersianNumber(data.tax_rate || 25)}%</span></div>
           <div><span className="text-gray-500">ضریب کیفیت:</span> <span className="font-bold">{toPersianNumber(data.quality_multiplier || 0.86)}</span></div>
@@ -335,7 +482,7 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   return (
-    <div className="space-y-6 font-[family-name:var(--font-vazir)]">
+    <div className="space-y-6">
 
       {/* هدر */}
       <div className="flex items-center justify-between">
@@ -363,6 +510,24 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
             </span>
           ) : null}
         </div>
+      </div>
+
+      {/* ========================================== */}
+      {/* 🔥 شواهد و مدارک - در بالای صفحه */}
+      {/* ========================================== */}
+      <div className="border rounded-lg p-4 border-amber-200 bg-amber-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-amber-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m09_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
+        </div>
+
+        {renderUploadButtons()}
+        <div className="mt-4">{renderEvidences()}</div>
       </div>
 
       {/* نمایش داده‌های مرحله ۲ */}
@@ -595,150 +760,37 @@ export function M09_MMM({ formData, onChange, assetId, valuationCaseId, step2Dat
             خلاصه محاسبه پیش‌نمایش
         ============================================ */}
         <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-          <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
+          <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ارزش شرکت (EV)</p>
-              <p className="text-sm font-bold text-amber-700 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">ارزش شرکت (EV)</p>
+              <p className="text-sm font-bold text-amber-700">
                 {toPersianNumberWithComma(enterpriseValue)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">+ صرف کنترل</p>
-              <p className="text-sm font-bold text-green-600 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">+ صرف کنترل</p>
+              <p className="text-sm font-bold text-green-600">
                 {toPersianNumberWithComma(enterpriseValueAfterPremium - enterpriseValue)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">- تخفیف بازارپذیری</p>
-              <p className="text-sm font-bold text-red-600 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">- تخفیف بازارپذیری</p>
+              <p className="text-sm font-bold text-red-600">
                 {toPersianNumberWithComma(enterpriseValueAfterPremium - enterpriseValueAfterDiscount)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">× سهم دارایی</p>
-              <p className="text-sm font-bold text-purple-600 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">× سهم دارایی</p>
+              <p className="text-sm font-bold text-purple-600">
                 {toPersianNumberWithComma(enterpriseValueAfterDiscount)}
               </p>
             </div>
             <div className="p-2 bg-amber-100 rounded-lg border border-amber-300">
-              <p className="text-[10px] text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی (پیش‌نمایش)</p>
-              <p className="text-lg font-bold text-amber-800 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-500">ارزش نهایی (پیش‌نمایش)</p>
+              <p className="text-lg font-bold text-amber-800">
                 {toPersianNumberWithComma(intangibleValue)}
               </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================
-          آپلود فایل‌ها
-      ============================================ */}
-      <div className="border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">📎 شواهد و مدارک</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              فایل ضرایب بازار <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-amber-400 transition-colors">
-              {files.external_multiples ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm truncate">{files.external_multiples.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('external_multiples')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="external_multiples"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('external_multiples', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="external_multiples"
-                    className="flex items-center gap-2 text-sm text-amber-600 cursor-pointer hover:text-amber-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              فایل تحلیل صنعت <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-amber-400 transition-colors">
-              {files.industry_context ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm truncate">{files.industry_context.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('industry_context')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="industry_context"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('industry_context', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="industry_context"
-                    className="flex items-center gap-2 text-sm text-amber-600 cursor-pointer hover:text-amber-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              یادداشت PPA <span className="text-gray-400">(اختیاری)</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-amber-400 transition-colors">
-              {files.ppa_note ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-amber-500" />
-                    <span className="text-sm truncate">{files.ppa_note.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('ppa_note')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="ppa_note"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('ppa_note', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="ppa_note"
-                    className="flex items-center gap-2 text-sm text-amber-600 cursor-pointer hover:text-amber-800"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل
-                  </label>
-                </div>
-              )}
             </div>
           </div>
         </div>

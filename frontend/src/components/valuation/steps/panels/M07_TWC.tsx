@@ -49,15 +49,38 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M07_TWCProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Data }: M07_TWCProps) {
+export function M07_TWC({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M07_TWCProps) {
   const [files, setFiles] = useState<Record<string, File>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -65,6 +88,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
   const [showDetails, setShowDetails] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // ============================================
   // نقش‌های پیشنهادی
@@ -128,21 +152,17 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
   }, [valuationCaseId, formData.team_members]);
 
   // ============================================
-  // مقداردهی اولیه با داده‌های STEP 2 (فقط فیلدهای مشترک)
+  // مقداردهی اولیه با داده‌های STEP 2
   // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
       const updates: any = {};
       
-      if (formData.discount_rate === undefined && step2Data.discount_rate) {
-        updates.discount_rate = step2Data.discount_rate;
-      }
-      if (formData.tax_rate === undefined && step2Data.tax_rate) {
-        updates.tax_rate = step2Data.tax_rate;
-      }
-      if (formData.quality_multiplier === undefined && step2Data.quality_multiplier) {
-        updates.quality_multiplier = step2Data.quality_multiplier;
-      }
+      ['discount_rate', 'tax_rate', 'quality_multiplier'].forEach(field => {
+        if (formData[field] === undefined && step2Data[field] !== undefined) {
+          updates[field] = step2Data[field];
+        }
+      });
       
       if (Object.keys(updates).length > 0) {
         onChange(updates);
@@ -165,8 +185,10 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m07Data: any = {};
         
         const fields = [
@@ -274,22 +296,148 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // آپلود فایل
+  // 🔥 آپلود فایل - استفاده از props
   // ============================================
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده
+  // ============================================
+  const renderEvidences = () => {
+    const m07Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m07_')
+    );
+
+    if (m07Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m07Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm07_hr_data': 'فایل HR Data',
+            'm07_training_plan': 'فایل Training Plan',
+            'm07_recruitment_cost': 'مستندات جذب',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-orange-600 hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ============================================
+  // 🔥 دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm07_hr_data', label: 'فایل HR Data', required: true },
+      { type: 'm07_training_plan', label: 'فایل Training Plan', required: true },
+      { type: 'm07_recruitment_cost', label: 'مستندات جذب', required: true },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-orange-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-orange-300 text-orange-700 hover:bg-orange-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // ============================================
@@ -319,12 +467,15 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
 
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M07 به‌روزرسانی شد (PATCH)');
       } else {
         await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M07 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
@@ -374,6 +525,24 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
+      {/* ========================================== */}
+      {/* 🔥 شواهد و مدارک - در بالای صفحه */}
+      {/* ========================================== */}
+      <div className="border rounded-lg p-4 border-orange-200 bg-orange-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-orange-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m07_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
+        </div>
+
+        {renderUploadButtons()}
+        <div className="mt-4">{renderEvidences()}</div>
+      </div>
+
       {/* ============================================
           پارامترهای اختصاصی M-07
       ============================================ */}
@@ -383,9 +552,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
           <Badge className="text-xs bg-red-100 text-red-700">ورودی کاربر</Badge>
         </h3>
 
-        {/* ============================================
-            جدول ترکیب تیم (اعداد فارسی در نمایش)
-        ============================================ */}
+        {/* جدول ترکیب تیم */}
         <div className="mt-4">
           <div className="flex items-center justify-between mb-3">
             <Label className="text-sm font-medium flex items-center gap-1">
@@ -407,12 +574,12 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-orange-50">
-                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">نقش</th>
-                  <th className="border p-2 text-center font-[family-name:var(--font-vazir)]">تعداد</th>
-                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">هزینه جذب (IRR)</th>
-                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">هزینه آموزش (IRR)</th>
-                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">حقوق متوسط (IRR)</th>
-                  <th className="border p-2 text-center font-[family-name:var(--font-vazir)]">عملیات</th>
+                  <th className="border p-2 text-right">نقش</th>
+                  <th className="border p-2 text-center">تعداد</th>
+                  <th className="border p-2 text-right">هزینه جذب (IRR)</th>
+                  <th className="border p-2 text-right">هزینه آموزش (IRR)</th>
+                  <th className="border p-2 text-right">حقوق متوسط (IRR)</th>
+                  <th className="border p-2 text-center">عملیات</th>
                 </tr>
               </thead>
               <tbody>
@@ -440,7 +607,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                         type="number"
                         value={member.headcount || ''}
                         onChange={(e) => updateTeamMember(member.id, 'headcount', parseInt(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                        className="h-8 text-sm border-0 focus:ring-1 text-center"
                         placeholder="۰"
                         min="1"
                       />
@@ -450,7 +617,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                         type="number"
                         value={member.recruit_cost || ''}
                         onChange={(e) => updateTeamMember(member.id, 'recruit_cost', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-8 text-sm border-0 focus:ring-1"
                         placeholder="۲۰,۰۰۰,۰۰۰"
                       />
                     </td>
@@ -459,7 +626,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                         type="number"
                         value={member.train_cost || ''}
                         onChange={(e) => updateTeamMember(member.id, 'train_cost', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-8 text-sm border-0 focus:ring-1"
                         placeholder="۱۰,۰۰۰,۰۰۰"
                       />
                     </td>
@@ -468,14 +635,14 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                         type="number"
                         value={member.avg_salary || ''}
                         onChange={(e) => updateTeamMember(member.id, 'avg_salary', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-8 text-sm border-0 focus:ring-1"
                         placeholder="۸۰,۰۰۰,۰۰۰"
                       />
                     </td>
                     <td className="border p-1 text-center">
                       <button
                         onClick={() => removeTeamMember(member.id)}
-                        className="text-red-500 hover:text-red-700 font-[family-name:var(--font-vazir)]"
+                        className="text-red-500 hover:text-red-700"
                         disabled={teamMembers.length <= 1}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -486,15 +653,13 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1 font-[family-name:var(--font-vazir)]">* حداقل ۱ نقش الزامی است</p>
+          <p className="text-[10px] text-gray-400 mt-1">* حداقل ۱ نقش الزامی است</p>
         </div>
 
-        {/* ============================================
-            پارامترهای اضافی (اعداد فارسی در نمایش)
-        ============================================ */}
+        {/* پارامترهای اضافی */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t">
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
+            <Label className="text-sm font-medium flex items-center gap-1">
               <CalendarClock className="w-4 h-4" />
               دوره شتاب‌دهی <span className="text-red-500">*</span>
             </Label>
@@ -504,15 +669,15 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                 value={formData.ramp_up_duration || ''}
                 onChange={(e) => handleChange('ramp_up_duration', parseInt(e.target.value) || 0)}
                 placeholder="۶"
-                className="flex-1 focus:ring-2 focus:ring-orange-500 font-[family-name:var(--font-vazir)]"
+                className="flex-1 focus:ring-2 focus:ring-orange-500"
               />
-              <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">ماه</span>
+              <span className="text-sm text-gray-400">ماه</span>
             </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">مدت زمان لازم برای رسیدن به بهره‌وری کامل</p>
+            <p className="text-[10px] text-gray-400">مدت زمان لازم برای رسیدن به بهره‌وری کامل</p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
+            <Label className="text-sm font-medium flex items-center gap-1">
               <TrendingUp className="w-4 h-4" />
               کاهش بهره‌وری <span className="text-red-500">*</span>
             </Label>
@@ -523,15 +688,15 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                 value={formData.productivity_loss || ''}
                 onChange={(e) => handleChange('productivity_loss', parseFloat(e.target.value) || 0)}
                 placeholder="۳۰"
-                className="flex-1 focus:ring-2 focus:ring-orange-500 font-[family-name:var(--font-vazir)]"
+                className="flex-1 focus:ring-2 focus:ring-orange-500"
               />
-              <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">%</span>
+              <span className="text-sm text-gray-400">%</span>
             </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">درصد بهره‌وری از دست‌رفته در دوره شتاب‌دهی</p>
+            <p className="text-[10px] text-gray-400">درصد بهره‌وری از دست‌رفته در دوره شتاب‌دهی</p>
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
+            <Label className="text-sm font-medium flex items-center gap-1">
               <UserPlus className="w-4 h-4" />
               نرخ جابجایی (اختیاری)
             </Label>
@@ -542,160 +707,42 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                 value={formData.turnover_rate || ''}
                 onChange={(e) => handleChange('turnover_rate', parseFloat(e.target.value) || 0)}
                 placeholder="۸"
-                className="flex-1 focus:ring-2 focus:ring-orange-500 font-[family-name:var(--font-vazir)]"
+                className="flex-1 focus:ring-2 focus:ring-orange-500"
               />
-              <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">%</span>
+              <span className="text-sm text-gray-400">%</span>
             </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ سالانه خروج نیروی کار</p>
+            <p className="text-[10px] text-gray-400">نرخ سالانه خروج نیروی کار</p>
           </div>
         </div>
       </div>
 
-      {/* ============================================
-          خلاصه محاسبه (اعداد فارسی)
-      ============================================ */}
+      {/* خلاصه محاسبه */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه تیم</p>
+        <p className="text-sm font-medium mb-3">📊 خلاصه تیم</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تعداد کل</p>
-            <p className="text-lg font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">تعداد کل</p>
+            <p className="text-lg font-bold text-dark-green">
               {toPersianDigit(calculateTotalHeadcount())} نفر
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه جذب</p>
-            <p className="text-sm font-bold text-orange-600 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">هزینه جذب</p>
+            <p className="text-sm font-bold text-orange-600">
               {formatNumber(calculateTotalRecruitCost())}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه آموزش</p>
-            <p className="text-sm font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">هزینه آموزش</p>
+            <p className="text-sm font-bold text-blue-600">
               {formatNumber(calculateTotalTrainCost())}
             </p>
           </div>
           <div className="p-2 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه کل تیم</p>
-            <p className="text-lg font-bold text-orange-700 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">هزینه کل تیم</p>
+            <p className="text-lg font-bold text-orange-700">
               {formatNumber(calculateTotalCost())}
             </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================
-          آپلود فایل‌ها
-      ============================================ */}
-      <div className="border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3 font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              فایل HR Data <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-orange-400 transition-colors">
-              {files.hr_data ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.hr_data.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('hr_data')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="hr_data"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('hr_data', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="hr_data"
-                    className="flex items-center gap-2 text-sm text-orange-600 cursor-pointer hover:text-orange-800 font-[family-name:var(--font-vazir)]"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل HR
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">خروجی سیستم HR حاوی اطلاعات تیم</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              فایل Training Plan <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-orange-400 transition-colors">
-              {files.training_plan ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.training_plan.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('training_plan')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="training_plan"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('training_plan', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="training_plan"
-                    className="flex items-center gap-2 text-sm text-orange-600 cursor-pointer hover:text-orange-800 font-[family-name:var(--font-vazir)]"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود برنامه آموزشی
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">برنامه و هزینه‌های آموزشی</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              فایل Recruitment Cost <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-orange-400 transition-colors">
-              {files.recruitment_cost ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.recruitment_cost.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('recruitment_cost')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="recruitment_cost"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('recruitment_cost', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="recruitment_cost"
-                    className="flex items-center gap-2 text-sm text-orange-600 cursor-pointer hover:text-orange-800 font-[family-name:var(--font-vazir)]"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود مستندات جذب
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">مستندات هزینه‌های جذب نیرو</p>
           </div>
         </div>
       </div>
@@ -704,11 +751,11 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
           تأیید خبرگان
       ============================================ */}
       <div className="space-y-3 pt-4 border-t">
-        <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">👤 تأیید خبرگان (اختیاری)</Label>
+        <Label className="text-sm font-medium">👤 تأیید خبرگان (اختیاری)</Label>
         {expertSignoffs.length === 0 ? (
           <div className="text-center py-4 text-gray-400 border-2 border-dashed rounded-lg">
-            <p className="text-sm font-[family-name:var(--font-vazir)]">هیچ خبره‌ای ثبت نشده است</p>
-            <p className="text-xs font-[family-name:var(--font-vazir)]">برای افزودن خبره روی دکمه کلیک کنید</p>
+            <p className="text-sm">هیچ خبره‌ای ثبت نشده است</p>
+            <p className="text-xs">برای افزودن خبره روی دکمه کلیک کنید</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -719,20 +766,20 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
                     value={signoff.expert_name}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'expert_name', e.target.value)}
                     placeholder="نام خبره"
-                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
+                    className="h-8 text-sm"
                   />
                   <Input
                     type="date"
                     value={signoff.signature_date}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
-                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
+                    className="h-8 text-sm"
                   />
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removeExpertSignoff(signoff.id)}
-                  className="text-red-500 hover:text-red-700 font-[family-name:var(--font-vazir)]"
+                  className="text-red-500 hover:text-red-700"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -744,7 +791,7 @@ export function M07_TWC({ formData, onChange, assetId, valuationCaseId, step2Dat
           variant="outline"
           size="sm"
           onClick={addExpertSignoff}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
+          className="flex items-center gap-1"
         >
           <Plus className="w-4 h-4" />
           افزودن خبره

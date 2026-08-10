@@ -3,7 +3,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, Upload, X, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
 
@@ -14,6 +14,15 @@ interface LaborRow {
   daily_rate: number;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M06_RPCMProps {
   formData: any;
   onChange: (data: any) => void;
@@ -21,15 +30,29 @@ interface M06_RPCMProps {
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Data }: M06_RPCMProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
+export function M06_RPCM({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M06_RPCMProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
 
   // تبدیل اعداد به فارسی
   const toPersianNumber = (num: number) => {
@@ -47,7 +70,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
   };
 
   // ============================================
-  // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
+  // تشخیص تغییر دارایی
   // ============================================
   useEffect(() => {
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
@@ -58,7 +81,13 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
       if (!hasExistingData) {
         console.log('🔄 ریست کردن فرم برای دارایی جدید');
         setInitialized(false);
-        setFiles({});
+        // 🔥 مقدار پیش‌فرض age_factor رو 0.2 قرار بده (۲۰٪)
+        onChange({
+          age_factor: 0.2,
+          coordination_overhead: 20,
+          relevance_obsolescence: 0,
+          direct_reproduction_cost: 0,
+        });
       }
       
       setPrevValuationCaseId(valuationCaseId);
@@ -66,33 +95,35 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
   }, [valuationCaseId, formData.labor_breakdown]);
 
   // ============================================
-  // 🔥 مقداردهی اولیه با داده‌های STEP 2
+  // مقداردهی اولیه با STEP 2
   // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
       console.log('📥 دریافت داده‌های STEP 2 برای M06:', step2Data);
       
-      if (!formData.tax_rate && step2Data.tax_rate) {
-        onChange({
-          tax_rate: step2Data.tax_rate,
-          discount_rate: step2Data.discount_rate,
-          forecast_horizon: step2Data.forecast_horizon,
-          terminal_growth_rate: step2Data.terminal_growth_rate,
-          current_revenue: step2Data.current_revenue,
-          useful_life: step2Data.useful_life,
-          currency: step2Data.currency,
-          source_reliability: step2Data.source_reliability,
-          category: step2Data.category,
-          business_unit: step2Data.business_unit,
-          lifecycle_stage: step2Data.lifecycle_stage,
-        });
+      const updates: any = {};
+      ['tax_rate', 'discount_rate', 'forecast_horizon', 'terminal_growth_rate', 
+       'current_revenue', 'useful_life', 'currency', 'source_reliability',
+       'category', 'business_unit', 'lifecycle_stage'].forEach(field => {
+        if (formData[field] === undefined && step2Data[field] !== undefined) {
+          updates[field] = step2Data[field];
+        }
+      });
+      
+      // 🔥 اگر age_factor تنظیم نشده، مقدار 0.2 بگذار
+      if (formData.age_factor === undefined) {
+        updates.age_factor = 0.2;
+      }
+      
+      if (Object.keys(updates).length > 0) {
+        onChange(updates);
       }
       setInitialized(true);
     }
   }, [step2Data, initialized]);
 
   // ============================================
-  // بارگذاری داده‌های ذخیره‌شده از دیتابیس
+  // بارگذاری از دیتابیس
   // ============================================
   useEffect(() => {
     if (valuationCaseId && initialized) {
@@ -107,8 +138,10 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         
         const m06Data: any = {};
         if (inputs.labor_breakdown) m06Data.labor_breakdown = inputs.labor_breakdown;
@@ -118,12 +151,16 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
         if (inputs.age_factor !== undefined) m06Data.age_factor = inputs.age_factor;
         if (inputs.last_review_date) m06Data.last_review_date = inputs.last_review_date;
         
+        // 🔥 اگر age_factor خیلی بزرگه، اصلاحش کن
+        if (m06Data.age_factor > 1) {
+          m06Data.age_factor = m06Data.age_factor / 100;
+          console.log('⚠️ age_factor از درصد به اعشار تبدیل شد:', m06Data.age_factor);
+        }
+        
         if (Object.keys(m06Data).length > 0) {
           onChange(m06Data);
           console.log('📥 داده‌های M06 از دیتابیس بارگذاری شد:', m06Data);
         }
-      } else {
-        console.log('ℹ️ هیچ داده‌ای برای این valuationCaseId در دیتابیس وجود ندارد');
       }
     } catch (error) {
       console.error('Error loading M06 data:', error);
@@ -164,24 +201,153 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
     handleChange('labor_breakdown', laborRows.filter(row => row.id !== id));
   };
 
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  // ============================================
+  // آپلود فایل
+  // ============================================
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // رندر شواهد
+  // ============================================
+  const renderEvidences = () => {
+    const m06Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m06_')
+    );
+
+    if (m06Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m06Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm06_reproduction_report': 'گزارش بازتولید',
+            'm06_supporting_docs': 'مدارک پشتیبان',
+            'm06_cost_estimation': 'برآورد هزینه',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-rose-600 hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // ============================================
-  // 🔥 محاسبات با مقدار پیش‌فرض (رفع NaN)
+  // دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm06_reproduction_report', label: 'گزارش بازتولید', required: true },
+      { type: 'm06_supporting_docs', label: 'مدارک پشتیبان', required: false },
+      { type: 'm06_cost_estimation', label: 'برآورد هزینه', required: false },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-rose-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // ============================================
+  // محاسبات
   // ============================================
   const calculateTotalLaborCost = () => {
     return laborRows.reduce((acc, row) => {
@@ -197,13 +363,21 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
     const totalDirect = directCost + laborCost;
     const overhead = 1 + (Number(formData.coordination_overhead) || 20) / 100;
     const obsolescence = 1 - (Number(formData.relevance_obsolescence) || 0) / 100;
-    const ageFactor = 1 - (Number(formData.age_factor) || 0) / 100;
+    // 🔥 اصلاح: age_factor باید بین 0 و 1 باشد
+    let ageFactor = Number(formData.age_factor) || 0;
+    // اگر age_factor بزرگتر از 1 بود، به اعشار تبدیل کن
+    if (ageFactor > 1) {
+      ageFactor = ageFactor / 100;
+    }
+    // محدود کردن به بازه 0 تا 1
+    ageFactor = Math.max(0, Math.min(1, ageFactor));
+    const ageReduction = 1 - ageFactor;
     
-    return totalDirect * overhead * obsolescence * ageFactor;
+    return totalDirect * overhead * obsolescence * ageReduction;
   };
 
   // ============================================
-  // 🔥 ذخیره در دیتابیس (همراه با داده‌های STEP 2)
+  // ذخیره در دیتابیس
   // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) {
@@ -215,6 +389,13 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
     try {
       setSaving(true);
       setSaveError(null);
+
+      // 🔥 اصلاح age_factor قبل از ذخیره
+      let ageFactor = Number(formData.age_factor) || 0;
+      if (ageFactor > 1) {
+        ageFactor = ageFactor / 100;
+      }
+      ageFactor = Math.max(0, Math.min(1, ageFactor));
 
       const methodInputs = {
         tax_rate: Number(formData.tax_rate) || Number(step2Data?.tax_rate) || 25,
@@ -238,7 +419,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
         direct_reproduction_cost: Number(formData.direct_reproduction_cost) || 0,
         coordination_overhead: Number(formData.coordination_overhead) || 20,
         relevance_obsolescence: Number(formData.relevance_obsolescence) || 0,
-        age_factor: Number(formData.age_factor) || 0,
+        age_factor: ageFactor,
         last_review_date: formData.last_review_date || '',
       };
 
@@ -252,42 +433,42 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
       
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
       let response;
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        response = await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M06 به‌روزرسانی شد (PATCH)');
       } else {
         response = await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M06 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
-      console.log('✅ M06 در دیتابیس ذخیره شد:', response.data);
     } catch (error: any) {
       console.error('❌ خطا در ذخیره M06:', error);
-      const errorMsg = error?.response?.data?.message || error?.response?.data?.error || 'خطا در ذخیره';
-      setSaveError(errorMsg);
+      setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
     } finally {
       setSaving(false);
     }
   };
 
-  // Auto-save با debounce
+  // Auto-save
   useEffect(() => {
     const timer = setTimeout(() => {
       saveToDatabase();
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [formData, laborRows]);
 
   return (
     <div className="space-y-6 font-[family-name:var(--font-vazir)]">
-      {/* هدر با وضعیت ذخیره */}
+      {/* هدر */}
       <div className="flex items-center justify-between">
         <div className="bg-rose-50 p-4 rounded-lg border border-rose-200 flex-1">
           <p className="text-sm text-rose-700">
-            🔹 روش هزینه بازتولید (RPCM) - ارزش‌گذاری بر اساس هزینه بازتولید دقیق دارایی.
+            🔹 روش هزینه بازتولید (RPCM)
             <span className="inline-block mr-2 px-2 py-0.5 bg-rose-200 text-rose-800 rounded-full text-xs font-medium">
               M-06 | Reproduction Cost
             </span>
@@ -313,12 +494,20 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
         </div>
       </div>
 
-      {/* ⚠️ نمایش خطا با جزئیات */}
-      {saveError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
-          ❌ {saveError}
+      {/* شواهد */}
+      <div className="border rounded-lg p-4 border-rose-200 bg-rose-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-rose-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m06_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
         </div>
-      )}
+        {renderUploadButtons()}
+        <div className="mt-4">{renderEvidences()}</div>
+      </div>
 
       {/* 1. Labor Breakdown Table */}
       <div className="space-y-2">
@@ -342,7 +531,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                     <Input
                       value={row.role}
                       onChange={(e) => updateLaborRow(row.id, 'role', e.target.value)}
-                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                      className="h-8 text-sm border-0 focus:ring-1"
                       placeholder="نقش"
                     />
                   </td>
@@ -351,7 +540,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                       type="number"
                       value={row.person_days || ''}
                       onChange={(e) => updateLaborRow(row.id, 'person_days', Number(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                      className="h-8 text-sm border-0 focus:ring-1"
                       placeholder="۰"
                     />
                   </td>
@@ -360,7 +549,7 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
                       type="number"
                       value={row.daily_rate || ''}
                       onChange={(e) => updateLaborRow(row.id, 'daily_rate', Number(e.target.value) || 0)}
-                      className="h-8 text-sm border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                      className="h-8 text-sm border-0 focus:ring-1"
                       placeholder="۰"
                     />
                   </td>
@@ -377,17 +566,17 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
             </tbody>
           </table>
         </div>
-        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
+        <Button variant="outline" size="sm" onClick={addLaborRow} className="flex items-center gap-1">
           <Plus className="w-4 h-4" />
           افزودن ردیف
         </Button>
-        <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
+        <p className="text-xs text-gray-400">* حداقل ۱ ردیف الزامی</p>
       </div>
 
       {/* 2. پارامترها */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
+          <Label className="text-sm font-medium flex items-center gap-1">
             هزینه مستقیم بازتولید <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -395,12 +584,12 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
             value={formData.direct_reproduction_cost || ''}
             onChange={(e) => handleChange('direct_reproduction_cost', Number(e.target.value) || 0)}
             placeholder="مثلاً ۵۰۰,۰۰۰,۰۰۰"
-            className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
+            className="focus:ring-2 focus:ring-rose-500"
           />
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">سربار هماهنگی</Label>
+          <Label className="text-sm font-medium">سربار هماهنگی</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"
@@ -408,138 +597,100 @@ export function M06_RPCM({ formData, onChange, assetId, valuationCaseId, step2Da
               value={formData.coordination_overhead || ''}
               onChange={(e) => handleChange('coordination_overhead', Number(e.target.value) || 0)}
               placeholder="۲۰"
-              className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
+              className="focus:ring-2 focus:ring-rose-500"
             />
-            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
+            <span className="text-sm text-gray-400">%</span>
           </div>
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">منسوخی مرتبط</Label>
+          <Label className="text-sm font-medium">منسوخی مرتبط</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"
               step="0.5"
               value={formData.relevance_obsolescence || ''}
               disabled
-              className="bg-gray-50 focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
+              className="bg-gray-50 focus:ring-2 focus:ring-rose-500"
               placeholder="۰"
             />
-            <span className="text-sm text-gray-400 font-[family-name:var(--font-vazir)]">٪</span>
-            <span className="text-xs text-rose-600 font-[family-name:var(--font-vazir)]">🤖 خودکار</span>
+            <span className="text-sm text-gray-400">%</span>
+            <span className="text-xs text-rose-600">🤖 خودکار</span>
           </div>
         </div>
 
+        {/* 🔥 اصلاح: اضافه کردن اعتبارسنجی برای age_factor */}
         <div className="space-y-1">
-          <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">ضریب سن</Label>
-          <Input
-            type="number"
-            step="0.01"
-            value={formData.age_factor || ''}
-            onChange={(e) => handleChange('age_factor', Number(e.target.value) || 0)}
-            placeholder="۰.۹۰"
-            className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
-          />
+          <Label className="text-sm font-medium flex items-center gap-1">
+            ضریب سن <span className="text-red-500">*</span>
+            <span className="text-xs text-gray-400">(۰ تا ۱)</span>
+          </Label>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              step="0.01"
+              min="0"
+              max="1"
+              value={formData.age_factor || ''}
+              onChange={(e) => {
+                let val = parseFloat(e.target.value) || 0;
+                // اگر مقدار از ۱ بیشتر بود، به اعشار تبدیل کن
+                if (val > 1) {
+                  val = val / 100;
+                }
+                // محدود کردن به بازه ۰ تا ۱
+                val = Math.max(0, Math.min(1, val));
+                handleChange('age_factor', val);
+              }}
+              placeholder="۰.۲ (معادل ۲۰٪)"
+              className="focus:ring-2 focus:ring-rose-500"
+            />
+          </div>
+          <p className="text-[10px] text-gray-400">
+            مقدار ۰.۲ = ۲۰٪ کاهش ارزش به دلیل کهنگی
+            {formData.age_factor > 1 && (
+              <span className="text-red-500 block">⚠️ مقدار باید بین ۰ تا ۱ باشد</span>
+            )}
+          </p>
         </div>
       </div>
 
       {/* 3. Last Review Date */}
       <div className="space-y-1">
-        <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">تاریخ آخرین بازنگری</Label>
+        <Label className="text-sm font-medium">تاریخ آخرین بازنگری</Label>
         <Input
           type="date"
           value={formData.last_review_date || ''}
           onChange={(e) => handleChange('last_review_date', e.target.value)}
-          className="focus:ring-2 focus:ring-rose-500 font-[family-name:var(--font-vazir)]"
+          className="focus:ring-2 focus:ring-rose-500"
         />
-      </div>
-
-      {/* 4. Files */}
-      <div className="space-y-3 pt-4 border-t">
-        <p className="text-sm font-medium font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="p-3 border-2 border-dashed rounded-lg hover:border-rose-400 transition-colors">
-            <Label className="text-sm font-[family-name:var(--font-vazir)]">گزارش بازتولید</Label>
-            {files.reproduction_report ? (
-              <div className="flex items-center justify-between mt-2 p-2 bg-rose-50 rounded">
-                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.reproduction_report.name}</span>
-                <button onClick={() => removeFile('reproduction_report')} className="text-red-500 hover:text-red-700">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="reproduction_report"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload('reproduction_report', e.target.files?.[0] || null)}
-                />
-                <label
-                  htmlFor="reproduction_report"
-                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800 font-[family-name:var(--font-vazir)]"
-                >
-                  <Upload className="w-4 h-4" />
-                  آپلود فایل
-                </label>
-              </div>
-            )}
-          </div>
-          <div className="p-3 border-2 border-dashed rounded-lg hover:border-rose-400 transition-colors">
-            <Label className="text-sm font-[family-name:var(--font-vazir)]">مدارک پشتیبان</Label>
-            {files.supporting_docs ? (
-              <div className="flex items-center justify-between mt-2 p-2 bg-rose-50 rounded">
-                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.supporting_docs.name}</span>
-                <button onClick={() => removeFile('supporting_docs')} className="text-red-500 hover:text-red-700">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="supporting_docs"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload('supporting_docs', e.target.files?.[0] || null)}
-                />
-                <label
-                  htmlFor="supporting_docs"
-                  className="flex items-center gap-2 text-sm text-rose-600 cursor-pointer hover:text-rose-800 font-[family-name:var(--font-vazir)]"
-                >
-                  <Upload className="w-4 h-4" />
-                  آپلود فایل
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Summary Card */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
+        <p className="text-sm font-medium mb-3">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه نیروی کار</p>
-            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">هزینه نیروی کار</p>
+            <p className="text-sm font-bold text-rose-600">
               {formatNumber(Math.round(calculateTotalLaborCost()))}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هزینه مستقیم</p>
-            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">هزینه مستقیم</p>
+            <p className="text-sm font-bold text-rose-600">
               {formatNumber(Number(formData.direct_reproduction_cost) || 0)}
             </p>
           </div>
           <div className="p-2 bg-white rounded-lg border">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">مجموع مستقیم</p>
-            <p className="text-sm font-bold text-rose-600 font-[family-name:var(--font-vazir)]">
-              {formatNumber(calculateTotalLaborCost() + (Number(formData.direct_reproduction_cost) || 0))}
+            <p className="text-xs text-gray-400">ضریب سن</p>
+            <p className="text-sm font-bold text-rose-600">
+              {formatNumber((Number(formData.age_factor) || 0) * 100)}%
             </p>
           </div>
           <div className="p-2 bg-rose-50 rounded-lg border border-rose-200">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش نهایی</p>
-            <p className="text-lg font-bold text-rose-700 font-[family-name:var(--font-vazir)]">
+            <p className="text-xs text-gray-400">ارزش نهایی</p>
+            <p className="text-lg font-bold text-rose-700">
               {formatNumber(Math.round(calculateFinalValue()))}
             </p>
           </div>

@@ -39,6 +39,18 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
       if (!hasExistingData) {
         console.log('🔄 ریست کردن فرم برای دارایی جدید');
         setInitialized(false);
+        onChange({
+          labor_breakdown: [
+            { id: 1, role: 'توسعه‌دهنده ارشد', person_months: 12, monthly_rate: 50000000, overhead_pct: 20 },
+            { id: 2, role: 'توسعه‌دهنده', person_months: 24, monthly_rate: 30000000, overhead_pct: 20 },
+            { id: 3, role: 'تست‌کننده', person_months: 6, monthly_rate: 20000000, overhead_pct: 15 },
+          ],
+          material_infra_cost: 150000000,
+          overhead_pct: 20,
+          developer_profit_pct: 15,
+          functional_obs_pct: 0,
+          economic_obs_pct: 0,
+        });
       }
       
       setPrevValuationCaseId(valuationCaseId);
@@ -81,8 +93,11 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      // 🔥 فیلتر بر اساس valuation_case
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         
         const m05Data: any = {};
         if (inputs.labor_breakdown) m05Data.labor_breakdown = inputs.labor_breakdown;
@@ -159,6 +174,9 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return withProfit * (1 - functionalObs) * (1 - economicObs);
   };
 
+  // ============================================
+  // 🔥 اصلاح saveToDatabase - استفاده از PATCH
+  // ============================================
   const saveToDatabase = async () => {
     if (!valuationCaseId) {
       console.warn('⚠️ valuationCaseId موجود نیست');
@@ -201,12 +219,17 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
       
+      // 🔥 فیلتر بر اساس valuation_case
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
       let response;
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        response = await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M05 به‌روزرسانی شد (PATCH)');
       } else {
         response = await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M05 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));

@@ -51,15 +51,38 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M08_CTMProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Data }: M08_CTMProps) {
+export function M08_CTM({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M08_CTMProps) {
   const [files, setFiles] = useState<Record<string, File>>({});
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
@@ -69,6 +92,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
   const [showDetails, setShowDetails] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [dealDates, setDealDates] = useState<Record<number, string>>({});
+  const [uploading, setUploading] = useState(false);
 
   // ============================================
   // تبدیل تاریخ شمسی <-> میلادی
@@ -106,7 +130,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // تبدیل اعداد به فارسی (فقط برای نمایش)
+  // تبدیل اعداد به فارسی
   // ============================================
   const toPersianNumber = (num: number | string): string => {
     if (num === undefined || num === null) return '۰';
@@ -212,18 +236,11 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
     if (step2Data && !initialized) {
       const updates: any = {};
       
-      if (formData.discount_rate === undefined && step2Data.discount_rate) {
-        updates.discount_rate = step2Data.discount_rate;
-      }
-      if (formData.tax_rate === undefined && step2Data.tax_rate) {
-        updates.tax_rate = step2Data.tax_rate;
-      }
-      if (formData.quality_multiplier === undefined && step2Data.quality_multiplier) {
-        updates.quality_multiplier = step2Data.quality_multiplier;
-      }
-      if (formData.source_reliability === undefined && step2Data.source_reliability) {
-        updates.source_reliability = step2Data.source_reliability;
-      }
+      ['discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability'].forEach(field => {
+        if (formData[field] === undefined && step2Data[field] !== undefined) {
+          updates[field] = step2Data[field];
+        }
+      });
       
       if (Object.keys(updates).length > 0) {
         onChange(updates);
@@ -246,8 +263,10 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      if (items.length > 0 && items[0].method_inputs) {
-        const inputs = items[0].method_inputs;
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+      
+      if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
+        const inputs = filteredItems[0].method_inputs;
         const m08Data: any = {};
         
         const fields = [
@@ -451,22 +470,148 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
   };
 
   // ============================================
-  // آپلود فایل
+  // 🔥 آپلود فایل - استفاده از props
   // ============================================
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  const handleFileUpload = async (file: File, type: string) => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      alert('سیستم آپلود فعال نیست');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      await onUploadEvidence(file, type);
+      console.log(`✅ فایل ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده
+  // ============================================
+  const renderEvidences = () => {
+    const m08Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m08_')
+    );
+
+    if (m08Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود فایل، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {m08Evidences.map((evidence: Evidence) => {
+          const typeLabels: Record<string, string> = {
+            'm08_market_context': 'فایل Market Context',
+            'm08_external_reference': 'فایل External Reference',
+            'm08_deal_details': 'جزئیات معاملات',
+          };
+          const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
+          
+          return (
+            <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+                  <p className="text-xs text-gray-400">{typeLabel}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {evidence.file && (
+                  <a 
+                    href={evidence.file} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-600 hover:underline"
+                  >
+                    مشاهده
+                  </a>
+                )}
+                {onDeleteEvidence && (
+                  <button
+                    onClick={() => onDeleteEvidence(evidence.id)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // ============================================
+  // 🔥 دکمه‌های آپلود
+  // ============================================
+  const renderUploadButtons = () => {
+    const uploadTypes = [
+      { type: 'm08_market_context', label: 'فایل Market Context', required: true },
+      { type: 'm08_external_reference', label: 'فایل External Reference', required: true },
+      { type: 'm08_deal_details', label: 'جزئیات معاملات', required: false },
+    ];
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {uploadTypes.map((item) => (
+          <div key={item.type} className="p-3 border-2 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">
+                  {item.label}
+                  {item.required && <span className="text-red-500 mr-1">*</span>}
+                </p>
+                <p className="text-xs text-gray-400">آپلود فایل</p>
+              </div>
+              <input
+                type="file"
+                id={`upload-${item.type}`}
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files?.[0]) {
+                    handleFileUpload(e.target.files[0], item.type);
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+                onClick={() => document.getElementById(`upload-${item.type}`)?.click()}
+                disabled={uploading || uploadingEvidence}
+              >
+                {uploading || uploadingEvidence ? (
+                  <>
+                    <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                    در حال آپلود...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-4 h-4 ml-1" />
+                    آپلود
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // ============================================
@@ -499,12 +644,15 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
 
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
-      if (items.length > 0) {
-        const step3Id = items[0].id;
-        await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      if (filteredItems.length > 0) {
+        const step3Id = filteredItems[0].id;
+        await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
+        console.log('✅ M08 به‌روزرسانی شد (PATCH)');
       } else {
         await api.post('/intangible/valuation-step3/', payload);
+        console.log('✅ M08 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
@@ -525,7 +673,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
   }, [formData, comparableDeals, expertSignoffs]);
 
   // ============================================
-  // نمایش داده‌های STEP 2 (فارسی)
+  // نمایش داده‌های STEP 2
   // ============================================
   const displayStep2Data = () => {
     const data = step2Data || formData;
@@ -540,7 +688,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
     };
     
     return (
-      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs font-[family-name:var(--font-vazir)]">
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
         <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP ۲:</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
           <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{toPersianNumber(data.discount_rate || 18)}%</span></div>
@@ -583,6 +731,24 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
+      {/* ========================================== */}
+      {/* 🔥 شواهد و مدارک - در بالای صفحه */}
+      {/* ========================================== */}
+      <div className="border rounded-lg p-4 border-indigo-200 bg-indigo-50/30">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-indigo-700 flex items-center gap-2">
+            📎 شواهد و مدارک
+            <span className="text-xs text-gray-500 font-normal">
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m08_')).length} فایل)
+            </span>
+          </h3>
+          <span className="text-xs text-red-500">* فیلدهای اجباری</span>
+        </div>
+
+        {renderUploadButtons()}
+        <div className="mt-4">{renderEvidences()}</div>
+      </div>
+
       {/* نمایش داده‌های STEP 2 */}
       {displayStep2Data()}
 
@@ -597,7 +763,6 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           
-          {/* زمینه قابلیت قیاس بازار */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-1">
               زمینه قابلیت قیاس بازار <span className="text-red-500">*</span>
@@ -606,10 +771,10 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
               value={formData.market_comparability_context || 'Medium'}
               onValueChange={(value) => handleChange('market_comparability_context', value)}
             >
-              <SelectTrigger className="focus:ring-2 focus:ring-indigo-500 font-[family-name:var(--font-vazir)]">
+              <SelectTrigger className="focus:ring-2 focus:ring-indigo-500">
                 <SelectValue placeholder="انتخاب سطح قیاس" />
               </SelectTrigger>
-              <SelectContent className="bg-white z-50 font-[family-name:var(--font-vazir)]">
+              <SelectContent className="bg-white z-50">
                 {MARKET_COMPARABILITY.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
@@ -619,7 +784,6 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
             </Select>
           </div>
 
-          {/* طبقه‌بندی صنعت */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-1">
               طبقه‌بندی صنعت <span className="text-red-500">*</span>
@@ -628,10 +792,10 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
               value={formData.industry_classification || 'software'}
               onValueChange={(value) => handleChange('industry_classification', value)}
             >
-              <SelectTrigger className="focus:ring-2 focus:ring-indigo-500 font-[family-name:var(--font-vazir)]">
+              <SelectTrigger className="focus:ring-2 focus:ring-indigo-500">
                 <SelectValue placeholder="انتخاب صنعت" />
               </SelectTrigger>
-              <SelectContent className="bg-white z-50 font-[family-name:var(--font-vazir)]">
+              <SelectContent className="bg-white z-50">
                 {INDUSTRY_CLASSIFICATIONS.map((item) => (
                   <SelectItem key={item.value} value={item.value}>
                     {item.label}
@@ -642,9 +806,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
           </div>
         </div>
 
-        {/* ============================================
-            جدول معاملات مشابه (با تقویم شمسی)
-        ============================================ */}
+        {/* جدول معاملات مشابه */}
         <div className="mt-4 pt-4 border-t">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -665,7 +827,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
               variant="outline"
               size="sm"
               onClick={addDeal}
-              className="flex items-center gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50 font-[family-name:var(--font-vazir)]"
+              className="flex items-center gap-1 text-indigo-600 border-indigo-300 hover:bg-indigo-50"
             >
               <Plus className="w-4 h-4" />
               افزودن معامله
@@ -673,7 +835,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-xs font-[family-name:var(--font-vazir)]">
+            <table className="w-full border-collapse text-xs">
               <thead>
                 <tr className="bg-indigo-50">
                   <th className="border p-1 text-center">شناسه</th>
@@ -697,7 +859,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                       <Input
                         value={deal.deal_id || ''}
                         onChange={(e) => updateDeal(deal.id, 'deal_id', e.target.value)}
-                        className="h-7 text-xs border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-7 text-xs border-0 focus:ring-1"
                         placeholder="Deal-۰۰۱"
                       />
                     </td>
@@ -711,7 +873,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           const gregorian = toGregorian(persianDate);
                           updateDeal(deal.id, 'deal_date', gregorian);
                         }}
-                        className="h-7 text-xs border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-7 text-xs border-0 focus:ring-1"
                       />
                     </td>
                     <td className="border p-1">
@@ -719,7 +881,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                         type="number"
                         value={deal.transaction_price || ''}
                         onChange={(e) => updateDeal(deal.id, 'transaction_price', parseFloat(e.target.value) || 0)}
-                        className="h-7 text-xs border-0 focus:ring-1 text-left font-[family-name:var(--font-vazir)]"
+                        className="h-7 text-xs border-0 focus:ring-1 text-left"
                         placeholder="۰"
                       />
                     </td>
@@ -727,7 +889,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                       <Input
                         value={deal.asset_description || ''}
                         onChange={(e) => updateDeal(deal.id, 'asset_description', e.target.value)}
-                        className="h-7 text-xs border-0 focus:ring-1 font-[family-name:var(--font-vazir)]"
+                        className="h-7 text-xs border-0 focus:ring-1"
                         placeholder="توضیح دارایی"
                       />
                     </td>
@@ -738,7 +900,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           step="0.1"
                           value={deal.deal_weight_percent || ''}
                           onChange={(e) => updateDeal(deal.id, 'deal_weight_percent', parseFloat(e.target.value) || 0)}
-                          className="h-7 text-xs border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                          className="h-7 text-xs border-0 focus:ring-1 text-center"
                           placeholder="۳۳"
                         />
                         <span className="text-xs text-gray-400">%</span>
@@ -751,7 +913,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           step="0.1"
                           value={deal.size_adjustment || ''}
                           onChange={(e) => updateDeal(deal.id, 'size_adjustment', parseFloat(e.target.value) || 0)}
-                          className="h-7 text-xs border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                          className="h-7 text-xs border-0 focus:ring-1 text-center"
                           placeholder="۰"
                         />
                         <span className="text-xs text-gray-400">%</span>
@@ -764,7 +926,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           step="0.1"
                           value={deal.time_adjustment || ''}
                           onChange={(e) => updateDeal(deal.id, 'time_adjustment', parseFloat(e.target.value) || 0)}
-                          className="h-7 text-xs border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                          className="h-7 text-xs border-0 focus:ring-1 text-center"
                           placeholder="۰"
                         />
                         <span className="text-xs text-gray-400">%</span>
@@ -777,7 +939,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           step="0.1"
                           value={deal.geographic_adjustment || ''}
                           onChange={(e) => updateDeal(deal.id, 'geographic_adjustment', parseFloat(e.target.value) || 0)}
-                          className="h-7 text-xs border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                          className="h-7 text-xs border-0 focus:ring-1 text-center"
                           placeholder="۰"
                         />
                         <span className="text-xs text-gray-400">%</span>
@@ -790,7 +952,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                           step="0.1"
                           value={deal.other_adjustments || ''}
                           onChange={(e) => updateDeal(deal.id, 'other_adjustments', parseFloat(e.target.value) || 0)}
-                          className="h-7 text-xs border-0 focus:ring-1 text-center font-[family-name:var(--font-vazir)]"
+                          className="h-7 text-xs border-0 focus:ring-1 text-center"
                           placeholder="۰"
                         />
                         <span className="text-xs text-gray-400">%</span>
@@ -816,51 +978,49 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
               </tbody>
             </table>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1 font-[family-name:var(--font-vazir)]">* حداقل ۳ معامده الزامی است</p>
-          <p className="text-[10px] text-gray-400 mt-1 font-[family-name:var(--font-vazir)]">📅 تاریخ را به فرمت شمسی وارد کنید (مثال: ۱۴۰۳/۰۶/۱۵)</p>
+          <p className="text-[10px] text-gray-400 mt-1">* حداقل ۳ معامله الزامی است</p>
+          <p className="text-[10px] text-gray-400 mt-1">📅 تاریخ را به فرمت شمسی وارد کنید (مثال: ۱۴۰۳/۰۶/۱۵)</p>
         </div>
 
-        {/* ============================================
-            خلاصه آمار (فارسی)
-        ============================================ */}
+        {/* خلاصه آمار */}
         <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه آمار</p>
+          <p className="text-sm font-medium mb-3">📊 خلاصه آمار</p>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-center">
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">تعداد معاملات</p>
-              <p className="text-lg font-bold text-indigo-600 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">تعداد معاملات</p>
+              <p className="text-lg font-bold text-indigo-600">
                 {toPersianNumber(stats.count)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">کمترین قیمت</p>
-              <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">کمترین قیمت</p>
+              <p className="text-sm font-bold text-dark-green">
                 {toPersianNumberWithComma(stats.min)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">بیشترین قیمت</p>
-              <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">بیشترین قیمت</p>
+              <p className="text-sm font-bold text-dark-green">
                 {toPersianNumberWithComma(stats.max)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">میانگین قیمت</p>
-              <p className="text-sm font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
+              <p className="text-[10px] text-gray-400">میانگین قیمت</p>
+              <p className="text-sm font-bold text-blue-600">
                 {toPersianNumberWithComma(stats.avg)}
               </p>
             </div>
             <div className="p-2 bg-white rounded-lg border">
-              <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">مجموع وزن</p>
-              <p className={`text-lg font-bold ${Math.abs(stats.totalWeight - 100) < 0.5 ? 'text-green-600' : 'text-red-600'} font-[family-name:var(--font-vazir)]`}>
+              <p className="text-[10px] text-gray-400">مجموع وزن</p>
+              <p className={`text-lg font-bold ${Math.abs(stats.totalWeight - 100) < 0.5 ? 'text-green-600' : 'text-red-600'}`}>
                 {toPersianNumber(stats.totalWeight)}%
               </p>
             </div>
           </div>
           {validationErrors.length > 0 && (
             <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-xs text-red-600 font-medium font-[family-name:var(--font-vazir)]">⚠️ خطاهای اعتبارسنجی:</p>
-              <ul className="text-xs text-red-500 list-disc pr-4 mt-1 font-[family-name:var(--font-vazir)]">
+              <p className="text-xs text-red-600 font-medium">⚠️ خطاهای اعتبارسنجی:</p>
+              <ul className="text-xs text-red-500 list-disc pr-4 mt-1">
                 {validationErrors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}
@@ -871,94 +1031,14 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
       </div>
 
       {/* ============================================
-          آپلود فایل‌ها
-      ============================================ */}
-      <div className="border rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3 font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              فایل Market Context <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
-              {files.market_context ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-indigo-500" />
-                    <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.market_context.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('market_context')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="market_context"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('market_context', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="market_context"
-                    className="flex items-center gap-2 text-sm text-indigo-600 cursor-pointer hover:text-indigo-800 font-[family-name:var(--font-vazir)]"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل Market Context
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">مستندات تحلیل بازار و قابلیت قیاس</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              فایل External Reference <span className="text-red-500">*</span>
-            </Label>
-            <div className="p-3 border-2 border-dashed rounded-lg hover:border-indigo-400 transition-colors">
-              {files.external_reference ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-indigo-500" />
-                    <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.external_reference.name}</span>
-                  </div>
-                  <button onClick={() => removeFile('external_reference')} className="text-red-500 hover:text-red-700">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <input
-                    type="file"
-                    id="external_reference"
-                    className="hidden"
-                    onChange={(e) => handleFileUpload('external_reference', e.target.files?.[0] || null)}
-                  />
-                  <label
-                    htmlFor="external_reference"
-                    className="flex items-center gap-2 text-sm text-indigo-600 cursor-pointer hover:text-indigo-800 font-[family-name:var(--font-vazir)]"
-                  >
-                    <Upload className="w-4 h-4" />
-                    آپلود فایل External Reference
-                  </label>
-                </div>
-              )}
-            </div>
-            <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">منبع خارجی معاملات (دیتابیس بازار)</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ============================================
           تأیید خبرگان
       ============================================ */}
       <div className="space-y-3 pt-4 border-t">
-        <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">👤 تأیید خبرگان (اختیاری)</Label>
+        <Label className="text-sm font-medium">👤 تأیید خبرگان (اختیاری)</Label>
         {expertSignoffs.length === 0 ? (
           <div className="text-center py-4 text-gray-400 border-2 border-dashed rounded-lg">
-            <p className="text-sm font-[family-name:var(--font-vazir)]">هیچ خبره‌ای ثبت نشده است</p>
-            <p className="text-xs font-[family-name:var(--font-vazir)]">برای افزودن خبره روی دکمه کلیک کنید</p>
+            <p className="text-sm">هیچ خبره‌ای ثبت نشده است</p>
+            <p className="text-xs">برای افزودن خبره روی دکمه کلیک کنید</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -969,20 +1049,20 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
                     value={signoff.expert_name}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'expert_name', e.target.value)}
                     placeholder="نام خبره"
-                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
+                    className="h-8 text-sm"
                   />
                   <Input
                     type="date"
                     value={signoff.signature_date}
                     onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
-                    className="h-8 text-sm font-[family-name:var(--font-vazir)]"
+                    className="h-8 text-sm"
                   />
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removeExpertSignoff(signoff.id)}
-                  className="text-red-500 hover:text-red-700 font-[family-name:var(--font-vazir)]"
+                  className="text-red-500 hover:text-red-700"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -994,7 +1074,7 @@ export function M08_CTM({ formData, onChange, assetId, valuationCaseId, step2Dat
           variant="outline"
           size="sm"
           onClick={addExpertSignoff}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
+          className="flex items-center gap-1"
         >
           <Plus className="w-4 h-4" />
           افزودن خبره

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -53,38 +53,60 @@ const METHOD_FIELDS: Record<string, string[]> = {
   'M-01': [
     'royalty_rate', 'industry_benchmark', 'revenue_attribution',
     'revenue_growth_rate', 'attribution_basis', 'expert_signoffs',
-    'tax_rate', 'discount_rate', 'terminal_growth_rate',
-    'forecast_horizon', 'current_revenue', 'quality_multiplier',
+    'quality_multiplier',
   ],
   'M-02': [
     'ebit_attributable', 'contributory_assets', 'customer_attrition_rate',
-    'expert_signoffs',
-    'tax_rate', 'discount_rate', 'terminal_growth_rate',
-    'forecast_horizon', 'current_revenue', 'quality_multiplier',
+    'expert_signoffs', 'quality_multiplier',
   ],
   'M-03': [
     'fcf_schedule', 'intangible_share_percent', 'expert_signoffs',
-    'tax_rate', 'discount_rate', 'terminal_growth_rate',
-    'forecast_horizon', 'quality_multiplier',
+    'quality_multiplier',
   ],
-  'M-04': ['with_asset_fcf', 'without_asset_fcf', 'ramp_up_period', 'revenue_attribution', 'revenue_growth_rate', 'expert_signoffs'],
-  'M-05': ['labor_breakdown', 'material_infra_cost', 'overhead_pct', 'developer_profit_pct', 'functional_obs_pct', 'economic_obs_pct'],
-  'M-06': ['labor_breakdown', 'direct_reproduction_cost', 'coordination_overhead', 'relevance_obsolescence', 'age_factor', 'last_review_date'],
+  'M-04': [
+    'with_asset_fcf', 'without_asset_fcf', 'ramp_up_period', 
+    'revenue_attribution', 'revenue_growth_rate', 'expert_signoffs'
+  ],
+  'M-05': [
+    'labor_breakdown', 'material_infra_cost', 'overhead_pct', 
+    'developer_profit_pct', 'functional_obs_pct', 'economic_obs_pct'
+  ],
+  'M-06': [
+    'labor_breakdown', 'direct_reproduction_cost', 'coordination_overhead', 
+    'relevance_obsolescence', 'age_factor', 'last_review_date'
+  ],
   'M-07': [
-    'team_members', 'ramp_up_duration', 'productivity_loss', 'turnover_rate',
-    'expert_signoffs', 'discount_rate', 'tax_rate', 'quality_multiplier',
+    'team_members', 'ramp_up_duration', 'productivity_loss', 
+    'turnover_rate', 'expert_signoffs', 'quality_multiplier',
   ],
   'M-08': [
     'comparable_deals', 'market_comparability_context', 'industry_classification',
-    'expert_signoffs', 'discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability',
+    'expert_signoffs', 'quality_multiplier', 'source_reliability',
   ],
   'M-09': [
     'base_metric', 'base_metric_value', 'market_multiple', 'multiple_source',
-    'control_premium_percent', 'marketability_discount_percent', 'intangible_share_percent',
-    'industry_classification', 'market_comparability_context', 'expert_signoffs',
-    'discount_rate', 'tax_rate', 'quality_multiplier', 'source_reliability',
+    'control_premium_percent', 'marketability_discount_percent', 
+    'intangible_share_percent', 'industry_classification', 
+    'market_comparability_context', 'expert_signoffs', 'quality_multiplier',
+    'source_reliability',
   ],
 };
+
+const COMMON_FIELDS = [
+  'tax_rate', 'discount_rate', 'forecast_horizon', 
+  'terminal_growth_rate', 'current_revenue', 'useful_life', 
+  'currency', 'source_reliability', 'category', 
+  'business_unit', 'lifecycle_stage'
+];
+
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
 
 export function Step3_Parameters({ 
   onNext, 
@@ -96,6 +118,8 @@ export function Step3_Parameters({
 }: Step3Props) {
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [validating, setValidating] = useState<boolean>(false);
   const [validationResult, setValidationResult] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
@@ -105,233 +129,379 @@ export function Step3_Parameters({
   const [error, setError] = useState<string | null>(null);
   const [step2Data, setStep2Data] = useState<any>(null);
   
+  const [evidences, setEvidences] = useState<Evidence[]>([]);
+  const [loadingEvidences, setLoadingEvidences] = useState<boolean>(false);
+  const [uploadingEvidence, setUploadingEvidence] = useState<boolean>(false);
+  
   const prevMethodIdRef = useRef<string>(propMethodId || 'M-03');
   const prevAssetIdRef = useRef<number | undefined>(assetId);
   const prevValuationCaseIdRef = useRef<number | undefined>(valuationCaseId);
 
   // ============================================
-  // وقتی assetId یا valuationCaseId تغییر میکنه
+  // تابع بارگذاری شواهد
   // ============================================
-  useEffect(() => {
-    const assetChanged = assetId !== prevAssetIdRef.current;
-    const caseChanged = valuationCaseId !== prevValuationCaseIdRef.current;
-    
-    if (assetChanged || caseChanged) {
-      console.log(`🔄 دارایی یا مورد ارزش‌گذاری تغییر کرد`);
-      
-      if (prevAssetIdRef.current) {
-        const oldKey = `valuation_form_${prevAssetIdRef.current}`;
-        localStorage.removeItem(oldKey);
-        console.log(`🗑️ localStorage key حذف شد: ${oldKey}`);
-      }
-      
-      setFormData({});
-      setStep3Id(null);
-      setValidationResult(null);
-      setStep2Data(null);
-      
-      prevAssetIdRef.current = assetId;
-      prevValuationCaseIdRef.current = valuationCaseId;
+  const loadEvidences = useCallback(async (id: number) => {
+    if (!id) {
+      console.log('ℹ️ step3Id وجود ندارد برای بارگذاری شواهد');
+      return;
     }
-  }, [assetId, valuationCaseId]);
+    
+    try {
+      setLoadingEvidences(true);
+      console.log('📥 بارگذاری شواهد برای step3Id:', id);
+      
+      const { data } = await api.get(`/intangible/valuation-step3/${id}/evidences/`);
+      const items = data.results || data || [];
+      setEvidences(items);
+      console.log(`✅ ${items.length} شاهد بارگذاری شد`);
+      
+      items.forEach((item: any) => {
+        console.log(`   📄 ${item.file_name} (${item.evidence_type})`);
+      });
+      
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.log('ℹ️ endpoint evidences موجود نیست (404)');
+      } else {
+        console.error('❌ Error loading evidences:', error);
+      }
+    } finally {
+      setLoadingEvidences(false);
+    }
+  }, []);
 
   // ============================================
-  // بارگذاری اولیه
+  // تابع بارگذاری STEP 3
+  // ============================================
+  const loadStep3FromDatabase = useCallback(async (caseId: number, method: string) => {
+    try {
+      console.log(`📥 بارگذاری STEP 3 برای valuationCaseId: ${caseId}, method: ${method}`);
+      
+      const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${caseId}`);
+      const items = data.results || data || [];
+      const filteredItems = items.filter((item: any) => item.valuation_case === caseId);
+      
+      if (filteredItems.length > 0) {
+        const step3 = filteredItems[0];
+        const id = step3.id;
+        setStep3Id(id);
+        
+        const allowedFields = METHOD_FIELDS[method] || [];
+        const savedInputs = step3.method_inputs || {};
+        const filteredInputs: any = {};
+        
+        COMMON_FIELDS.forEach(field => {
+          if (savedInputs[field] !== undefined) {
+            filteredInputs[field] = savedInputs[field];
+          }
+        });
+        
+        allowedFields.forEach(field => {
+          if (savedInputs[field] !== undefined) {
+            filteredInputs[field] = savedInputs[field];
+          }
+        });
+        
+        setFormData((prev: any) => ({ ...prev, ...filteredInputs }));
+        console.log('📥 STEP 3 بارگذاری شد با ID:', id);
+        
+        await loadEvidences(id);
+        return id;
+      } else {
+        console.log('ℹ️ STEP 3 برای این valuationCase وجود ندارد');
+        setStep3Id(null);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error loading step3:', error);
+      return null;
+    }
+  }, [loadEvidences]);
+
+  // ============================================
+  // تابع اصلی بارگذاری
+  // ============================================
+  const loadAllData = useCallback(async () => {
+    if (!assetId || !valuationCaseId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔄 بارگذاری کامل داده‌ها برای assetId:', assetId, 'valuationCaseId:', valuationCaseId);
+      
+      const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
+      setAssetDetails(assetData);
+      
+      let detectedMethod = assetData.valuation_method || propMethodId || 'M-03';
+      setMethodId(detectedMethod);
+      
+      const { data: caseData } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
+      if (caseData) {
+        setStep2Data({
+          tax_rate: caseData.tax_rate * 100 || 25,
+          discount_rate: caseData.discount_rate * 100 || 18,
+          forecast_horizon: caseData.forecast_horizon || 5,
+          terminal_growth_rate: caseData.terminal_growth_rate * 100 || 5,
+          current_revenue: caseData.current_revenue || 500000000000,
+          useful_life: caseData.useful_life || 5,
+          currency: caseData.currency || 'IRR',
+          source_reliability: caseData.source_reliability || 'high',
+          category: caseData.category || 'operational',
+          business_unit: caseData.business_unit || '',
+          lifecycle_stage: caseData.lifecycle_stage || 'growth',
+        });
+      }
+      
+      await loadStep3FromDatabase(valuationCaseId, detectedMethod);
+      
+    } catch (error: any) {
+      console.error('❌ Error loading data:', error);
+      setError(error.message || 'خطا در بارگذاری');
+    } finally {
+      setLoading(false);
+    }
+  }, [assetId, valuationCaseId, propMethodId, loadStep3FromDatabase]);
+
+  // ============================================
+  // useEffect اصلی
   // ============================================
   useEffect(() => {
-    if (assetId) {
-      loadFromDatabase();
-      loadStep2Data();
-      fetchAssetMethod();
+    console.log('🔄 useEffect - assetId:', assetId, 'valuationCaseId:', valuationCaseId);
+    
+    setStep3Id(null);
+    setEvidences([]);
+    setFormData({});
+    setValidationResult(null);
+    
+    if (assetId && valuationCaseId) {
+      loadAllData();
     } else {
       setLoading(false);
       if (propMethodId) {
         setMethodId(propMethodId);
       }
     }
-  }, [assetId, propMethodId]);
+  }, [assetId, valuationCaseId, loadAllData]);
 
   // ============================================
-  // بارگذاری از دیتابیس
+  // بارگذاری مجدد شواهد
   // ============================================
-  const loadFromDatabase = async (): Promise<void> => {
-    if (!valuationCaseId) {
-      console.log('ℹ️ valuationCaseId وجود ندارد');
-      return;
+  useEffect(() => {
+    if (step3Id) {
+      console.log('🔄 بارگذاری مجدد شواهد برای step3Id:', step3Id);
+      loadEvidences(step3Id);
     }
-    
-    try {
-      const { data } = await api.get(`/intangible/valuation-cases/${valuationCaseId}/`);
-      if (data) {
-        console.log('📥 داده‌های STEP 2 از دیتابیس:', data);
-        setStep2Data({
-          tax_rate: data.tax_rate * 100 || 25,
-          discount_rate: data.discount_rate * 100 || 18,
-          forecast_horizon: data.forecast_horizon || step2Data?.forecast_horizon || 5,
-          terminal_growth_rate: data.terminal_growth_rate * 100 || 5,
-          current_revenue: data.current_revenue || 500000000000,
-          useful_life: data.useful_life || 5,
-          currency: data.currency || 'IRR',
-          source_reliability: data.source_reliability || 'high',
-          category: data.category || 'operational',
-          business_unit: data.business_unit || '',
-          lifecycle_stage: data.lifecycle_stage || 'growth',
-        });
-      }
-    } catch (error) {
-      console.log('⚠️ خطا در بارگذاری از دیتابیس:', error);
-    }
-  };
+  }, []);
 
-  const loadStep2Data = (): void => {
-    if (!assetId) return;
+  // ============================================
+  // 🔥 آپلود شاهد - اصلاح شده
+  // ============================================
+  const handleUploadEvidence = async (file: File, evidenceType: string): Promise<void> => {
+    let currentStep3Id = step3Id;
     
-    if (step2Data) {
-      console.log('✅ داده‌های STEP 2 از دیتابیس موجود است');
-      return;
-    }
-    
-    try {
-      const saved = localStorage.getItem(`valuation_form_${assetId}`);
-      if (saved) {
-        const data = JSON.parse(saved);
-        setStep2Data(data);
-        console.log('📥 داده‌های STEP 2 از localStorage:', data);
+    // اگر step3Id وجود نداشت، یک STEP 3 جدید با داده‌های موجود ایجاد کن
+    if (!currentStep3Id) {
+      try {
+        // 🔥 داده‌های موجود رو جمع کن
+        const allowedFields = METHOD_FIELDS[methodId] || [];
+        const filteredInputs: any = {};
         
-        setFormData((prev: any) => ({
-          ...prev,
-          tax_rate: Number(data.tax_rate) || 25,
-          discount_rate: Number(data.discount_rate) || 18,
-          forecast_horizon: Number(data.forecast_horizon) || Number(step2Data?.forecast_horizon) || 5,
-          terminal_growth_rate: Number(data.terminal_growth_rate) || 5,
-          current_revenue: Number(data.current_revenue) || 500000000000,
-          useful_life: Number(data.useful_life) || 5,
-          currency: data.currency || 'IRR',
-          source_reliability: data.source_reliability || 'high',
-          category: data.category || 'operational',
-          business_unit: data.business_unit || '',
-          lifecycle_stage: data.lifecycle_stage || 'growth',
-        }));
+        COMMON_FIELDS.forEach(field => {
+          if (formData[field] !== undefined && formData[field] !== null) {
+            filteredInputs[field] = formData[field];
+          }
+        });
+        
+        allowedFields.forEach(field => {
+          if (formData[field] !== undefined && formData[field] !== null) {
+            filteredInputs[field] = formData[field];
+          }
+        });
+        
+        // اگر داده‌ای وجود نداشت، یک شیء خالی با فیلدهای پیش‌فرض بساز
+        if (Object.keys(filteredInputs).length === 0) {
+          // فیلدهای پیش‌فرض برای هر روش
+          const defaultInputs: Record<string, any> = {
+            'M-01': { royalty_rate: 4, industry_benchmark: 'software', revenue_attribution: 80, revenue_growth_rate: 8 },
+            'M-02': { ebit_attributable: 20000000000, customer_attrition_rate: 10 },
+            'M-03': { intangible_share_percent: 70 },
+            'M-04': { ramp_up_period: 12, revenue_attribution: 80, revenue_growth_rate: 8 },
+            'M-05': { overhead_pct: 20, developer_profit_pct: 15 },
+            'M-06': { coordination_overhead: 20 },
+            'M-07': { ramp_up_duration: 6, productivity_loss: 30, turnover_rate: 8 },
+            'M-08': { market_comparability_context: 'High' },
+            'M-09': { market_multiple: 2.5, intangible_share_percent: 40 },
+          };
+          
+          Object.assign(filteredInputs, defaultInputs[methodId] || {});
+        }
+        
+        const payload = {
+          valuation_case: valuationCaseId,
+          method_id: methodId,
+          method_inputs: filteredInputs,
+        };
+        
+        console.log('📤 ایجاد STEP 3 جدید با داده:', payload);
+        const response = await api.post('/intangible/valuation-step3/', payload);
+        currentStep3Id = response.data.id;
+        setStep3Id(currentStep3Id);
+        console.log('✅ STEP 3 جدید ایجاد شد با ID:', currentStep3Id);
+        
+      } catch (error: any) {
+        console.error('❌ Error creating step3:', error);
+        console.error('❌ Response:', error.response?.data);
+        throw new Error('خطا در ایجاد STEP 3: ' + (error.response?.data?.message || ''));
       }
-    } catch (error) {
-      console.error('❌ Error loading step2 data:', error);
+    }
+    
+    // حالا فایل رو آپلود کن
+    try {
+      setUploadingEvidence(true);
+      console.log('📤 آپلود شاهد:', { file: file.name, evidenceType, step3Id: currentStep3Id });
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('evidence_type', evidenceType);
+      formData.append('method_id', methodId);
+      
+      const response = await api.post(
+        `/intangible/valuation-step3/${currentStep3Id}/upload_evidence/`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      
+      const newEvidence = response.data;
+      setEvidences(prev => [...prev, newEvidence]);
+      console.log('✅ فایل آپلود شد:', newEvidence);
+      
+    } catch (error: any) {
+      console.error('❌ Error uploading evidence:', error);
+      throw new Error(error.response?.data?.error || 'خطا در آپلود فایل');
+    } finally {
+      setUploadingEvidence(false);
     }
   };
 
-  const fetchAssetMethod = async (): Promise<void> => {
+  // ============================================
+  // حذف شاهد
+  // ============================================
+  const handleDeleteEvidence = async (evidenceId: number): Promise<void> => {
     try {
-      setLoading(true);
-      setError(null);
+      console.log('🗑️ حذف شاهد:', evidenceId);
       
-      console.log('📥 دریافت اطلاعات دارایی برای assetId:', assetId);
-      
-      const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
-      setAssetDetails(assetData);
-      
-      let detectedMethod = assetData.valuation_method;
-      
-      if (detectedMethod) {
-        console.log(`✅ روش از دیتابیس: ${detectedMethod}`);
-      } else if (propMethodId) {
-        detectedMethod = propMethodId;
-        console.log(`⚠️ روش از prop: ${detectedMethod}`);
-      } else {
-        detectedMethod = 'M-03';
-        console.log(`⚠️ روش پیش‌فرض: ${detectedMethod}`);
-      }
-      
-      console.log('✅ روش نهایی:', detectedMethod);
-      setMethodId(detectedMethod);
-      prevMethodIdRef.current = detectedMethod;
-      
-      if (valuationCaseId) {
-        try {
-          const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
-          const items = data.results || data || [];
-          
-          if (items.length > 0) {
-            const step3 = items[0];
-            setStep3Id(step3.id);
-            
-            const allowedFields = METHOD_FIELDS[detectedMethod] || [];
-            const savedInputs = step3.method_inputs || {};
-            const filteredInputs: any = {};
-            
-            const commonFields = ['tax_rate', 'discount_rate', 'forecast_horizon', 'terminal_growth_rate', 
-                                   'current_revenue', 'useful_life', 'currency', 'source_reliability', 
-                                   'category', 'business_unit', 'lifecycle_stage'];
-            commonFields.forEach(field => {
-              if (savedInputs[field] !== undefined) {
-                filteredInputs[field] = savedInputs[field];
-              }
-            });
-            
-            allowedFields.forEach(field => {
-              if (savedInputs[field] !== undefined) {
-                filteredInputs[field] = savedInputs[field];
-              }
-            });
-            
-            setFormData((prev: any) => ({ ...prev, ...filteredInputs }));
-          }
-        } catch (e) {
-          console.error('Error loading step3 data:', e);
+      try {
+        await api.delete(`/intangible/valuation-step3/evidence/${evidenceId}/`);
+        console.log('✅ شاهد از سرور حذف شد');
+      } catch (serverError: any) {
+        if (serverError.response?.status === 404) {
+          console.log('ℹ️ endpoint حذف وجود ندارد، فقط از state حذف می‌شود');
+        } else {
+          throw serverError;
         }
       }
       
-    } catch (error: any) {
-      console.error('❌ Error fetching asset:', error);
+      setEvidences(prev => prev.filter(e => e.id !== evidenceId));
+      console.log('✅ شاهد از state حذف شد');
       
-      if (propMethodId) {
-        setMethodId(propMethodId);
-        setError(null);
-      } else {
-        setError(error.message || 'خطا در دریافت اطلاعات');
-        setMethodId('M-03');
-      }
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      console.error('❌ Error deleting evidence:', error);
     }
   };
 
+  // ============================================
+  // ذخیره داده‌ها
+  // ============================================
   const handleSave = async (): Promise<void> => {
+    if (!valuationCaseId) {
+      setSaveError('شناسه مورد ارزش‌گذاری موجود نیست');
+      return;
+    }
+
     try {
       setSaving(true);
+      setSaveError(null);
+
+      const allowedFields = METHOD_FIELDS[methodId] || [];
+      const filteredInputs: any = {};
       
+      COMMON_FIELDS.forEach(field => {
+        if (formData[field] !== undefined && formData[field] !== null) {
+          filteredInputs[field] = formData[field];
+        }
+      });
+      
+      allowedFields.forEach(field => {
+        if (formData[field] !== undefined && formData[field] !== null) {
+          filteredInputs[field] = formData[field];
+        }
+      });
+
       const payload = {
         valuation_case: valuationCaseId,
         method_id: methodId,
-        method_inputs: formData,
+        method_inputs: filteredInputs,
       };
-      
+
       let response;
-      if (step3Id) {
-        response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
+      let currentStep3Id = step3Id;
+      
+      if (!currentStep3Id) {
+        const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
+        const items = existing.results || existing || [];
+        const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
+        
+        if (filteredItems.length > 0) {
+          currentStep3Id = filteredItems[0].id;
+          setStep3Id(currentStep3Id);
+        }
+      }
+      
+      if (currentStep3Id) {
+        response = await api.patch(`/intangible/valuation-step3/${currentStep3Id}/`, payload);
+        console.log('✅ STEP 3 به‌روزرسانی شد (PATCH)');
       } else {
         response = await api.post('/intangible/valuation-step3/', payload);
         setStep3Id(response.data.id);
+        console.log('✅ STEP 3 جدید ایجاد شد (POST)');
       }
-      
+
       if (onSave) onSave(response.data);
-      
-    } catch (error) {
-      console.error('Error saving step3:', error);
+      setLastSaved(new Date().toLocaleTimeString('fa-IR'));
+
+    } catch (error: any) {
+      console.error('❌ Error saving step3:', error);
+      setSaveError(error.response?.data?.message || 'خطا در ذخیره');
+      throw error;
     } finally {
       setSaving(false);
     }
   };
 
   const handleValidate = async (): Promise<void> => {
-    if (!step3Id) {
+    let currentStep3Id = step3Id;
+    
+    if (!currentStep3Id) {
       await handleSave();
+      currentStep3Id = step3Id;
     }
     
+    if (!currentStep3Id) {
+      setSaveError('ابتدا داده‌ها را ذخیره کنید');
+      return;
+    }
+
     try {
       setValidating(true);
-      const response = await api.post(`/intangible/valuation-step3/${step3Id}/validate_step/`);
+      const response = await api.post(`/intangible/valuation-step3/${currentStep3Id}/validate_step/`);
       setValidationResult(response.data);
+      console.log('✅ اعتبارسنجی:', response.data);
     } catch (error) {
-      console.error('Error validating step3:', error);
+      console.error('❌ Error validating step3:', error);
     } finally {
       setValidating(false);
     }
@@ -342,10 +512,7 @@ export function Step3_Parameters({
     
     const filteredData: any = {};
     Object.keys(data).forEach(key => {
-      if (allowedFields.includes(key) || 
-          ['tax_rate', 'discount_rate', 'forecast_horizon', 'terminal_growth_rate', 
-           'current_revenue', 'useful_life', 'currency', 'source_reliability', 
-           'category', 'business_unit', 'lifecycle_stage'].includes(key)) {
+      if (allowedFields.includes(key) || COMMON_FIELDS.includes(key)) {
         filteredData[key] = data[key];
       }
     });
@@ -416,6 +583,30 @@ export function Step3_Parameters({
               {validationResult.errors || 0} خطا
             </div>
           )}
+          {evidences.length > 0 && (
+            <div className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              {evidences.length} شاهد
+            </div>
+          )}
+          {lastSaved && !saveError && (
+            <span className="text-xs text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              {lastSaved}
+            </span>
+          )}
+          {saveError && (
+            <span className="text-xs text-red-500 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              خطا
+            </span>
+          )}
+          {loadingEvidences && (
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              بارگذاری شواهد...
+            </span>
+          )}
         </div>
       </div>
 
@@ -451,6 +642,10 @@ export function Step3_Parameters({
             assetId={assetId}
             valuationCaseId={valuationCaseId}
             step2Data={step2Data}
+            onUploadEvidence={handleUploadEvidence}
+            evidences={evidences}
+            onDeleteEvidence={handleDeleteEvidence}
+            uploadingEvidence={uploadingEvidence}
           />
         </CardContent>
       </Card>

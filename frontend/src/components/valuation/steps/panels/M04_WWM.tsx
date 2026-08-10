@@ -20,21 +20,45 @@ interface ExpertSignoff {
   notes: string;
 }
 
+interface Evidence {
+  id: number;
+  file: string;
+  file_name: string;
+  evidence_type: string;
+  method_id: string;
+  uploaded_at: string;
+}
+
 interface M04_WWMProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  onUploadEvidence?: (file: File, type: string) => Promise<void>;
+  evidences?: Evidence[];
+  onDeleteEvidence?: (id: number) => Promise<void>;
+  uploadingEvidence?: boolean;
 }
 
-export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Data }: M04_WWMProps) {
-  const [files, setFiles] = useState<Record<string, File>>({});
+export function M04_WWM({ 
+  formData, 
+  onChange, 
+  assetId, 
+  valuationCaseId, 
+  step2Data,
+  onUploadEvidence,
+  evidences = [],
+  onDeleteEvidence,
+  uploadingEvidence = false
+}: M04_WWMProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
+  const [uploading, setUploading] = useState(false);
+  const [uploadType, setUploadType] = useState<'with' | 'without' | null>(null);
 
   // تبدیل عدد به فارسی
   const toPersianNumber = (num: number) => {
@@ -42,9 +66,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
   };
 
-  // ============================================
-  // 🔥 تشخیص تغییر دارایی (ارزش‌گذاری جدید)
-  // ============================================
   useEffect(() => {
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
       console.log(`🔄 تغییر از ${prevValuationCaseId} به ${valuationCaseId}`);
@@ -54,7 +75,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       if (!hasExistingData) {
         console.log('🔄 ریست کردن فرم برای دارایی جدید');
         setInitialized(false);
-        // ریست کردن فیلدهای اصلی
         onChange({
           with_asset_fcf: [{ id: 1, year: 1, amount: 0 }],
           without_asset_fcf: [{ id: 1, year: 1, amount: 0 }],
@@ -69,9 +89,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [valuationCaseId, formData.with_asset_fcf]);
 
-  // ============================================
-  // مقداردهی اولیه با داده‌های STEP 2
-  // ============================================
   useEffect(() => {
     if (step2Data && !initialized) {
       console.log('📥 دریافت داده‌های STEP 2 برای M04:', step2Data);
@@ -95,7 +112,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     }
   }, [step2Data, initialized]);
 
-  // بارگذاری داده‌های ذخیره‌شده
   useEffect(() => {
     if (valuationCaseId && initialized) {
       loadFromDatabase();
@@ -109,7 +125,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
-      // 🔥 فیلتر کردن بر اساس valuation_case_id
       const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
       if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
@@ -157,9 +172,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     onChange({ [field]: value });
   };
 
-  // ============================================
-  // توابع جدول FCF
-  // ============================================
   const updateFCFRow = (
     rows: FCFRow[],
     setter: (rows: FCFRow[]) => void,
@@ -191,9 +203,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     setter(rows.filter(row => row.id !== id));
   };
 
-  // ============================================
-  // توابع تأیید خبرگان
-  // ============================================
   const addExpertSignoff = () => {
     const newSignoff: ExpertSignoff = {
       id: Date.now(),
@@ -215,9 +224,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     handleChange('expert_signoffs', expertSignoffs.filter(s => s.id !== id));
   };
 
-  // ============================================
-  // محاسبات
-  // ============================================
   const calculateTotalWith = () => {
     return withAssetRows.reduce((sum, row) => sum + (row.amount || 0), 0);
   };
@@ -230,28 +236,180 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return calculateTotalWith() - calculateTotalWithout();
   };
 
-  // ============================================
-  // آپلود فایل
-  // ============================================
-  const handleFileUpload = (field: string, file: File | null) => {
-    if (file) {
-      setFiles(prev => ({ ...prev, [field]: file }));
-      handleChange(field, file.name);
+  const handleFileUpload = async (file: File, type: 'with' | 'without') => {
+    if (!onUploadEvidence) {
+      console.warn('onUploadEvidence not provided');
+      return;
+    }
+
+    setUploading(true);
+    setUploadType(type);
+    
+    try {
+      await onUploadEvidence(file, `m04_${type}_scenario`);
+      console.log(`✅ شاهد ${type} آپلود شد`);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('خطا در آپلود فایل');
+    } finally {
+      setUploading(false);
+      setUploadType(null);
     }
   };
 
-  const removeFile = (field: string) => {
-    setFiles(prev => {
-      const newFiles = { ...prev };
-      delete newFiles[field];
-      return newFiles;
-    });
-    handleChange(field, null);
+  // ============================================
+  // 🔥 رندر شواهد آپلود شده - در پایین صفحه
+  // ============================================
+  const renderEvidences = () => {
+    const m04Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type === 'm04_with_scenario' || 
+      e.evidence_type === 'm04_without_scenario'
+    );
+
+    if (m04Evidences.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-400 text-sm font-[family-name:var(--font-vazir)]">
+          <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p>هیچ شواهدی آپلود نشده است</p>
+          <p className="text-xs mt-1">برای آپلود، از دکمه‌های زیر استفاده کنید</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {m04Evidences.map((evidence: Evidence) => (
+          <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center gap-3 min-w-0">
+              <FileText className="w-4 h-4 text-dark-green flex-shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate font-[family-name:var(--font-vazir)]">
+                  {evidence.file_name}
+                </p>
+                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
+                  {evidence.evidence_type === 'm04_with_scenario' ? 'سناریوی با دارایی' : 'سناریوی بدون دارایی'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {evidence.file && (
+                <a 
+                  href={evidence.file} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-dark-green hover:underline font-[family-name:var(--font-vazir)]"
+                >
+                  مشاهده
+                </a>
+              )}
+              {onDeleteEvidence && (
+                <button
+                  onClick={() => onDeleteEvidence(evidence.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   // ============================================
-  // 🔥 ذخیره در دیتابیس - اصلاح شده
+  // 🔥 دکمه‌های آپلود
   // ============================================
+  const renderUploadButtons = () => {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        <div className="p-4 border-2 border-dashed rounded-lg border-teal-300 hover:border-teal-500 transition-colors bg-teal-50/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-teal-700 font-[family-name:var(--font-vazir)]">
+                📄 سناریوی با دارایی
+              </p>
+              <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
+                آپلود فایل سناریوی With Asset
+              </p>
+            </div>
+            <input
+              type="file"
+              id="with-asset-upload"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleFileUpload(e.target.files[0], 'with');
+                }
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-teal-300 text-teal-700 hover:bg-teal-50 font-[family-name:var(--font-vazir)]"
+              onClick={() => document.getElementById('with-asset-upload')?.click()}
+              disabled={uploading || uploadingEvidence}
+            >
+              {uploading && uploadType === 'with' || uploadingEvidence ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                  در حال آپلود...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 ml-1" />
+                  آپلود
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="p-4 border-2 border-dashed rounded-lg border-red-300 hover:border-red-500 transition-colors bg-red-50/30">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-red-700 font-[family-name:var(--font-vazir)]">
+                📄 سناریوی بدون دارایی
+              </p>
+              <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
+                آپلود فایل سناریوی Without Asset
+              </p>
+            </div>
+            <input
+              type="file"
+              id="without-asset-upload"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleFileUpload(e.target.files[0], 'without');
+                }
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-red-300 text-red-700 hover:bg-red-50 font-[family-name:var(--font-vazir)]"
+              onClick={() => document.getElementById('without-asset-upload')?.click()}
+              disabled={uploading || uploadingEvidence}
+            >
+              {uploading && uploadType === 'without' || uploadingEvidence ? (
+                <>
+                  <Loader2 className="w-4 h-4 ml-1 animate-spin" />
+                  در حال آپلود...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 ml-1" />
+                  آپلود
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const saveToDatabase = async () => {
     if (!valuationCaseId) {
       console.warn('⚠️ valuationCaseId موجود نیست');
@@ -262,7 +420,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       setSaving(true);
       setSaveError(null);
 
-      // 🔥 داده‌های STEP 2 را از step2Data بگیر
       const methodInputs = {
         with_asset_fcf: withAssetRows,
         without_asset_fcf: withoutAssetRows,
@@ -270,9 +427,6 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
         revenue_attribution: formData.revenue_attribution || 0,
         revenue_growth_rate: formData.revenue_growth_rate || 0,
         expert_signoffs: expertSignoffs,
-        scenario_report: formData.scenario_report || null,
-        expert_approval: formData.expert_approval || null,
-        // 🔥 داده‌های STEP 2
         forecast_horizon: step2Data?.forecast_horizon || formData.forecast_horizon || 5,
         tax_rate: step2Data?.tax_rate || formData.tax_rate || 25,
         discount_rate: step2Data?.discount_rate || formData.discount_rate || 18,
@@ -293,42 +447,30 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       };
 
       console.log('📤 ذخیره M04 در دیتابیس:', payload);
-      console.log('📤 valuationCaseId:', valuationCaseId);
       
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
-      
-      // 🔥 فیلتر کردن بر اساس valuation_case_id
       const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
       let response;
       if (filteredItems.length > 0) {
         const step3Id = filteredItems[0].id;
-        console.log(`📤 به‌روزرسانی STEP 3 ID: ${step3Id} برای Case: ${valuationCaseId}`);
         response = await api.put(`/intangible/valuation-step3/${step3Id}/`, payload);
         console.log('✅ M04 به‌روزرسانی شد (PUT)');
       } else {
-        console.log(`📤 ایجاد STEP 3 جدید برای Case: ${valuationCaseId}`);
-        const createPayload = {
-          ...payload,
-          valuation_case: valuationCaseId,
-        };
-        response = await api.post('/intangible/valuation-step3/', createPayload);
+        response = await api.post('/intangible/valuation-step3/', payload);
         console.log('✅ M04 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
-      console.log('✅ M04 در دیتابیس ذخیره شد:', response.data);
     } catch (error: any) {
       console.error('❌ خطا در ذخیره M04:', error);
-      console.error('❌ پاسخ خطا:', error.response?.data);
       setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
     } finally {
       setSaving(false);
     }
   };
 
-  // Auto-save با debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       saveToDatabase();
@@ -337,17 +479,14 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
     return () => clearTimeout(timer);
   }, [formData, withAssetRows, withoutAssetRows, expertSignoffs]);
 
-  // ============================================
-  // 🔥 نمایش داده‌های STEP 2 به فارسی
-  // ============================================
   const displayStep2Data = () => {
     const data = formData.tax_rate ? formData : step2Data;
     if (!data) return null;
     
     return (
-      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
-        <p className="font-medium text-blue-700 mb-1 font-[family-name:var(--font-vazir)]">📥 داده‌های ورودی از STEP 2:</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1 font-[family-name:var(--font-vazir)]">
+      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs font-[family-name:var(--font-vazir)]">
+        <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP 2:</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
           <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate}%</span></div>
           <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate}%</span></div>
           <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon)} سال</span></div>
@@ -359,14 +498,11 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
 
   return (
     <div className="space-y-6 font-[family-name:var(--font-vazir)]">
-      {/* هدر با وضعیت ذخیره */}
+      {/* هدر */}
       <div className="flex items-center justify-between">
         <div className="bg-teal-50 p-4 rounded-lg border border-teal-200 flex-1">
           <p className="text-sm text-teal-700">
             🔹 روش با و بدون دارایی (WWM) 
-            <span className="inline-block mr-2 px-2 py-0.5 bg-teal-200 text-teal-800 rounded-full text-xs font-medium">
-              
-            </span>
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs mr-4">
@@ -389,24 +525,21 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
-      {/* نمایش داده‌های STEP 2 به فارسی */}
       {displayStep2Data()}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* ======================================== */}
         {/* ستون چپ: با دارایی */}
-        {/* ======================================== */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             جدول FCF با دارایی <span className="text-red-500">*</span>
           </Label>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-teal-50">
-                  <th className="border p-2 text-right">سال</th>
-                  <th className="border p-2 text-right">مبلغ FCF (ریال)</th>
-                  <th className="border p-2 text-center">عملیات</th>
+                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">سال</th>
+                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">مبلغ FCF (ریال)</th>
+                  <th className="border p-2 text-center font-[family-name:var(--font-vazir)]">عملیات</th>
                 </tr>
               </thead>
               <tbody>
@@ -473,20 +606,18 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
           <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">* حداقل ۱ ردیف الزامی</p>
         </div>
 
-        {/* ======================================== */}
         {/* ستون راست: بدون دارایی */}
-        {/* ======================================== */}
         <div className="space-y-3">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             جدول FCF بدون دارایی <span className="text-red-500">*</span>
           </Label>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="bg-teal-50">
-                  <th className="border p-2 text-right">سال</th>
-                  <th className="border p-2 text-right">مبلغ FCF (ریال)</th>
-                  <th className="border p-2 text-center">عملیات</th>
+                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">سال</th>
+                  <th className="border p-2 text-right font-[family-name:var(--font-vazir)]">مبلغ FCF (ریال)</th>
+                  <th className="border p-2 text-center font-[family-name:var(--font-vazir)]">عملیات</th>
                 </tr>
               </thead>
               <tbody>
@@ -554,12 +685,10 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
-      {/* ======================================== */}
       {/* پارامترهای اضافی */}
-      {/* ======================================== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-1">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             دوره رشد (ماه) <span className="text-red-500">*</span>
           </Label>
           <Input
@@ -571,7 +700,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             سهم درآمد منتسب <span className="text-red-500">*</span>
           </Label>
           <div className="flex items-center gap-1">
@@ -587,7 +716,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-sm font-medium flex items-center gap-1">
+          <Label className="text-sm font-medium flex items-center gap-1 font-[family-name:var(--font-vazir)]">
             نرخ رشد درآمد <span className="text-red-500">*</span>
           </Label>
           <div className="flex items-center gap-1">
@@ -604,9 +733,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
       </div>
 
-      {/* ======================================== */}
       {/* خلاصه محاسبه */}
-      {/* ======================================== */}
       <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
         <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
         <div className="grid grid-cols-3 gap-3 text-center">
@@ -632,7 +759,7 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       </div>
 
       {/* ======================================== */}
-      {/* تأیید خبرگان */}
+      {/* 🔥 تأیید خبرگان */}
       {/* ======================================== */}
       <div className="space-y-3 pt-4 border-t">
         <Label className="text-sm font-medium font-[family-name:var(--font-vazir)]">تأیید خبرگان (اختیاری)</Label>
@@ -683,66 +810,26 @@ export function M04_WWM({ formData, onChange, assetId, valuationCaseId, step2Dat
       </div>
 
       {/* ======================================== */}
-      {/* شواهد */}
+      {/* 🔥 شواهد و مدارک - در پایین صفحه */}
       {/* ======================================== */}
-      <div className="space-y-3 pt-4 border-t">
-        <p className="text-sm font-medium font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="p-3 border-2 border-dashed rounded-lg hover:border-teal-400 transition-colors">
-            <Label className="text-sm font-[family-name:var(--font-vazir)]">گزارش تحلیل سناریو</Label>
-            {files.scenario_report ? (
-              <div className="flex items-center justify-between mt-2 p-2 bg-teal-50 rounded">
-                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.scenario_report.name}</span>
-                <button onClick={() => removeFile('scenario_report')} className="text-red-500 hover:text-red-700">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="scenario_report"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload('scenario_report', e.target.files?.[0] || null)}
-                />
-                <label
-                  htmlFor="scenario_report"
-                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800 font-[family-name:var(--font-vazir)]"
-                >
-                  <Upload className="w-4 h-4" />
-                  آپلود فایل
-                </label>
-              </div>
-            )}
+      <div className="space-y-4 pt-4 border-t">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium font-[family-name:var(--font-vazir)]">📎 شواهد و مدارک</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
+              آپلود فایل‌های مربوط به سناریوهای با و بدون دارایی
+            </p>
           </div>
-          <div className="p-3 border-2 border-dashed rounded-lg hover:border-teal-400 transition-colors">
-            <Label className="text-sm font-[family-name:var(--font-vazir)]">تأییدیه خبرگان</Label>
-            {files.expert_approval ? (
-              <div className="flex items-center justify-between mt-2 p-2 bg-teal-50 rounded">
-                <span className="text-sm truncate font-[family-name:var(--font-vazir)]">{files.expert_approval.name}</span>
-                <button onClick={() => removeFile('expert_approval')} className="text-red-500 hover:text-red-700">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <div className="mt-2">
-                <input
-                  type="file"
-                  id="expert_approval"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload('expert_approval', e.target.files?.[0] || null)}
-                />
-                <label
-                  htmlFor="expert_approval"
-                  className="flex items-center gap-2 text-sm text-teal-600 cursor-pointer hover:text-teal-800 font-[family-name:var(--font-vazir)]"
-                >
-                  <Upload className="w-4 h-4" />
-                  آپلود فایل
-                </label>
-              </div>
-            )}
-          </div>
+          <span className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
+            ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m04_')).length} فایل)
+          </span>
         </div>
+
+        {/* دکمه‌های آپلود */}
+        {renderUploadButtons()}
+
+        {/* لیست شواهد آپلود شده */}
+        {renderEvidences()}
       </div>
     </div>
   );
