@@ -20,6 +20,7 @@ import {
 interface M06_RPCM_EngineProps {
   data?: any;
   finalValue?: number;
+  tokenValue?: number;
   confidenceLevel?: number;
   qcScore?: number;
   onCalculate?: () => void;
@@ -30,6 +31,7 @@ interface M06_RPCM_EngineProps {
 export function M06_RPCM_Engine({ 
   data, 
   finalValue = 0,
+  tokenValue: propTokenValue,
   confidenceLevel = 0.90,
   qcScore = 90,
   onCalculate,
@@ -58,6 +60,13 @@ export function M06_RPCM_Engine({
     return persianStr + '٪';
   };
 
+  // محاسبه ارزش بر حسب تک توکن (هر تک توکن = ۱۰۰۰ هزار ریال = ۱,۰۰۰,۰۰۰ ریال)
+  const calculateTokenValue = (valueInRial: number): number => {
+    if (!valueInRial) return 0;
+    const TOKEN_VALUE_IN_RIAL = 1000000;
+    return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
+  };
+
   // داده‌های پیش‌فرض (فقط در صورت نبود data)
   const defaultWaterfall = [
     { step: 1, title: 'هزینه مستقیم نیروی کار', amount: 235500000, cumulative: 235500000, is_final: false, type: 'increase' },
@@ -79,6 +88,16 @@ export function M06_RPCM_Engine({
   const hasData = data && data.waterfall && data.waterfall.length > 0;
   const waterfallData = hasData ? data.waterfall : defaultWaterfall;
   const laborDetails = hasData && data.labor_details ? data.labor_details : defaultLaborDetails;
+  
+  // 🔥 اولویت: propTokenValue > محاسبه از finalValue
+  let displayToken = 0;
+  if (propTokenValue && propTokenValue > 0) {
+    displayToken = propTokenValue;
+  } else {
+    const displayFinal = finalValue || (hasData ? data.final_value : 0) || 284673228;
+    displayToken = calculateTokenValue(displayFinal);
+  }
+  
   const displayFinal = finalValue || (hasData ? data.final_value : 0) || 284673228;
 
   const chartData = waterfallData.map((item: any) => ({
@@ -123,8 +142,6 @@ export function M06_RPCM_Engine({
           fontSize={11}
           fontWeight={isFinal ? 'bold' : 'normal'}
           fill={color}
-          dir="rtl"
-          fontFamily="var(--font-vazir)"
         >
           {item.displayValue}
         </text>
@@ -135,8 +152,6 @@ export function M06_RPCM_Engine({
           fontSize={11}
           fontWeight="bold"
           fill="#1f2937"
-          dir="rtl"
-          fontFamily="var(--font-vazir)"
         >
           {formatNumber(item.cumulative)}
         </text>
@@ -344,11 +359,15 @@ export function M06_RPCM_Engine({
                 <span className="text-gray-400 text-xs">با استفاده از داده‌های STEP 2 و STEP 3</span>
                 <br />
                 <span className="text-teal-700 font-bold text-base">= {formatNumber(displayFinal)} ریال</span>
+                <br />
+                <span className="text-purple-600 font-bold text-base">
+                  = {formatNumber(displayToken)} تک توکن
+                </span>
               </div>
             </CardContent>
           </Card>
 
-          {/* خلاصه نتایج */}
+          {/* خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
               <CardContent className="p-4 text-center">
@@ -357,11 +376,11 @@ export function M06_RPCM_Engine({
                 <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ریال</p>
               </CardContent>
             </Card>
-            <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
+            <Card className="bg-gradient-to-br from-purple-100 to-white border-purple-300">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">سطح اطمینان</p>
-                <p className="text-2xl font-bold text-blue-600 font-[family-name:var(--font-vazir)]">{formatPercent(confidenceLevel * 100)}</p>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC: {formatNumber(qcScore)}</p>
+                <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
+                <p className="text-3xl font-bold text-purple-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
+                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
               </CardContent>
             </Card>
             <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">

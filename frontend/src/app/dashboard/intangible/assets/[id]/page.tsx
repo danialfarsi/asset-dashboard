@@ -34,8 +34,26 @@ import {
   Download,
   X,
   FolderOpen,
-  Award
+  Award,
+  DollarSign,
+  Shield,
+  Database
 } from 'lucide-react';
+
+// تبدیل اعداد به فارسی
+const toPersianNumber = (num: number | string): string => {
+  if (num === undefined || num === null) return '۰';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const str = String(num);
+  return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+const formatCurrency = (value: number) => {
+  if (!value) return '۰';
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  const formatted = Math.round(value).toLocaleString();
+  return formatted.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
 
 interface AssetDetail {
   id: number;
@@ -99,6 +117,33 @@ interface ValuationItem {
   answers: any[];
 }
 
+interface ValuationFinancialData {
+  final_value: number;
+  confidence_level: number;
+  qc_score: number;
+  method_id: string;
+  step4_status: string;
+}
+
+interface QCData {
+  id: number;
+  completeness_score: number;
+  total_rules: number;
+  passed: number;
+  warnings: number;
+  errors: number;
+  decision: string;
+}
+
+interface SensitivityData {
+  id: number;
+  base_value: number;
+  min_value: number;
+  max_value: number;
+  confidence_level: number;
+  critical_drivers: any[];
+}
+
 const FILE_TYPES = [
   { value: 'interview', label: '📄 مصاحبه' },
   { value: 'document', label: '📄 سند' },
@@ -114,6 +159,9 @@ export default function AssetDetailPage() {
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [files, setFiles] = useState<AssetFile[]>([]);
   const [valuation, setValuation] = useState<ValuationData | null>(null);
+  const [financialData, setFinancialData] = useState<ValuationFinancialData | null>(null);
+  const [qcData, setQCData] = useState<QCData | null>(null);
+  const [sensitivityData, setSensitivityData] = useState<SensitivityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -121,6 +169,7 @@ export default function AssetDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
+  const [valuationCaseId, setValuationCaseId] = useState<number | null>(null);
 
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadForm, setUploadForm] = useState({
@@ -159,42 +208,100 @@ export default function AssetDetailPage() {
       
       console.log(`📥 دریافت داده‌های دارایی ID: ${assetId}`);
       
-      // 🔥 دریافت همزمان همه داده‌ها با Promise.all
-      const [assetRes, filesRes, valuationsRes] = await Promise.all([
-        api.get(`/intangible/screened-assets/${assetId}/`),
-        api.get(`/intangible/asset-files/?asset_id=${assetId}`),
-        fetchAllValuations(),
-      ]);
+      const assetIdNum = parseInt(assetId);
       
-      // تنظیم اطلاعات دارایی
+      // ۱. دریافت اطلاعات دارایی
+      const assetRes = await api.get(`/intangible/screened-assets/${assetId}/`);
       const assetData = assetRes.data;
       setAsset(assetData);
       console.log('✅ Asset Data:', assetData);
       
-      // تنظیم فایل‌ها
+      // ۲. دریافت فایل‌ها - 🔥 با ?asset_id= (همون کد قدیمی)
+      const filesRes = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
       const filesData = filesRes.data.results || filesRes.data || [];
       setFiles(filesData);
       console.log(`✅ ${filesData.length} فایل دریافت شد`);
       
-      // پردازش ارزیابی‌ها
-      const allValuations = valuationsRes as ValuationItem[];
-      console.log(`📋 کل ارزیابی‌ها: ${allValuations.length}`);
+      // ۳. دریافت ValuationCase
+      const casesRes = await api.get(`/intangible/valuation-cases/?asset=${assetId}`);
+      const cases = casesRes.data.results || casesRes.data || [];
+      const valuationCase = cases.length > 0 ? cases[0] : null;
       
-      const assetValuations = allValuations.filter((v: ValuationItem) => v.asset === parseInt(assetId));
-      console.log(`📋 ${assetValuations.length} ارزیابی برای این دارایی پیدا شد`);
+      if (valuationCase) {
+        setValuationCaseId(valuationCase.id);
+        console.log('✅ ValuationCase ID:', valuationCase.id);
+        
+        // ۴. دریافت STEP 4
+        try {
+          const step4Res = await api.get(`/intangible/valuation-step4/?valuation_case=${valuationCase.id}`);
+          const step4Items = step4Res.data.results || step4Res.data || [];
+          if (step4Items.length > 0) {
+            const step4 = step4Items[0];
+            setFinancialData({
+              final_value: step4.final_value || 0,
+              confidence_level: step4.confidence_level || 0,
+              qc_score: step4.qc_score || 0,
+              method_id: step4.method_id || assetData.valuation_method || 'M-01',
+              step4_status: step4.step4_status || 'DRAFT',
+            });
+            console.log('✅ STEP 4 Data:', step4);
+          }
+        } catch (e) {
+          console.error('Error fetching STEP 4:', e);
+        }
+        
+        // ۵. دریافت QC
+        try {
+          const qcRes = await api.get(`/intangible/valuation-qc/?valuation_case=${valuationCase.id}`);
+          const qcItems = qcRes.data.results || qcRes.data || [];
+          if (qcItems.length > 0) {
+            const qc = qcItems[0];
+            setQCData({
+              id: qc.id,
+              completeness_score: qc.completeness_score || 0,
+              total_rules: qc.total_rules || 0,
+              passed: qc.passed || 0,
+              warnings: qc.warnings || 0,
+              errors: qc.errors || 0,
+              decision: qc.decision || 'PENDING',
+            });
+            console.log('✅ QC Data:', qc);
+          }
+        } catch (e) {
+          console.error('Error fetching QC:', e);
+        }
+        
+        // ۶. دریافت Sensitivity
+        try {
+          const sensRes = await api.get(`/intangible/sensitivity/?valuation_case=${valuationCase.id}`);
+          const sensItems = sensRes.data.results || sensRes.data || [];
+          if (sensItems.length > 0) {
+            const sens = sensItems[0];
+            setSensitivityData({
+              id: sens.id,
+              base_value: sens.base_value || 0,
+              min_value: sens.min_value || 0,
+              max_value: sens.max_value || 0,
+              confidence_level: sens.confidence_level || 0,
+              critical_drivers: sens.critical_drivers || [],
+            });
+            console.log('✅ Sensitivity Data:', sens);
+          }
+        } catch (e) {
+          console.error('Error fetching Sensitivity:', e);
+        }
+      }
+      
+      // ۷. دریافت ارزیابی کیفی
+      const allValuations = await fetchAllValuations();
+      const assetValuations = allValuations.filter((v: ValuationItem) => v.asset === assetIdNum);
       
       if (assetValuations.length > 0) {
-        // اولویت ۱: پیدا کردن ارزیابی completed
         const completed = assetValuations.find((v: ValuationItem) => v.status === 'completed');
-        // اولویت ۲: اگر نبود، آخرین ارزیابی
         const targetValuation = completed || assetValuations[assetValuations.length - 1];
         
         if (targetValuation) {
-          console.log(`✅ انتخاب ارزیابی: ID ${targetValuation.id}, Status: ${targetValuation.status}`);
-          
           const { data: summary } = await api.get(`/intangible/asset-valuations/${targetValuation.id}/summary/`);
-          console.log('📊 خلاصه ارزیابی:', summary);
-          
           setValuation({
             id: targetValuation.id,
             final_score: summary.final_score || 0,
@@ -207,9 +314,8 @@ export default function AssetDetailPage() {
             answered_questions: summary.answered_questions || 0,
             total_questions: summary.total_questions || 23,
           });
+          console.log('✅ Valuation Summary:', summary);
         }
-      } else {
-        console.log(`⚠️ هیچ ارزیابی برای دارایی ${assetId} پیدا نشد`);
       }
       
       setIsDataReady(true);
@@ -243,7 +349,6 @@ export default function AssetDetailPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
-      // 🔥 دوباره فایل‌ها رو بگیر
       const { data } = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
       setFiles(data.results || data || []);
       
@@ -261,8 +366,6 @@ export default function AssetDetailPage() {
     if (!confirm('آیا از حذف این فایل مطمئن هستید؟')) return;
     try {
       await api.delete(`/intangible/asset-files/${fileId}/`);
-      
-      // 🔥 دوباره فایل‌ها رو بگیر
       const { data } = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
       setFiles(data.results || data || []);
     } catch (error) {
@@ -302,7 +405,7 @@ export default function AssetDetailPage() {
     const c = config[result as keyof typeof config] || config.confirmed;
     const Icon = c.icon;
     return (
-      <span className={`${c.bg} ${c.color} px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2`}>
+      <span className={`${c.bg} ${c.color} px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2 font-[family-name:var(--font-vazir)]`}>
         <Icon className="w-4 h-4" />
         {c.label}
       </span>
@@ -354,8 +457,24 @@ export default function AssetDetailPage() {
     return icons[fileType] || '📎';
   };
 
+  const getMethodLabel = (method: string) => {
+    const labels: Record<string, string> = {
+      'M-01': 'RfR',
+      'M-02': 'MEEM',
+      'M-03': 'DCF',
+      'M-04': 'WWM',
+      'M-05': 'RCM',
+      'M-06': 'RPCM',
+      'M-07': 'TWC',
+      'M-08': 'CTM',
+      'M-09': 'MMM',
+    };
+    return labels[method] || method;
+  };
+
   const canDeleteResult = canDelete();
   const isValuationCompleted = valuation?.status === 'completed';
+  const hasFinancialData = financialData && financialData.final_value > 0;
 
   if (loading) {
     return (
@@ -375,7 +494,7 @@ export default function AssetDetailPage() {
   }
 
   return (
-    <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto">
+    <PageTransition className="p-6 space-y-6 max-w-6xl mx-auto font-[family-name:var(--font-vazir)]">
       {/* هدر */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
@@ -451,6 +570,170 @@ export default function AssetDetailPage() {
         </Card>
       </div>
 
+      {/* ============================================ */}
+      {/* 🔥 بخش ارزش‌گذاری مالی (STEP 4) */}
+      {/* ============================================ */}
+      {hasFinancialData && (
+        <Card className="border-2 border-dark-green/20 shadow-lg overflow-hidden">
+          <div className="bg-dark-green px-5 py-3">
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-white" />
+              <h3 className="text-sm font-bold text-white">ارزش‌گذاری مالی</h3>
+              <span className="text-xs bg-white/20 text-white px-2 py-0.5 rounded-full">
+                {financialData.method_id} - {getMethodLabel(financialData.method_id)}
+              </span>
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-xs text-gray-400">ارزش نهایی</p>
+                <p className="text-2xl font-bold text-dark-green">
+                  {formatCurrency(financialData.final_value)}
+                </p>
+                <p className="text-[10px] text-gray-400">ریال</p>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-xs text-gray-400">سطح اطمینان</p>
+                <p className="text-2xl font-bold text-blue-700">
+                  {toPersianNumber(Math.round(financialData.confidence_level * 100))}%
+                </p>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-xl border border-purple-200">
+                <p className="text-xs text-gray-400">امتیاز QC</p>
+                <p className="text-2xl font-bold text-purple-700">
+                  {toPersianNumber(financialData.qc_score)}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <p className="text-xs text-gray-400">وضعیت</p>
+                <p className="text-lg font-bold text-amber-700">
+                  {financialData.step4_status === 'CALCULATED' ? '✅ محاسبه شده' : '⏳ در انتظار'}
+                </p>
+              </div>
+            </div>
+
+            {sensitivityData && sensitivityData.min_value > 0 && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-xs text-gray-400 mb-2">محدوده ارزش (بر اساس تحلیل حساسیت)</p>
+                <div className="flex items-center justify-between">
+                  <div className="text-center">
+                    <p className="text-[10px] text-gray-400">کمترین</p>
+                    <p className="text-sm font-bold text-red-600">
+                      {formatCurrency(sensitivityData.min_value)}
+                    </p>
+                  </div>
+                  <div className="flex-1 mx-4">
+                    <div className="relative h-2 bg-gray-200 rounded-full">
+                      <div 
+                        className="absolute h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 rounded-full"
+                        style={{ 
+                          width: `${Math.min(100, ((sensitivityData.max_value - sensitivityData.min_value) / sensitivityData.base_value) * 100)}%`,
+                          left: '10%'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] text-gray-400">بیشترین</p>
+                    <p className="text-sm font-bold text-green-600">
+                      {formatCurrency(sensitivityData.max_value)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-center mt-1">
+                  <span className="text-xs text-gray-400">
+                    سطح اطمینان: {toPersianNumber(Math.round(sensitivityData.confidence_level * 100))}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ============================================ */}
+      {/* 🔥 کنترل کیفیت (QC) */}
+      {/* ============================================ */}
+      {qcData && qcData.total_rules > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-bold text-dark-green mb-3 flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              کنترل کیفیت (QC)
+              <span className="text-xs bg-dark-green/10 text-dark-green px-2 py-0.5 rounded-full">
+                {toPersianNumber(qcData.completeness_score)}%
+              </span>
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="text-center p-2 bg-gray-50 rounded-lg border">
+                <p className="text-[10px] text-gray-400">مجموع قوانین</p>
+                <p className="text-lg font-bold text-dark-green">
+                  {toPersianNumber(qcData.total_rules)}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-[10px] text-gray-400">قبول</p>
+                <p className="text-lg font-bold text-green-600">
+                  {toPersianNumber(qcData.passed)}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-[10px] text-gray-400">هشدار</p>
+                <p className="text-lg font-bold text-yellow-600">
+                  {toPersianNumber(qcData.warnings)}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-[10px] text-gray-400">خطا</p>
+                <p className="text-lg font-bold text-red-600">
+                  {toPersianNumber(qcData.errors)}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-[10px] text-gray-400">تصمیم</p>
+                <p className="text-sm font-bold text-blue-700">
+                  {qcData.decision === 'APPROVE' ? '✅ تأیید' : 
+                   qcData.decision === 'CONDITIONAL' ? '⚠️ مشروط' : 
+                   qcData.decision === 'RETURN' ? '❌ بازگشت' : '⏳ در انتظار'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ============================================ */}
+      {/* 🔥 تحلیل حساسیت - متغیرهای کلیدی */}
+      {/* ============================================ */}
+      {sensitivityData && sensitivityData.critical_drivers && sensitivityData.critical_drivers.length > 0 && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-bold text-dark-green mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              متغیرهای کلیدی (تحلیل حساسیت)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {sensitivityData.critical_drivers.map((driver: any, index: number) => (
+                <div key={index} className="p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">{driver.driver_name || driver.name}</p>
+                    <span className="text-xs bg-dark-green/10 text-dark-green px-2 py-0.5 rounded-full">
+                      {driver.impact_percent ? toPersianNumber(Math.round(driver.impact_percent)) + '%' : ''}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                    <span>{toPersianNumber(driver.low_range || driver.low)}</span>
+                    <span className="text-dark-green font-medium">{toPersianNumber(driver.base_value || driver.base)}</span>
+                    <span>{toPersianNumber(driver.high_range || driver.high)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* توضیحات */}
       {asset.description && (
         <Card>
@@ -460,7 +743,9 @@ export default function AssetDetailPage() {
         </Card>
       )}
 
-      {/* نمودار رادار - با Skeleton */}
+      {/* ============================================ */}
+      {/* 🔥 نمودار رادار */}
+      {/* ============================================ */}
       {isValuationCompleted && valuation ? (
         <AssetRadarChart
           data={{
@@ -478,7 +763,6 @@ export default function AssetDetailPage() {
         <RadarChartSkeleton />
       ) : null}
 
-      {/* اگر ارزیابی نشده */}
       {!isValuationCompleted && (
         <Card className="border-dashed border-2 border-gray-300 bg-gray-50">
           <CardContent className="p-8 text-center">
@@ -493,12 +777,16 @@ export default function AssetDetailPage() {
         </Card>
       )}
 
-      {/* شواهد ارزیابی */}
+      {/* ============================================ */}
+      {/* 🔥 شواهد ارزیابی - AssetEvidence */}
+      {/* ============================================ */}
       {isValuationCompleted && valuation && (
         <AssetEvidence assetId={parseInt(assetId)} valuationId={valuation.id} />
       )}
 
-      {/* فایل‌های پیوست */}
+      {/* ============================================ */}
+      {/* 🔥 فایل‌های پیوست - به همان شکل قبلی */}
+      {/* ============================================ */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
@@ -506,7 +794,7 @@ export default function AssetDetailPage() {
             فایل‌های پیوست
             {loadingFiles && <span className="text-sm text-gray-400">(در حال بارگذاری...)</span>}
             {!loadingFiles && files.length > 0 && (
-              <span className="text-sm text-gray-400">({files.length} فایل)</span>
+              <span className="text-sm text-gray-400">({toPersianNumber(files.length)} فایل)</span>
             )}
           </CardTitle>
           {isOrgUser && (
@@ -628,7 +916,9 @@ export default function AssetDetailPage() {
         </CardContent>
       </Card>
 
-      {/* تاریخچه ارزیابی - با Skeleton */}
+      {/* ============================================ */}
+      {/* 🔥 تاریخچه ارزیابی */}
+      {/* ============================================ */}
       {valuation ? (
         <ValuationHistory 
           assetId={parseInt(assetId)} 
@@ -638,7 +928,9 @@ export default function AssetDetailPage() {
         <ValuationHistorySkeleton />
       )}
 
-      {/* زمان‌بندی */}
+      {/* ============================================ */}
+      {/* 🔥 زمان‌بندی */}
+      {/* ============================================ */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-gray-500 flex items-center gap-2">

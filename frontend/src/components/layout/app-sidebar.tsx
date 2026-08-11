@@ -30,6 +30,7 @@ import {
   PieChart,
   Target,
   Sparkles,
+  Database
 } from 'lucide-react'
 import {
   Sidebar,
@@ -67,12 +68,17 @@ const stage3Children = [
   { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
   { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
   { label: 'ارزش‌گذاری دارایی‌ها', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
+  {
+  label: "دارایی‌های ارزش‌گذاری شده",
+  href: "/dashboard/intangible/valuation/registered",
+  icon: Database,
+}
 ]
 
 // ============ منوی مراحل ۱۰ گانه ============
 const stageNavItems = [
   { 
-    label: 'مرحله ۱: برنامه‌ریزی', 
+    label: 'مرحله ۱: برنامه و نقشه راهبردی', 
     href: '/dashboard/intangible/stage1', 
     icon: LayoutDashboard,
     children: stage1Children,
@@ -86,7 +92,7 @@ const stageNavItems = [
     id: 'stage2'
   },
   { 
-    label: 'مرحله ۳: ارزیابی', 
+    label: 'مرحله ۳: ارزیابی و ارزشگذاری', 
     href: '/dashboard/intangible/stage3', 
     icon: BarChart3,
     children: stage3Children,
@@ -94,11 +100,11 @@ const stageNavItems = [
   },
   { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
   { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
-  { label: 'مرحله ۶: یکپارچه‌سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
-  { label: 'مرحله ۷: بهره‌برداری', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
-  { label: 'مرحله ۸: پایش', href: '/dashboard/intangible/stage8', icon: Eye },
-  { label: 'مرحله ۹: بهینه‌سازی', href: '/dashboard/intangible/stage9', icon: TrendingUp },
-  { label: 'مرحله ۱۰: گزارش‌دهی', href: '/dashboard/intangible/stage10', icon: FileText },
+  { label: 'مرحله ۶: تجاری سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
+  { label: 'مرحله ۷: پایش و حکمرانی', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
+  { label: 'مرحله ۸: هم افزایی و ارتباطات', href: '/dashboard/intangible/stage8', icon: Eye },
+  { label: 'مرحله ۹: مدیریت و بهینه سازی', href: '/dashboard/intangible/stage9', icon: TrendingUp },
+  { label: 'مرحله ۱۰: تحلیل پیش بین', href: '/dashboard/intangible/stage10', icon: FileText },
 ]
 
 // ============ منوهای سیستم ============

@@ -16,6 +16,7 @@ class ValuationStep4(models.Model):
     
     # نتیجه نهایی
     final_value = models.DecimalField(max_digits=20, decimal_places=2, default=0)
+    token_value = models.DecimalField(max_digits=20, decimal_places=2, default=0, blank=True, null=True)  
     confidence_level = models.DecimalField(max_digits=5, decimal_places=4, default=0)
     qc_score = models.IntegerField(default=0)
     

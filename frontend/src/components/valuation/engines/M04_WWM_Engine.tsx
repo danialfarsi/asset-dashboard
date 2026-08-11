@@ -18,6 +18,7 @@ import {
 interface M04_WWM_EngineProps {
   data?: any;
   finalValue?: number;
+  tokenValue?: number;
   confidenceLevel?: number;
   qcScore?: number;
   onCalculate?: () => void;
@@ -28,6 +29,7 @@ interface M04_WWM_EngineProps {
 export function M04_WWM_Engine({ 
   data, 
   finalValue = 0,
+  tokenValue: propTokenValue,
   confidenceLevel = 0.82,
   qcScore = 82,
   onCalculate,
@@ -82,8 +84,25 @@ export function M04_WWM_Engine({
     return formatNumber(value);
   };
 
+  // محاسبه ارزش بر حسب تک توکن (هر تک توکن = ۱۰۰۰ هزار ریال = ۱,۰۰۰,۰۰۰ ریال)
+  const calculateTokenValue = (valueInRial: number): number => {
+    if (!valueInRial) return 0;
+    const TOKEN_VALUE_IN_RIAL = 1000000;
+    return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
+  };
+
   // چک کردن وجود داده
   const hasData = data && data.fcf_data && data.fcf_data.length > 0;
+  
+  // 🔥 محاسبه تک توکن
+  let displayToken = 0;
+  if (propTokenValue && propTokenValue > 0) {
+    displayToken = propTokenValue;
+  } else {
+    const totalPV = data?.differential_data?.reduce((sum: number, row: any) => sum + safeNumber(row.pv), 0) || 0;
+    const displayFinal = safeNumber(finalValue) || safeNumber(data?.final_value) || totalPV;
+    displayToken = calculateTokenValue(displayFinal);
+  }
   
   if (!hasData) {
     return (
@@ -117,11 +136,11 @@ export function M04_WWM_Engine({
   const fcfData = data.fcf_data || [];
   const differentialData = data.differential_data || [];
   
-  const totalPV = differentialData.reduce((sum, row) => sum + safeNumber(row.pv), 0);
+  const totalPV = differentialData.reduce((sum: number, row: any) => sum + safeNumber(row.pv), 0);
   const displayFinal = safeNumber(finalValue) || safeNumber(data?.final_value) || totalPV;
 
-  const totalWith = fcfData.reduce((sum, row) => sum + safeNumber(row.withFCF), 0);
-  const totalWithout = fcfData.reduce((sum, row) => sum + safeNumber(row.withoutFCF), 0);
+  const totalWith = fcfData.reduce((sum: number, row: any) => sum + safeNumber(row.withFCF), 0);
+  const totalWithout = fcfData.reduce((sum: number, row: any) => sum + safeNumber(row.withoutFCF), 0);
   const totalDelta = totalWith - totalWithout;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -192,7 +211,7 @@ export function M04_WWM_Engine({
                   tickFormatter={(value) => formatMillions(value)}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend />
+                <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
                 <Line
                   type="monotone"
                   dataKey="withFCF"
@@ -287,11 +306,15 @@ export function M04_WWM_Engine({
             <span className="text-dark-green font-bold">ارزش = Σ PV (با نرخ تنزیل)</span>
             <br />
             <span className="text-gray-400 text-xs">ارزش = تفاضل جریان نقدی × (۱ - نرخ مالیات) × ضریب تنزیل</span>
+            <br />
+            <span className="text-emerald-600 font-bold text-base">
+              = {formatNumber(displayToken)} تک توکن
+            </span>
           </div>
         </CardContent>
       </Card>
 
-      {/* خلاصه نتایج */}
+      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
           <CardContent className="p-4 text-center">
@@ -300,18 +323,18 @@ export function M04_WWM_Engine({
             <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش خالص فعلی (NPV)</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
+        <Card className="bg-gradient-to-br from-emerald-100 to-white border-emerald-300">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش پایه (Base Case)</p>
-            <p className="text-2xl font-bold text-blue-600 font-[family-name:var(--font-vazir)]">{formatRial(totalPV)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">NPV جریان نقدی تفاضلی</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
+            <p className="text-3xl font-bold text-emerald-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">سطح اطمینان</p>
-            <p className="text-2xl font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{formatPercent(confidenceLevel * 100)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC: {formatNumber(qcScore)}</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
+            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
           </CardContent>
         </Card>
       </div>

@@ -6,6 +6,10 @@ from .valuation_step3_models import ValuationStep3
 from .valuation_serializers import ValuationStep4Serializer
 
 
+# 🔥 ثابت تبدیل ریال به تک توکن (هر تک توکن = ۱,۰۰۰,۰۰۰ ریال)
+TOKEN_VALUE_IN_RIAL = 1000000
+
+
 class ValuationStep4ViewSet(viewsets.ModelViewSet):
     queryset = ValuationStep4.objects.all()
     serializer_class = ValuationStep4Serializer
@@ -59,6 +63,21 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     {'error': f'روش {method_id} پشتیبانی نمیشود'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            
+            # 🔥 محاسبه تک توکن
+            final_value = result['final_value']
+            token_value = round(final_value / TOKEN_VALUE_IN_RIAL, 2)
+            
+            # 🔥 اضافه کردن token_value به result
+            result['token_value'] = token_value
+            
+            # 🔥 ذخیره token_value در دیتابیس (اگر فیلد وجود داشته باشد)
+            # برای جلوگیری از خطا، فقط در صورتی که فیلد وجود داشته باشد ذخیره می‌کنیم
+            try:
+                step4.token_value = token_value
+            except AttributeError:
+                # اگر فیلد token_value در مدل وجود نداشت، آن را نادیده بگیر
+                print('⚠️ فیلد token_value در مدل ValuationStep4 وجود ندارد')
             
             step4.calculation_details = result['details']
             step4.final_value = result['final_value']
@@ -168,8 +187,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(final_value)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': round(final_value),
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -190,7 +213,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'terminal_value': round(terminal_value),
                     'pv_terminal': round(pv_terminal),
                     'value_before_quality': round(value_before_quality),
-                    'final_value': round(final_value),
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
         }
@@ -295,8 +319,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(final_value)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': round(final_value),
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -317,17 +345,18 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'terminal_value': round(terminal_value),
                     'pv_terminal': round(pv_terminal),
                     'value_before_quality': round(value_before_quality),
-                    'final_value': round(final_value),
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
         }
+    
     # ============================================
     # M-03: DCF (Discounted Cash Flow)
     # ============================================
     def calculate_m03(self, inputs):
         print('🔥 calculate_m03 called!')
         
-        # دریافت از STEP 3 - پشتیبانی از هر دو نام
         fcf_data = inputs.get('fcf_data', [])
         if not fcf_data:
             fcf_data = inputs.get('fcf_schedule', [])
@@ -342,10 +371,10 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         print(f'📊 M-03: forecast_horizon = {forecast_horizon}')
         print(f'📊 M-03: fcf_data = {fcf_data}')
         
-        # اگر fcf_data خالی بود، خطا بده
         if not fcf_data:
             return {
                 'final_value': 0,
+                'token_value': 0,
                 'confidence_level': 0.80,
                 'qc_score': 80,
                 'details': {
@@ -356,11 +385,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 }
             }
         
-        # فقط به تعداد forecast_horizon سال محاسبه کن
         yearly_data = []
         total_pv = 0
-        
-        # محدود کردن به forecast_horizon
         fcf_data_limited = fcf_data[:forecast_horizon]
         
         for i, item in enumerate(fcf_data_limited):
@@ -377,7 +403,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'pv': round(pv)
             })
         
-        # اگر تعداد FCF ها کمتر از forecast_horizon بود، با ۰ پر کن
         while len(yearly_data) < forecast_horizon:
             year = len(yearly_data) + 1
             pv_factor = 1 / ((1 + discount_rate) ** year)
@@ -388,7 +413,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'pv': 0
             })
         
-        # ارزش پایانی
         last_fcf = yearly_data[-1]['fcf'] if yearly_data else 0
         if discount_rate > terminal_growth_rate:
             terminal_value = (last_fcf * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
@@ -396,16 +420,10 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             terminal_value = 0
         pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
         
-        # ارزش کل شرکت
         enterprise_value = total_pv + pv_terminal
-        
-        # اعمال سهم دارایی نامشهود
         intangible_value = enterprise_value * intangible_share
-        
-        # اعمال ضریب کیفیت
         final_value = intangible_value * quality_multiplier
         
-        # Waterfall
         waterfall = []
         cumulative = 0
         
@@ -468,8 +486,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(final_value)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': round(final_value),
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -487,10 +509,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'pv_terminal': round(pv_terminal),
                     'enterprise_value': round(enterprise_value),
                     'intangible_value': round(intangible_value),
-                    'final_value': round(final_value),
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
-    }
+        }
+    
     # ============================================
     # M-04: With-and-Without Method
     # ============================================
@@ -617,8 +641,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        total_pv_rounded = round(total_pv)
+        token_value = round(total_pv_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': total_pv,
+            'final_value': total_pv_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -634,7 +662,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'tax_rate': tax_rate,
                     'discount_rate': discount_rate,
                     'forecast_horizon': actual_horizon,
-                    'final_value': total_pv,
+                    'final_value': total_pv_rounded,
+                    'token_value': token_value,
                 }
             }
         }
@@ -729,8 +758,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(cumulative)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': cumulative,
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.91,
             'qc_score': 91,
             'details': {
@@ -743,7 +776,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'profit_pct': profit_pct * 100,
                     'functional_obs': functional_obs * 100,
                     'economic_obs': economic_obs * 100,
-                    'final_value': cumulative,
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
         }
@@ -835,8 +869,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(cumulative)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': cumulative,
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.90,
             'qc_score': 90,
             'details': {
@@ -848,33 +886,24 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'overhead_pct': overhead * 100,
                     'obsolescence_pct': obsolescence * 100,
                     'age_factor': age_factor,
-                    'final_value': cumulative,
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
         }
+    
     # ============================================
     # M-07: TWC (Trained Workforce / Team Cost)
     # ============================================
     def calculate_m07(self, inputs):
         print('🔥 calculate_m07 called!')
-        print(f'📥 Inputs: {inputs}')
         
-        # دریافت از STEP 3
         team_members = inputs.get('team_members', [])
-        ramp_up_duration = inputs.get('ramp_up_duration', 6)  # ماه
+        ramp_up_duration = inputs.get('ramp_up_duration', 6)
         productivity_loss = inputs.get('productivity_loss', 30) / 100
         turnover_rate = inputs.get('turnover_rate', 8) / 100
         quality_multiplier = inputs.get('quality_multiplier', 0.87)
-        discount_rate = inputs.get('discount_rate', 18) / 100
-        tax_rate = inputs.get('tax_rate', 25) / 100
         
-        print(f'📊 team_members: {team_members}')
-        print(f'📊 ramp_up_duration: {ramp_up_duration}')
-        print(f'📊 productivity_loss: {productivity_loss}')
-        print(f'📊 turnover_rate: {turnover_rate}')
-        print(f'📊 quality_multiplier: {quality_multiplier}')
-        
-        # گام ۱: محاسبه هزینه‌ها
         recruit_total = 0
         train_total = 0
         salary_total = 0
@@ -901,26 +930,11 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'salary_total': headcount * salary
             })
         
-        print(f'📊 recruit_total: {recruit_total}')
-        print(f'📊 train_total: {train_total}')
-        print(f'📊 salary_total: {salary_total}')
-        
-        # گام ۲: هزینه کاهش بهره‌وری
         productivity_loss_cost = salary_total * (ramp_up_duration / 12) * productivity_loss
-        
-        # گام ۳: هزینه جابجایی
         turnover_cost = (recruit_total + train_total) * turnover_rate
-        
-        # گام ۴: جمع هزینه کل بازسازی
         total_replacement_cost = recruit_total + train_total + productivity_loss_cost + turnover_cost
-        
-        # گام ۵: اعمال ضریب کیفیت
         final_value = total_replacement_cost * quality_multiplier
         
-        print(f'📊 total_replacement_cost: {total_replacement_cost}')
-        print(f'📊 final_value: {final_value}')
-        
-        # Waterfall
         waterfall = []
         cumulative = 0
         
@@ -993,8 +1007,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(final_value)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': round(final_value),
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -1010,79 +1028,42 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'ramp_up_duration': ramp_up_duration,
                     'productivity_loss': productivity_loss,
                     'turnover_rate': turnover_rate,
-                    'final_value': round(final_value),
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
-    }
-        # ============================================
+        }
+    
+    # ============================================
     # M-08: CTM (Comparable Transactions Method)
     # ============================================
     def calculate_m08(self, inputs):
         print('🔥 calculate_m08 called!')
-        print(f'📥 Inputs keys: {list(inputs.keys())}')
         
-        # ============================================
-        # ۱. دریافت ورودی‌ها از STEP 3
-        # ============================================
-        
-        # معاملات مشابه - می‌تواند از STEP 3 بیاید یا خالی باشد
         comparable_deals = inputs.get('comparable_deals', [])
-        
-        # پارامترهای پایه از STEP 2
-        discount_rate = inputs.get('discount_rate', 18) / 100
-        tax_rate = inputs.get('tax_rate', 25) / 100
         quality_multiplier = inputs.get('quality_multiplier', 0.83)
-        source_reliability = inputs.get('source_reliability', 'High')
         
-        # پارامترهای اختصاصی از STEP 3
-        market_comparability_context = inputs.get('market_comparability_context', 'High')
-        industry_classification = inputs.get('industry_classification', 'Software')
-        
-        # ============================================
-        # ۲. اعتبارسنجی و تکمیل داده‌ها
-        # ============================================
-        
-        # اگر معامله‌ای وجود نداشت، از داده‌های نمونه استفاده کن (برای تست)
         if not comparable_deals:
             comparable_deals = [
                 {
                     'deal_id': 'Deal-001',
                     'transaction_price': 110000000,
                     'deal_weight_percent': 0.33,
-                    'adjustments': {
-                        'size': 0.06,
-                        'time': 0.02,
-                        'geographic': -0.01,
-                        'other': -0.01
-                    }
+                    'adjustments': {'size': 0.06, 'time': 0.02, 'geographic': -0.01, 'other': -0.01}
                 },
                 {
                     'deal_id': 'Deal-002',
                     'transaction_price': 120000000,
                     'deal_weight_percent': 0.34,
-                    'adjustments': {
-                        'size': 0.05,
-                        'time': 0.01,
-                        'geographic': 0.00,
-                        'other': -0.01
-                    }
+                    'adjustments': {'size': 0.05, 'time': 0.01, 'geographic': 0.00, 'other': -0.01}
                 },
                 {
                     'deal_id': 'Deal-003',
                     'transaction_price': 130000000,
                     'deal_weight_percent': 0.33,
-                    'adjustments': {
-                        'size': 0.07,
-                        'time': 0.03,
-                        'geographic': -0.02,
-                        'other': -0.01
-                    }
+                    'adjustments': {'size': 0.07, 'time': 0.03, 'geographic': -0.02, 'other': -0.01}
                 }
             ]
-        
-        # ============================================
-        # ۳. گام ۱: محاسبه قیمت تعدیل‌شده هر معامله
-        # ============================================
         
         adjusted_prices = []
         total_adjustment_sum = 0
@@ -1092,11 +1073,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             adjustments = deal.get('adjustments', {})
             deal_weight = deal.get('deal_weight_percent', 1.0 / len(comparable_deals))
             
-            # محاسبه مجموع تعدیلات
             total_adjustment = sum(adjustments.values())
             total_adjustment_sum += total_adjustment
-            
-            # قیمت تعدیل‌شده
             adjusted_price = transaction_price * (1 + total_adjustment)
             
             adjusted_prices.append({
@@ -1108,10 +1086,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'adjusted_price': round(adjusted_price)
             })
         
-        # ============================================
-        # ۴. گام ۲: محاسبه میانگین وزنی قیمت تعدیل‌شده
-        # ============================================
-        
         weighted_sum = 0
         total_weight = 0
         
@@ -1119,17 +1093,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             weighted_sum += item['adjusted_price'] * item['deal_weight_percent']
             total_weight += item['deal_weight_percent']
         
-        # نرمال‌سازی وزن‌ها (اگر مجموع وزن‌ها ۱ نبود)
         if total_weight != 1.0 and total_weight > 0:
             weighted_average_price = weighted_sum / total_weight
         else:
             weighted_average_price = weighted_sum
         
         weighted_average_price = round(weighted_average_price)
-        
-        # ============================================
-        # ۵. گام ۳: محاسبه میانه قیمت تعدیل‌شده
-        # ============================================
         
         sorted_prices = sorted([item['adjusted_price'] for item in adjusted_prices])
         n = len(sorted_prices)
@@ -1140,39 +1109,18 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             median_price = (sorted_prices[n // 2 - 1] + sorted_prices[n // 2]) / 2
         
         median_price = round(median_price)
-        
-        # ============================================
-        # ۶. گام ۴: انتخاب قیمت مبنا
-        # ============================================
-        
-        # سیستم به‌طور خودکار از میانگین وزنی به‌عنوان قیمت مبنا استفاده می‌کند
         base_price = weighted_average_price
-        
-        # ============================================
-        # ۷. گام ۵: اعمال ضریب کیفیت
-        # ============================================
-        
         final_value = base_price * quality_multiplier
         final_value = round(final_value)
-        
-        # ============================================
-        # ۸. محاسبات تکمیلی
-        # ============================================
         
         min_price = min(sorted_prices) if sorted_prices else 0
         max_price = max(sorted_prices) if sorted_prices else 0
         price_range = max_price - min_price
-        
         average_adjustment = total_adjustment_sum / len(adjusted_prices) if adjusted_prices else 0
-        
-        # ============================================
-        # ۹. ساخت Waterfall
-        # ============================================
         
         waterfall = []
         cumulative = 0
         
-        # مرحله ۱: نمایش معاملات
         for idx, item in enumerate(adjusted_prices, 1):
             weighted_amount = round(item['adjusted_price'] * item['deal_weight_percent'])
             cumulative += weighted_amount
@@ -1185,7 +1133,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                 'type': 'increase'
             })
         
-        # مرحله ۲: میانگین وزنی
         waterfall.append({
             'step': len(adjusted_prices) + 1,
             'title': 'میانگین وزنی قیمت تعدیل‌شده',
@@ -1195,7 +1142,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'increase'
         })
         
-        # مرحله ۳: میانه (برای مرجع)
         waterfall.append({
             'step': len(adjusted_prices) + 2,
             'title': f'میانه قیمت تعدیل‌شده (برای مرجع)',
@@ -1205,7 +1151,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'increase'
         })
         
-        # مرحله ۴: قیمت مبنا
         waterfall.append({
             'step': len(adjusted_prices) + 3,
             'title': 'قیمت مبنا (میانگین وزنی)',
@@ -1215,7 +1160,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'increase'
         })
         
-        # مرحله ۵: ضریب کیفیت
         quality_adjustment = final_value - base_price
         waterfall.append({
             'step': len(adjusted_prices) + 4,
@@ -1226,7 +1170,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'increase' if quality_adjustment >= 0 else 'decrease'
         })
         
-        # مرحله ۶: ارزش نهایی
         waterfall.append({
             'step': len(adjusted_prices) + 5,
             'title': 'ارزش نهایی',
@@ -1236,12 +1179,11 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
-        # ============================================
-        # ۱۰. ساخت خروجی
-        # ============================================
+        token_value = round(final_value / TOKEN_VALUE_IN_RIAL, 2)
         
         return {
             'final_value': final_value,
+            'token_value': token_value,
             'confidence_level': 0.85,
             'qc_score': 85,
             'details': {
@@ -1258,11 +1200,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'base_price_selected': base_price,
                     'quality_multiplier': quality_multiplier,
                     'final_value': final_value,
-                    'discount_rate': discount_rate,
-                    'tax_rate': tax_rate,
-                    'market_comparability_context': market_comparability_context,
-                    'industry_classification': industry_classification,
-                    'source_reliability': source_reliability,
+                    'token_value': token_value,
                 }
             }
         }    
@@ -1346,8 +1284,12 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             'type': 'final'
         })
         
+        final_value_rounded = round(final_value)
+        token_value = round(final_value_rounded / TOKEN_VALUE_IN_RIAL, 2)
+        
         return {
-            'final_value': round(final_value),
+            'final_value': final_value_rounded,
+            'token_value': token_value,
             'confidence_level': 0.82,
             'qc_score': 82,
             'details': {
@@ -1364,8 +1306,8 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     'enterprise_value_after_premium': round(enterprise_value_after_premium),
                     'enterprise_value_after_discount': round(enterprise_value_after_discount),
                     'intangible_value_before_quality': round(intangible_value_before_quality),
-                    'final_value': round(final_value),
+                    'final_value': final_value_rounded,
+                    'token_value': token_value,
                 }
             }
         }
-

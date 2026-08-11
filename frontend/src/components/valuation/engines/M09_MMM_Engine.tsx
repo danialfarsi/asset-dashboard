@@ -22,6 +22,7 @@ import * as XLSX from 'xlsx';
 interface M09_MMM_EngineProps {
   data?: any;
   finalValue?: number;
+  tokenValue?: number;
   confidenceLevel?: number;
   qcScore?: number;
   assetName?: string;
@@ -34,6 +35,7 @@ interface M09_MMM_EngineProps {
 export function M09_MMM_Engine({ 
   data, 
   finalValue = 0,
+  tokenValue: propTokenValue,
   confidenceLevel = 0.82,
   qcScore = 82,
   assetName = 'دارایی',
@@ -90,12 +92,28 @@ export function M09_MMM_Engine({
     return formatNumber(value);
   };
 
+  // محاسبه ارزش بر حسب تک توکن (هر تک توکن = ۱۰۰۰ هزار ریال = ۱,۰۰۰,۰۰۰ ریال)
+  const calculateTokenValue = (valueInRial: number): number => {
+    if (!valueInRial) return 0;
+    const TOKEN_VALUE_IN_RIAL = 1000000;
+    return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
+  };
+
   // ============================================
   // استخراج داده‌ها
   // ============================================
   const summary = data?.summary || data;
   const yearlyData = data?.yearly_data || [];
   const hasData = summary && (summary.final_value || finalValue);
+
+  // 🔥 محاسبه تک توکن
+  let displayToken = 0;
+  if (propTokenValue && propTokenValue > 0) {
+    displayToken = propTokenValue;
+  } else {
+    const displayFinal = safeNumber(finalValue) || safeNumber(summary?.final_value) || 0;
+    displayToken = calculateTokenValue(displayFinal);
+  }
 
   // ============================================
   // خروجی Excel
@@ -124,6 +142,7 @@ export function M09_MMM_Engine({
       ['ارزش پس از تخفیف بازارپذیری', (summary?.enterprise_value_after_discount || 0).toLocaleString()],
       ['ارزش دارایی نامشهود', (summary?.intangible_value_before_quality || 0).toLocaleString()],
       ['ارزش نهایی', (summary?.final_value || 0).toLocaleString()],
+      ['ارزش بر حسب تک توکن', displayToken],
     ];
 
     const wb = XLSX.utils.book_new();
@@ -339,8 +358,7 @@ export function M09_MMM_Engine({
         </Card>
       )}
 
-
-      {/* خلاصه نتایج */}
+      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
           <CardContent className="p-4 text-center">
@@ -349,17 +367,18 @@ export function M09_MMM_Engine({
             <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
+        <Card className="bg-gradient-to-br from-amber-100 to-white border-amber-300">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش شرکت (EV)</p>
-            <p className="text-2xl font-bold text-blue-600 font-[family-name:var(--font-vazir)]">{formatRial(summary?.enterprise_value || 0)}</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
+            <p className="text-3xl font-bold text-amber-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">سطح اطمینان</p>
-            <p className="text-2xl font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{formatPercent(displayConfidence * 100)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC: {formatNumber(displayQcScore)}</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
+            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
           </CardContent>
         </Card>
       </div>

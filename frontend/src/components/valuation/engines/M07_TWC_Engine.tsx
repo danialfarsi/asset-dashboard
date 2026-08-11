@@ -19,6 +19,7 @@ import * as XLSX from 'xlsx';
 interface M07_TWC_EngineProps {
   data?: any;
   finalValue?: number;
+  tokenValue?: number;
   confidenceLevel?: number;
   qcScore?: number;
   assetName?: string;
@@ -56,6 +57,7 @@ const getRoleLabel = (role: string): string => {
 export function M07_TWC_Engine({ 
   data, 
   finalValue = 0,
+  tokenValue: propTokenValue,
   confidenceLevel = 0.82,
   qcScore = 82,
   assetName = 'دارایی',
@@ -80,7 +82,7 @@ export function M07_TWC_Engine({
     return String(num).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
   };
 
-  const formatNumber = (num: any) => {
+  const formatNumber = (num: any): string => {
     const value = safeNumber(num);
     if (value === 0) return '۰';
     const parts = Math.round(value).toString().split('.');
@@ -88,31 +90,53 @@ export function M07_TWC_Engine({
     return toPersianDigit(integerPart);
   };
 
-  const formatRial = (num: any) => {
+  const formatRial = (num: any): string => {
     const value = safeNumber(num);
     if (value === 0) return '۰ ریال';
     return `${formatNumber(value)} ریال`;
   };
 
-  const formatPercent = (num: number) => {
+  const formatPercent = (num: number): string => {
     if (!num && num !== 0) return '۰٪';
     const value = num * 100;
     const str = value.toFixed(1);
     return toPersianDigit(str) + '٪';
   };
 
+  // محاسبه ارزش بر حسب تک توکن (هر تک توکن = ۱۰۰۰ هزار ریال = ۱,۰۰۰,۰۰۰ ریال)
+  const calculateTokenValue = (valueInRial: number): number => {
+    if (!valueInRial) return 0;
+    const TOKEN_VALUE_IN_RIAL = 1000000;
+    return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
+  };
+
   // ============================================
   // استخراج داده‌ها
   // ============================================
   const summary = data?.summary || data;
-  // 🔥 اصلاح: پشتیبانی از team_details
   const teamMembers = data?.team_details || data?.team_members || data?.inputs_used?.team_composition || [];
   const hasData = summary && (summary.final_value || finalValue);
+  
+  // 🔥 اولویت: propTokenValue > محاسبه از finalValue
+  let displayToken = 0;
+  const displayFinal = safeNumber(finalValue) || safeNumber(summary?.final_value) || 0;
+  if (propTokenValue && propTokenValue > 0) {
+    displayToken = propTokenValue;
+  } else {
+    displayToken = calculateTokenValue(displayFinal);
+  }
 
   // ============================================
   // داده‌های جدول هر نقش (با نقش‌های فارسی)
   // ============================================
-  const tableData = teamMembers.map((member: any) => {
+  const tableData: Array<{
+    role: string;
+    headcount: number;
+    recruitCost: number;
+    trainCost: number;
+    rampUpLoss: number;
+    total: number;
+  }> = teamMembers.map((member: any) => {
     const headcount = member.headcount || 0;
     const recruitCost = member.recruit_cost_per_person || member.recruit_cost || 0;
     const trainCost = member.train_cost_per_person || member.train_cost || 0;
@@ -130,16 +154,16 @@ export function M07_TWC_Engine({
     };
   });
 
-  const totalHeadcount = tableData.reduce((sum, row) => sum + row.headcount, 0);
-  const totalRecruit = tableData.reduce((sum, row) => sum + row.recruitCost, 0);
-  const totalTrain = tableData.reduce((sum, row) => sum + row.trainCost, 0);
-  const totalRampUp = tableData.reduce((sum, row) => sum + row.rampUpLoss, 0);
-  const totalAll = tableData.reduce((sum, row) => sum + row.total, 0);
+  const totalHeadcount = tableData.reduce((sum: number, row: any) => sum + row.headcount, 0);
+  const totalRecruit = tableData.reduce((sum: number, row: any) => sum + row.recruitCost, 0);
+  const totalTrain = tableData.reduce((sum: number, row: any) => sum + row.trainCost, 0);
+  const totalRampUp = tableData.reduce((sum: number, row: any) => sum + row.rampUpLoss, 0);
+  const totalAll = tableData.reduce((sum: number, row: any) => sum + row.total, 0);
 
   // ============================================
   // داده‌های نمودار میله‌ای
   // ============================================
-  const barData = tableData.map(row => ({
+  const barData = tableData.map((row: any) => ({
     role: row.role,
     recruitCost: row.recruitCost,
     trainCost: row.trainCost,
@@ -149,7 +173,7 @@ export function M07_TWC_Engine({
   // ============================================
   // خروجی Excel
   // ============================================
-  const exportExcel = () => {
+  const exportExcel = (): void => {
     const rows: any[][] = [
       ['گزارش ارزش‌گذاری روش M-07 (TWC)'],
       [''],
@@ -161,7 +185,7 @@ export function M07_TWC_Engine({
       ['نقش', 'تعداد', 'هزینه جذب', 'هزینه آموزش', 'کاهش بهره‌وری', 'مجموع'],
     ];
 
-    tableData.forEach((row) => {
+    tableData.forEach((row: any) => {
       rows.push([
         row.role,
         row.headcount,
@@ -182,6 +206,7 @@ export function M07_TWC_Engine({
     rows.push(['هزینه کل بازسازی', totalAll]);
     rows.push(['']);
     rows.push(['ارزش نهایی', summary?.final_value || 0]);
+    rows.push(['ارزش بر حسب تک توکن', displayToken]);
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -221,10 +246,6 @@ export function M07_TWC_Engine({
       </div>
     );
   }
-
-  const displayFinal = safeNumber(finalValue) || safeNumber(summary?.final_value) || 0;
-  const displayConfidence = confidenceLevel || 0.82;
-  const displayQcScore = qcScore || 82;
 
   return (
     <div className="space-y-6" dir="rtl">
@@ -284,7 +305,7 @@ export function M07_TWC_Engine({
                 </tr>
               </thead>
               <tbody>
-                {tableData.map((row, index) => (
+                {tableData.map((row: any, index: number) => (
                   <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
                     <td className="border p-2">{row.role}</td>
                     <td className="border p-2 text-center">{toPersianDigit(row.headcount)}</td>
@@ -316,7 +337,7 @@ export function M07_TWC_Engine({
             <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="role" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => formatNumber(v)} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: any) => formatNumber(v)} />
               <Tooltip formatter={(value: any) => formatRial(value)} />
               <Legend />
               <Bar dataKey="recruitCost" name="هزینه جذب" fill="#015345" stackId="stack" />
@@ -352,7 +373,7 @@ export function M07_TWC_Engine({
         </CardContent>
       </Card>
 
-      {/* خلاصه نتایج */}
+      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
           <CardContent className="p-4 text-center">
@@ -361,17 +382,18 @@ export function M07_TWC_Engine({
             <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
+        <Card className="bg-gradient-to-br from-orange-100 to-white border-orange-300">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">هزینه کل بازسازی</p>
-            <p className="text-2xl font-bold text-blue-600 font-[family-name:var(--font-vazir)]">{formatRial(totalAll)}</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
+            <p className="text-3xl font-bold text-orange-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
           <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">سطح اطمینان</p>
-            <p className="text-2xl font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{formatPercent(displayConfidence)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC: {formatNumber(displayQcScore)}</p>
+            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
+            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
           </CardContent>
         </Card>
       </div>
