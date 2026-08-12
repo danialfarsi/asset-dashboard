@@ -30,10 +30,11 @@ import {
   Lock,
   Database,
   Printer,
-  Download
+  Download,
+  Coins,
+  DollarSign
 } from 'lucide-react';
 
-// تبدیل اعداد به فارسی
 const toPersianNumber = (num: number | string): string => {
   if (num === undefined || num === null) return '۰';
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -41,12 +42,17 @@ const toPersianNumber = (num: number | string): string => {
   return str.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
 };
 
-// فرمت اعداد با جداکننده هزارگان و فارسی
 const formatCurrency = (value: number) => {
   if (!value) return '۰';
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
   const formatted = Math.round(value).toLocaleString();
   return formatted.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+const calculateTokenValue = (valueInRial: number): number => {
+  if (!valueInRial) return 0;
+  const TOKEN_VALUE_IN_RIAL = 1000000;
+  return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
 };
 
 interface RegisteredAsset {
@@ -63,6 +69,7 @@ interface RegisteredAsset {
   valuation_case_id: number;
   valuation_method: string;
   final_value: number;
+  token_value?: number;
   confidence_level: number;
   qc_score: number;
   certificate_no: string;
@@ -93,11 +100,22 @@ export default function RegisteredValuationsPage() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
 
-      const allAssets = await fetchAllScreenedAssets();
-      const allValuations = await fetchAllValuations();
-      
-      const { data: casesData } = await api.get('/intangible/valuation-cases/');
+      // 🔥 دریافت همزمان داده‌ها با Promise.all
+      const [allAssets, allValuations, casesData, step4Data] = await Promise.all([
+        fetchAllScreenedAssets(),
+        fetchAllValuations(),
+        api.get('/intangible/valuation-cases/').then(res => res.data),
+        api.get('/intangible/valuation-step4/').then(res => res.data),
+      ]);
+
       const allCases = casesData.results || casesData || [];
+      const allStep4 = step4Data.results || step4Data || [];
+
+      // 🔥 ساخت Map برای STEP 4
+      const step4Map = new Map();
+      allStep4.forEach((step4: any) => {
+        step4Map.set(step4.valuation_case, step4);
+      });
 
       const registered: RegisteredAsset[] = [];
 
@@ -113,24 +131,22 @@ export default function RegisteredValuationsPage() {
         const isRegistered = assetCase.case_status === 'REGISTERED' || 
                            assetCase.certificate_no !== undefined;
 
-        if (!isRegistered && valuation.status !== 'completed') continue;
-
+        const step4 = step4Map.get(assetCase.id);
         let finalValue = 0;
         let confidenceLevel = 0;
         let qcScore = 0;
-        try {
-          const { data: step4Data } = await api.get(
-            `/intangible/valuation-step4/?valuation_case=${assetCase.id}`
-          );
-          const step4Items = step4Data.results || step4Data || [];
-          if (step4Items.length > 0) {
-            finalValue = step4Items[0].final_value || 0;
-            confidenceLevel = step4Items[0].confidence_level || 0;
-            qcScore = step4Items[0].qc_score || 0;
-          }
-        } catch (e) {
-          console.error('Error fetching step4:', e);
+        let tokenValue = 0;
+
+        if (step4) {
+          finalValue = step4.final_value || 0;
+          confidenceLevel = step4.confidence_level || 0;
+          qcScore = step4.qc_score || 0;
+          tokenValue = step4.token_value || calculateTokenValue(finalValue);
         }
+
+        // 🔥 فقط دارایی‌هایی که ارزش نهایی > ۰ دارند یا ثبت شده‌اند
+        if (finalValue === 0 && !isRegistered) continue;
+        if (finalValue === 0 && qcScore === 0 && !isRegistered) continue;
 
         registered.push({
           id: asset.id,
@@ -146,6 +162,7 @@ export default function RegisteredValuationsPage() {
           valuation_case_id: assetCase.id,
           valuation_method: asset.valuation_method || assetCase.method_id || 'M-01',
           final_value: finalValue,
+          token_value: tokenValue,
           confidence_level: confidenceLevel,
           qc_score: qcScore,
           certificate_no: assetCase.certificate_no || `VAL-${String(assetCase.id).padStart(5, '0')}`,
@@ -190,7 +207,7 @@ export default function RegisteredValuationsPage() {
     if (filterType !== 'all') {
       filtered = filtered.filter(asset => {
         if (filterType === 'registered') return asset.is_registered;
-        if (filterType === 'completed') return !asset.is_registered && asset.case_status === 'COMPLETED';
+        if (filterType === 'completed') return !asset.is_registered && asset.case_status === 'COMPLETED' && asset.final_value > 0;
         if (filterType === 'pending') return asset.case_status === 'PENDING_FINAL_APPROVAL';
         return true;
       });
@@ -262,10 +279,10 @@ export default function RegisteredValuationsPage() {
   }
 
   const filterOptions = [
-    { value: 'all', label: 'همه', count: assets.length },
+    { value: 'all', label: 'همه', count: assets.filter(a => a.final_value > 0 || a.is_registered).length },
     { value: 'registered', label: 'ثبت شده', count: assets.filter(a => a.is_registered).length },
-    { value: 'completed', label: 'تکمیل شده', count: assets.filter(a => !a.is_registered && a.case_status === 'COMPLETED').length },
-    { value: 'pending', label: 'در انتظار تأیید', count: assets.filter(a => a.case_status === 'PENDING_FINAL_APPROVAL').length },
+    { value: 'completed', label: 'تکمیل شده', count: assets.filter(a => !a.is_registered && a.case_status === 'COMPLETED' && a.final_value > 0).length },
+    { value: 'pending', label: 'در انتظار تأیید', count: assets.filter(a => a.case_status === 'PENDING_FINAL_APPROVAL' && a.final_value > 0).length },
   ];
 
   return (
@@ -351,81 +368,100 @@ export default function RegisteredValuationsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredAssets.map((asset) => (
-            <Card 
-              key={asset.id} 
-              className="hover:shadow-lg transition-all hover:-translate-y-1 border-0 shadow-sm overflow-hidden"
-            >
-              <div className="h-1 bg-dark-green" />
-              
-              <CardContent className="p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate font-[family-name:var(--font-vazir)]">{asset.asset_name}</p>
-                    <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">{asset.asset_uid}</p>
-                  </div>
-                  {getStatusBadge(asset.case_status)}
-                </div>
-
-                <div className="space-y-1 text-xs text-gray-500">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-[family-name:var(--font-vazir)]">روش:</span>
-                    <span className="font-medium text-dark-green font-[family-name:var(--font-vazir)]">
-                      {getMethodLabel(asset.valuation_method)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-[family-name:var(--font-vazir)]">ارزش نهایی:</span>
-                    <span className="font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-                      {formatCurrency(asset.final_value)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-[family-name:var(--font-vazir)]">سطح اطمینان:</span>
-                    <span className="font-medium font-[family-name:var(--font-vazir)]">
-                      {toPersianNumber(Math.round(asset.confidence_level * 100))}%
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC:</span>
-                    <span className="font-medium font-[family-name:var(--font-vazir)]">{toPersianNumber(asset.qc_score)}</span>
-                  </div>
-                  {asset.certificate_no && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-400 font-[family-name:var(--font-vazir)]">شماره گواهی:</span>
-                      <span className="text-xs font-mono font-[family-name:var(--font-vazir)]">{asset.certificate_no}</span>
+          {filteredAssets.map((asset) => {
+            const displayToken = (asset.token_value && asset.token_value > 0) 
+              ? asset.token_value 
+              : calculateTokenValue(asset.final_value);
+            
+            return (
+              <Card 
+                key={asset.id} 
+                className="hover:shadow-xl transition-all hover:-translate-y-1 border-0 shadow-md overflow-hidden bg-gradient-to-br from-white to-gray-50/50"
+              >
+                <div className="h-1 bg-dark-green" />
+                
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 truncate font-[family-name:var(--font-vazir)] text-base">{asset.asset_name}</p>
+                      <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">{asset.asset_uid}</p>
                     </div>
-                  )}
-                  <div className="flex items-center gap-2">
+                    {getStatusBadge(asset.case_status)}
+                  </div>
+
+                  <div className="text-center py-2">
+                    <div className="inline-block bg-gradient-to-br from-dark-green/5 to-dark-green/10 px-6 py-3 rounded-2xl border border-dark-green/10">
+                      <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی</p>
+                      <p className="text-xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                        {formatCurrency(asset.final_value)}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ریال</p>
+                    </div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="inline-block bg-gradient-to-br from-amber-50 to-amber-100/30 px-6 py-2 rounded-2xl border border-amber-200/50">
+                      <p className="text-[10px] text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
+                      <p className="text-lg font-bold text-amber-700 font-[family-name:var(--font-vazir)]">
+                        {formatCurrency(displayToken)}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <p className="text-[9px] text-gray-400 font-[family-name:var(--font-vazir)]">روش</p>
+                      <p className="text-xs font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                        {getMethodLabel(asset.valuation_method)}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <p className="text-[9px] text-gray-400 font-[family-name:var(--font-vazir)]">QC</p>
+                      <p className="text-xs font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
+                        {toPersianNumber(asset.qc_score)}
+                      </p>
+                    </div>
+                    <div className="p-2 bg-gray-50 rounded-lg">
+                      <p className="text-[9px] text-gray-400 font-[family-name:var(--font-vazir)]">گواهی</p>
+                      <p className="text-[9px] font-mono text-gray-600 truncate font-[family-name:var(--font-vazir)]">
+                        {asset.certificate_no}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2 text-[10px] text-gray-400 border-t pt-2">
                     <Calendar className="w-3 h-3" />
                     <span className="font-[family-name:var(--font-vazir)]">{formatDate(asset.effective_date)}</span>
+                    <span className="mx-1">•</span>
+                    <span className="font-[family-name:var(--font-vazir)]">{asset.organization_name}</span>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 pt-3 border-t">
-                  <Link href={`/dashboard/intangible/assets/${asset.id}`} className="flex-1">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 font-[family-name:var(--font-vazir)]"
-                    >
-                      <Eye className="w-4 h-4" />
-                      مشاهده جزئیات
-                    </Button>
-                  </Link>
-                  {asset.is_registered && (
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
-                      onClick={() => window.print()}
-                    >
-                      <Printer className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link href={`/dashboard/intangible/assets/${asset.id}`} className="flex-1">
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 font-[family-name:var(--font-vazir)] shadow-sm"
+                      >
+                        <Eye className="w-4 h-4" />
+                        مشاهده جزئیات
+                      </Button>
+                    </Link>
+                    {asset.is_registered && (
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex items-center gap-1 font-[family-name:var(--font-vazir)] border-gray-300"
+                        onClick={() => window.print()}
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

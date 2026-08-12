@@ -17,13 +17,12 @@ import { AssetEvidence } from '@/components/asset/AssetEvidence';
 import { ValuationHistory } from '@/components/asset/ValuationHistory';
 import { RadarChartSkeleton } from '@/components/charts/RadarChartSkeleton';
 import { ValuationHistorySkeleton } from '@/components/asset/ValuationHistorySkeleton';
+import * as XLSX from 'xlsx';
 import {
   ArrowLeft,
   User,
   Building2,
-  Building,
   Calendar,
-  FileText,
   CheckCircle,
   Clock,
   XCircle,
@@ -37,7 +36,9 @@ import {
   Award,
   DollarSign,
   Shield,
-  Database
+  FileText,
+  FileCheck,
+  Printer
 } from 'lucide-react';
 
 // تبدیل اعداد به فارسی
@@ -53,6 +54,13 @@ const formatCurrency = (value: number) => {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
   const formatted = Math.round(value).toLocaleString();
   return formatted.replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+// محاسبه تک توکن
+const calculateTokenValue = (valueInRial: number): number => {
+  if (!valueInRial) return 0;
+  const TOKEN_VALUE_IN_RIAL = 1000000;
+  return Math.round(valueInRial / TOKEN_VALUE_IN_RIAL);
 };
 
 interface AssetDetail {
@@ -82,6 +90,7 @@ interface AssetDetail {
     code: string;
     name: string;
   };
+  valuation_method?: string;
 }
 
 interface AssetFile {
@@ -109,20 +118,23 @@ interface ValuationData {
   total_questions: number;
 }
 
-interface ValuationItem {
+interface ValuationFromAPI {
   id: number;
   asset: number;
   status: string;
   final_score: number;
-  answers: any[];
+  answers?: any[];
 }
 
 interface ValuationFinancialData {
   final_value: number;
+  token_value?: number;
   confidence_level: number;
   qc_score: number;
   method_id: string;
   step4_status: string;
+  calculation_details?: any;
+  effective_date?: string;
 }
 
 interface QCData {
@@ -170,6 +182,11 @@ export default function AssetDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDataReady, setIsDataReady] = useState(false);
   const [valuationCaseId, setValuationCaseId] = useState<number | null>(null);
+  const [reportsGenerated, setReportsGenerated] = useState({
+    executive_summary: false,
+    full_report: false,
+    value_certificate: false,
+  });
 
   const [showUploadForm, setShowUploadForm] = useState(false);
   const [uploadForm, setUploadForm] = useState({
@@ -210,19 +227,24 @@ export default function AssetDetailPage() {
       
       const assetIdNum = parseInt(assetId);
       
-      // ۱. دریافت اطلاعات دارایی
       const assetRes = await api.get(`/intangible/screened-assets/${assetId}/`);
       const assetData = assetRes.data;
       setAsset(assetData);
       console.log('✅ Asset Data:', assetData);
       
-      // ۲. دریافت فایل‌ها - 🔥 با ?asset_id= (همون کد قدیمی)
-      const filesRes = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
-      const filesData = filesRes.data.results || filesRes.data || [];
-      setFiles(filesData);
-      console.log(`✅ ${filesData.length} فایل دریافت شد`);
+      try {
+        setLoadingFiles(true);
+        const filesRes = await api.get(`/intangible/asset-files/?asset=${assetId}`);
+        const filesData = filesRes.data.results || filesRes.data || [];
+        setFiles(filesData);
+        console.log(`✅ ${filesData.length} فایل از دیتابیس دریافت شد`);
+      } catch (error) {
+        console.error('Error fetching files:', error);
+        setFiles([]);
+      } finally {
+        setLoadingFiles(false);
+      }
       
-      // ۳. دریافت ValuationCase
       const casesRes = await api.get(`/intangible/valuation-cases/?asset=${assetId}`);
       const cases = casesRes.data.results || casesRes.data || [];
       const valuationCase = cases.length > 0 ? cases[0] : null;
@@ -231,7 +253,6 @@ export default function AssetDetailPage() {
         setValuationCaseId(valuationCase.id);
         console.log('✅ ValuationCase ID:', valuationCase.id);
         
-        // ۴. دریافت STEP 4
         try {
           const step4Res = await api.get(`/intangible/valuation-step4/?valuation_case=${valuationCase.id}`);
           const step4Items = step4Res.data.results || step4Res.data || [];
@@ -239,10 +260,13 @@ export default function AssetDetailPage() {
             const step4 = step4Items[0];
             setFinancialData({
               final_value: step4.final_value || 0,
+              token_value: step4.token_value || calculateTokenValue(step4.final_value || 0),
               confidence_level: step4.confidence_level || 0,
               qc_score: step4.qc_score || 0,
               method_id: step4.method_id || assetData.valuation_method || 'M-01',
               step4_status: step4.step4_status || 'DRAFT',
+              calculation_details: step4.calculation_details || {},
+              effective_date: step4.updated_at || step4.created_at || valuationCase.updated_at || assetData.created_at,
             });
             console.log('✅ STEP 4 Data:', step4);
           }
@@ -250,7 +274,6 @@ export default function AssetDetailPage() {
           console.error('Error fetching STEP 4:', e);
         }
         
-        // ۵. دریافت QC
         try {
           const qcRes = await api.get(`/intangible/valuation-qc/?valuation_case=${valuationCase.id}`);
           const qcItems = qcRes.data.results || qcRes.data || [];
@@ -271,7 +294,6 @@ export default function AssetDetailPage() {
           console.error('Error fetching QC:', e);
         }
         
-        // ۶. دریافت Sensitivity
         try {
           const sensRes = await api.get(`/intangible/sensitivity/?valuation_case=${valuationCase.id}`);
           const sensItems = sensRes.data.results || sensRes.data || [];
@@ -292,38 +314,92 @@ export default function AssetDetailPage() {
         }
       }
       
-      // ۷. دریافت ارزیابی کیفی
-      const allValuations = await fetchAllValuations();
-      const assetValuations = allValuations.filter((v: ValuationItem) => v.asset === assetIdNum);
-      
-      if (assetValuations.length > 0) {
-        const completed = assetValuations.find((v: ValuationItem) => v.status === 'completed');
-        const targetValuation = completed || assetValuations[assetValuations.length - 1];
+      try {
+        const allValuations = await fetchAllValuations();
+        const valuations = allValuations as ValuationFromAPI[];
+        const assetValuations = valuations.filter((v: ValuationFromAPI) => v.asset === assetIdNum);
         
-        if (targetValuation) {
-          const { data: summary } = await api.get(`/intangible/asset-valuations/${targetValuation.id}/summary/`);
-          setValuation({
-            id: targetValuation.id,
-            final_score: summary.final_score || 0,
-            strategic_score: summary.strategic_score || 0,
-            technical_score: summary.technical_score || 0,
-            operational_score: summary.operational_score || 0,
-            market_score: summary.market_score || 0,
-            risk_score: summary.risk_score || 0,
-            status: targetValuation.status,
-            answered_questions: summary.answered_questions || 0,
-            total_questions: summary.total_questions || 23,
-          });
-          console.log('✅ Valuation Summary:', summary);
+        if (assetValuations.length > 0) {
+          const completed = assetValuations.find((v: ValuationFromAPI) => v.status === 'completed');
+          const targetValuation = completed || assetValuations[assetValuations.length - 1];
+          
+          if (targetValuation) {
+            const { data: summary } = await api.get(`/intangible/asset-valuations/${targetValuation.id}/summary/`);
+            setValuation({
+              id: targetValuation.id,
+              final_score: summary.final_score || 0,
+              strategic_score: summary.strategic_score || 0,
+              technical_score: summary.technical_score || 0,
+              operational_score: summary.operational_score || 0,
+              market_score: summary.market_score || 0,
+              risk_score: summary.risk_score || 0,
+              status: targetValuation.status,
+              answered_questions: summary.answered_questions || 0,
+              total_questions: summary.total_questions || 23,
+            });
+            console.log('✅ Valuation Summary:', summary);
+          }
         }
+      } catch (e) {
+        console.error('Error fetching valuation summary:', e);
       }
       
       setIsDataReady(true);
     } catch (error: any) {
       console.error('Error fetching data:', error);
       setError(error.response?.data?.detail || 'خطا در دریافت اطلاعات');
+      setFiles([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ============================================
+  // تولید گزارش Excel
+  // ============================================
+  const generateExcelReport = (type: 'executive_summary' | 'full_report' | 'value_certificate') => {
+    if (!financialData || !asset) {
+      alert('داده‌های ارزش‌گذاری موجود نیست');
+      return;
+    }
+
+    try {
+      const tokenValue = financialData.token_value || calculateTokenValue(financialData.final_value);
+      const fileName = `${type}_${asset.asset_uid}_${new Date().toISOString().split('T')[0]}`;
+      
+      const rows: any[][] = [
+        ['META Platform - Valuation Engine'],
+        [''],
+        ['گزارش ارزش‌گذاری'],
+        [''],
+        ['شناسه دارایی:', asset.asset_uid],
+        ['نام دارایی:', asset.asset_name],
+        ['روش:', financialData.method_id],
+        ['سازمان:', asset.organization_name || 'نامشخص'],
+        ['تاریخ:', new Date().toLocaleDateString('fa-IR')],
+        [''],
+        ['خلاصه ارزش‌گذاری'],
+        ['ارزش نهایی (ریال):', formatCurrency(financialData.final_value)],
+        ['ارزش بر حسب تک توکن:', formatCurrency(tokenValue)],
+        ['سطح اطمینان:', toPersianNumber(Math.round(financialData.confidence_level * 100)) + '%'],
+        ['امتیاز کیفیت:', toPersianNumber(financialData.qc_score)],
+        [''],
+        ['شماره گواهی:', `VAL-${String(valuationCaseId).padStart(5, '0')}`],
+        ['تاریخ اجرا:', new Date().toLocaleDateString('fa-IR')],
+        ['تاریخ بازنگری بعدی:', new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toLocaleDateString('fa-IR')],
+      ];
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [{ wch: 30 }, { wch: 25 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Valuation_Report');
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+
+      setReportsGenerated((prev) => ({ ...prev, [type]: true }));
+      console.log(`✅ ${type} report generated successfully`);
+    } catch (error) {
+      console.error('Error generating Excel report:', error);
+      alert('خطا در تولید گزارش. لطفاً دوباره تلاش کنید.');
     }
   };
 
@@ -349,7 +425,7 @@ export default function AssetDetailPage() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
-      const { data } = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
+      const { data } = await api.get(`/intangible/asset-files/?asset=${assetId}`);
       setFiles(data.results || data || []);
       
       setShowUploadForm(false);
@@ -366,7 +442,7 @@ export default function AssetDetailPage() {
     if (!confirm('آیا از حذف این فایل مطمئن هستید؟')) return;
     try {
       await api.delete(`/intangible/asset-files/${fileId}/`);
-      const { data } = await api.get(`/intangible/asset-files/?asset_id=${assetId}`);
+      const { data } = await api.get(`/intangible/asset-files/?asset=${assetId}`);
       setFiles(data.results || data || []);
     } catch (error) {
       console.error('Error deleting file:', error);
@@ -593,6 +669,13 @@ export default function AssetDetailPage() {
                 </p>
                 <p className="text-[10px] text-gray-400">ریال</p>
               </div>
+              <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <p className="text-xs text-gray-400">تک توکن</p>
+                <p className="text-2xl font-bold text-amber-700">
+                  {formatCurrency(financialData.token_value || calculateTokenValue(financialData.final_value))}
+                </p>
+                <p className="text-[10px] text-gray-400">تک توکن</p>
+              </div>
               <div className="text-center p-4 bg-blue-50 rounded-xl border border-blue-200">
                 <p className="text-xs text-gray-400">سطح اطمینان</p>
                 <p className="text-2xl font-bold text-blue-700">
@@ -603,12 +686,6 @@ export default function AssetDetailPage() {
                 <p className="text-xs text-gray-400">امتیاز QC</p>
                 <p className="text-2xl font-bold text-purple-700">
                   {toPersianNumber(financialData.qc_score)}
-                </p>
-              </div>
-              <div className="text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
-                <p className="text-xs text-gray-400">وضعیت</p>
-                <p className="text-lg font-bold text-amber-700">
-                  {financialData.step4_status === 'CALCULATED' ? '✅ محاسبه شده' : '⏳ در انتظار'}
                 </p>
               </div>
             </div>
@@ -648,6 +725,68 @@ export default function AssetDetailPage() {
                 </div>
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ============================================ */}
+      {/* 🔥 تولید گزارش - وسط چین */}
+      {/* ============================================ */}
+      {hasFinancialData && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-bold text-dark-green mb-3 text-center font-[family-name:var(--font-vazir)]">
+              <FileText className="w-4 h-4 inline ml-1" />
+              تولید گزارش
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <Button
+                variant={reportsGenerated.executive_summary ? 'default' : 'outline'}
+                className={`w-full justify-center font-[family-name:var(--font-vazir)] ${
+                  reportsGenerated.executive_summary
+                    ? 'bg-dark-green hover:bg-dark-green/90 text-white'
+                    : ''
+                }`}
+                onClick={() => generateExcelReport('executive_summary')}
+              >
+                {reportsGenerated.executive_summary ? (
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                ) : (
+                  <FileText className="w-4 h-4 ml-2" />
+                )}
+                گزارش اجرایی
+              </Button>
+              <Button
+                variant={reportsGenerated.full_report ? 'default' : 'outline'}
+                className={`w-full justify-center font-[family-name:var(--font-vazir)] ${
+                  reportsGenerated.full_report ? 'bg-dark-green hover:bg-dark-green/90 text-white' : ''
+                }`}
+                onClick={() => generateExcelReport('full_report')}
+              >
+                {reportsGenerated.full_report ? (
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                ) : (
+                  <FileText className="w-4 h-4 ml-2" />
+                )}
+                گزارش کامل ارزش‌گذاری
+              </Button>
+              <Button
+                variant={reportsGenerated.value_certificate ? 'default' : 'outline'}
+                className={`w-full justify-center font-[family-name:var(--font-vazir)] ${
+                  reportsGenerated.value_certificate
+                    ? 'bg-dark-green hover:bg-dark-green/90 text-white'
+                    : ''
+                }`}
+                onClick={() => generateExcelReport('value_certificate')}
+              >
+                {reportsGenerated.value_certificate ? (
+                  <CheckCircle className="w-4 h-4 ml-2" />
+                ) : (
+                  <FileCheck className="w-4 h-4 ml-2" />
+                )}
+                گواهی ارزش
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -785,7 +924,7 @@ export default function AssetDetailPage() {
       )}
 
       {/* ============================================ */}
-      {/* 🔥 فایل‌های پیوست - به همان شکل قبلی */}
+      {/* 🔥 فایل‌های پیوست */}
       {/* ============================================ */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -795,6 +934,9 @@ export default function AssetDetailPage() {
             {loadingFiles && <span className="text-sm text-gray-400">(در حال بارگذاری...)</span>}
             {!loadingFiles && files.length > 0 && (
               <span className="text-sm text-gray-400">({toPersianNumber(files.length)} فایل)</span>
+            )}
+            {!loadingFiles && files.length === 0 && (
+              <span className="text-sm text-gray-400">(بدون فایل)</span>
             )}
           </CardTitle>
           {isOrgUser && (
@@ -929,31 +1071,38 @@ export default function AssetDetailPage() {
       )}
 
       {/* ============================================ */}
-      {/* 🔥 زمان‌بندی */}
+      {/* 🔥 زمان‌بندی با تاریخ ارزش‌گذاری */}
       {/* ============================================ */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm text-gray-500 flex items-center gap-2">
+          <CardTitle className="text-sm text-gray-500 flex items-center gap-2 font-[family-name:var(--font-vazir)]">
             <Calendar className="w-4 h-4" /> زمان‌بندی
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="flex justify-between text-sm border-b pb-2">
+          <div className="flex justify-between text-sm border-b pb-2 font-[family-name:var(--font-vazir)]">
             <span className="text-gray-500">تاریخ ایجاد</span>
             <span>{formatDate(asset.created_at)}</span>
           </div>
           {asset.updated_at && (
-            <div className="flex justify-between text-sm border-b pb-2">
+            <div className="flex justify-between text-sm border-b pb-2 font-[family-name:var(--font-vazir)]">
               <span className="text-gray-500">آخرین بروزرسانی</span>
               <span>{formatDate(asset.updated_at)}</span>
             </div>
           )}
           {asset.discovery_date && (
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm border-b pb-2 font-[family-name:var(--font-vazir)]">
               <span className="text-gray-500">تاریخ کشف</span>
               <span>{formatDate(asset.discovery_date)}</span>
             </div>
           )}
+          {/* 🔥 تاریخ ارزش‌گذاری */}
+          <div className="flex justify-between text-sm border-b pb-2 font-[family-name:var(--font-vazir)]">
+            <span className="text-gray-500"> تاریخ ارزش‌گذاری</span>
+            <span>
+              {financialData?.effective_date ? formatDate(financialData.effective_date) : '—'}
+            </span>
+          </div>
         </CardContent>
       </Card>
 

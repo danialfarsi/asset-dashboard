@@ -21,14 +21,9 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
     queryset = ScreeningTemplate.objects.filter(is_active=True)
     serializer_class = ScreeningTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
-    # 🔥 غیرفعال کردن Pagination
-    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
-        
-        # شروع با همه قالب‌های فعال
         queryset = ScreeningTemplate.objects.filter(is_active=True)
         
         # فیلتر بر اساس organization_type از query parameter
@@ -36,19 +31,15 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
         if org_type_id:
             try:
                 queryset = queryset.filter(organization_type_id=int(org_type_id))
-                print(f"🔍 Filtering by organization_type_id: {org_type_id}, found: {queryset.count()}")
-            except (ValueError, TypeError):
+            except ValueError:
                 pass
         
-        # اگر کاربر super_admin نبود، بر اساس سازمانش فیلتر کن
-        if user.role != 'super_admin':
-            if user.organization_type:
-                queryset = queryset.filter(organization_type__name=user.organization_type)
-            else:
-                return queryset.none()
-        
-        print(f"📊 Final queryset count: {queryset.count()}")
-        return queryset
+        # فیلتر بر اساس سازمان کاربر
+        if user.role == 'super_admin':
+            return queryset
+        elif user.organization and user.organization.organization_type:
+            return queryset.filter(organization_type=user.organization.organization_type)
+        return queryset.none()
 
 
 class ScreenedAssetViewSet(viewsets.ModelViewSet):
@@ -68,9 +59,13 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
             return queryset.filter(created_by=user)
 
     def perform_create(self, serializer):
-        asset_uid = generate_asset_uid(
-            self.request.data.get('category', 'operational_knowledge')
-        )
+        # 🔥 دریافت category و asset_name از data
+        category = self.request.data.get('category', 'operational_knowledge')
+        asset_name = self.request.data.get('asset_name', '')
+        
+        # 🔥 تولید asset_uid با استفاده از category و asset_name
+        asset_uid = generate_asset_uid(category, asset_name)
+        
         serializer.save(
             created_by=self.request.user,
             asset_uid=asset_uid
@@ -91,7 +86,7 @@ class AssetFileViewSet(viewsets.ModelViewSet):
         if asset_id:
             try:
                 queryset = queryset.filter(asset_id=int(asset_id))
-            except (ValueError, TypeError):
+            except ValueError:
                 pass
         
         # فیلتر بر اساس دسترسی کاربر

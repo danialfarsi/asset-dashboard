@@ -620,7 +620,7 @@ export function Step5_QualityControl({
 
   const handleProceedWithWarnings = () => {
     if (summary.errors > 0) {
-      alert('خطاهای کیو سی باید قبل از ادامه رفع شوند');
+      alert('خطاهای QC باید قبل از ادامه رفع شوند');
       return;
     }
     onNext();
@@ -698,7 +698,7 @@ export function Step5_QualityControl({
         </div>
         <div className="flex items-center gap-4">
           <div className="text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز کیو سی</p>
+            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC</p>
             <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
               {toPersianNumber(summary.completeness_score)}/{toPersianNumber(100)}
             </p>
@@ -714,7 +714,7 @@ export function Step5_QualityControl({
                 در حال بررسی...
               </>
             ) : (
-              'اجرای کیو سی'
+              'اجرای QC'
             )}
           </Button>
         </div>
@@ -792,7 +792,7 @@ export function Step5_QualityControl({
       {/* پیشرفت QC */}
       <div>
         <div className="flex justify-between text-sm mb-1 font-[family-name:var(--font-vazir)]">
-          <span>پیشرفت کیو سی</span>
+          <span>پیشرفت QC</span>
           <span>{toPersianNumber(summary.completeness_score)}%</span>
         </div>
         <Progress value={summary.completeness_score} className="h-2" />
@@ -801,7 +801,7 @@ export function Step5_QualityControl({
       {/* لیست قوانین */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📋 لیست قوانین کیو سی</h3>
+          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📋 QC لیست قوانین </h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse font-[family-name:var(--font-vazir)]">
               <thead>
@@ -834,7 +834,7 @@ export function Step5_QualityControl({
       {/* تصمیم‌گیری */}
       <Card className="border-0 shadow-sm border-t-4 border-t-dark-green">
         <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">🎯 تصمیم کیو سی</h3>
+          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">🎯  QCتصمیم  </h3>
           <div className="flex gap-4">
             <Button
               variant={decision === 'APPROVE' ? 'default' : 'outline'}
@@ -929,7 +929,7 @@ export function Step5_QualityControl({
 
       {summary.errors > 0 && (
         <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
-          ❌ {toPersianNumber(summary.errors)} خطای کیو سی باید قبل از ادامه رفع شوند
+          ❌ {toPersianNumber(summary.errors)} خطای QC باید قبل از ادامه رفع شوند
         </p>
       )}
       {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && (

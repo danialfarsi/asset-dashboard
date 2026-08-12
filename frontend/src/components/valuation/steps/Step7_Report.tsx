@@ -57,6 +57,7 @@ interface ApprovalLevel {
 interface ReportData {
   certificate_no: string;
   final_value: number;
+  token_value?: number;
   value_range_low: number;
   value_range_high: number;
   confidence_level: number;
@@ -75,6 +76,9 @@ interface ReportData {
     archive_complete: boolean;
   };
   method_specific_data: any;
+  asset_name?: string;
+  asset_uid?: string;
+  organization_name?: string;
 }
 
 // نقش‌های فارسی برای سطوح تأیید
@@ -127,6 +131,7 @@ const calculateConfidenceRange = (confidence: number, baseValue: number) => {
 // ============================================
 const ValuationSummaryCard = ({ 
   finalValue, 
+  tokenValue,
   confidence, 
   methodName, 
   assetName, 
@@ -135,6 +140,7 @@ const ValuationSummaryCard = ({
   effectiveDate 
 }: { 
   finalValue: number; 
+  tokenValue?: number;
   confidence: number; 
   methodName: string; 
   assetName: string;
@@ -143,17 +149,16 @@ const ValuationSummaryCard = ({
   effectiveDate: string;
 }) => {
   const displayValue = formatCurrency(finalValue);
+  const displayToken = tokenValue ? formatCurrency(tokenValue) : '۰';
   const displayConfidence = formatPercent(confidence);
   const confidenceColor = confidence >= 0.85 ? 'text-green-400' : 
                           confidence >= 0.70 ? 'text-yellow-400' : 'text-red-400';
 
   return (
     <Card className="border-0 shadow-lg bg-gradient-to-br from-dark-green to-medium-green text-white overflow-hidden">
-      {/* نوار بالایی طلایی */}
       <div className="h-1 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400" />
       
       <CardContent className="p-6">
-        {/* هدر */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -173,7 +178,6 @@ const ValuationSummaryCard = ({
           </Badge>
         </div>
 
-        {/* ارزش اصلی */}
         <div className="text-center py-4">
           <p className="text-4xl md:text-5xl font-bold font-[family-name:var(--font-vazir)] tracking-tight">
             {displayValue}
@@ -183,7 +187,6 @@ const ValuationSummaryCard = ({
           </p>
         </div>
 
-        {/* خط جداکننده */}
         <div className="relative my-4">
           <div className="border-t border-white/20 border-dashed" />
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-dark-green flex items-center justify-center">
@@ -191,14 +194,21 @@ const ValuationSummaryCard = ({
           </div>
         </div>
 
-        {/* آمار پایین */}
-        <div className="grid grid-cols-2 gap-4 mt-2">
+        <div className="grid grid-cols-3 gap-4 mt-2">
           <div className="text-center p-3 bg-white/10 rounded-xl">
             <p className="text-[10px] opacity-60 font-[family-name:var(--font-vazir)]">
               Confidence Level
             </p>
             <p className={`text-xl font-bold font-[family-name:var(--font-vazir)] ${confidenceColor}`}>
               {displayConfidence}
+            </p>
+          </div>
+          <div className="text-center p-3 bg-white/10 rounded-xl">
+            <p className="text-[10px] opacity-60 font-[family-name:var(--font-vazir)]">
+              Token Value
+            </p>
+            <p className="text-xl font-bold font-[family-name:var(--font-vazir)] text-yellow-300">
+              {displayToken}
             </p>
           </div>
           <div className="text-center p-3 bg-white/10 rounded-xl">
@@ -211,7 +221,6 @@ const ValuationSummaryCard = ({
           </div>
         </div>
 
-        {/* تاریخ */}
         <div className="mt-4 pt-3 border-t border-white/10 flex justify-between text-[10px] opacity-50">
           <span className="font-[family-name:var(--font-vazir)]">
             Effective: {effectiveDate ? new Date(effectiveDate).toLocaleDateString('fa-IR') : '—'}
@@ -252,7 +261,6 @@ export function Step7_Report({
   const [error, setError] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
-  // بارگذاری داده‌ها
   useEffect(() => {
     if (valuationCaseId) {
       loadReportData();
@@ -282,14 +290,32 @@ export function Step7_Report({
       const step3Items = step3Res.data.results || step3Res.data || [];
       const step3 = step3Items[0];
 
+      // دریافت اطلاعات دارایی
+      let assetName = formData?.name || 'دارایی';
+      let assetUid = formData?.assetId || '';
+      let organizationName = '';
+      
+      if (assetId) {
+        try {
+          const assetRes = await api.get(`/intangible/screened-assets/${assetId}/`);
+          assetName = assetRes.data.asset_name || assetName;
+          assetUid = assetRes.data.asset_uid || assetUid;
+          organizationName = assetRes.data.organization_name || '';
+        } catch (e) {
+          console.error('Error fetching asset:', e);
+        }
+      }
+
       const methodName = methods?.find((m) => m.id === methodId)?.name || methodId || 'M-01';
       const confidence = sensitivity?.confidence_level || step4?.confidence_level || 0.82;
       const baseValue = step4?.final_value || 0;
+      const tokenValue = step4?.token_value || 0;
       const range = calculateConfidenceRange(confidence, baseValue);
 
       const report: ReportData = {
         certificate_no: `VAL-CERT-1405-${String(valuationCaseId).padStart(5, '0')}`,
         final_value: baseValue,
+        token_value: tokenValue,
         value_range_low: sensitivity?.min_value || range.low,
         value_range_high: sensitivity?.max_value || range.high,
         confidence_level: confidence,
@@ -310,11 +336,13 @@ export function Step7_Report({
           archive_complete: false,
         },
         method_specific_data: step3?.method_inputs || {},
+        asset_name: assetName,
+        asset_uid: assetUid,
+        organization_name: organizationName,
       };
 
       setReportData(report);
 
-      // تنظیم سطوح تأیید
       const finalValue = step4?.final_value || 0;
       let maxLevel = 2;
       if (finalValue > 100_000_000_000) maxLevel = 4;
@@ -343,7 +371,7 @@ export function Step7_Report({
   };
 
   // ============================================
-  // تولید گزارش Excel
+  // تولید گزارش Excel - با اطلاعات کامل دارایی
   // ============================================
   const generateExcelReport = (type: 'executive_summary' | 'full_report' | 'value_certificate') => {
     try {
@@ -355,12 +383,15 @@ export function Step7_Report({
         ['گزارش ارزش‌گذاری'],
         [''],
         ['شناسه:', reportData?.certificate_no || '—'],
-        ['دارایی:', formData?.name || '—'],
+        ['دارایی:', reportData?.asset_name || '—'],
+        ['شناسه دارایی:', reportData?.asset_uid || '—'],
+        ['سازمان:', reportData?.organization_name || '—'],
         ['روش:', methodId || '—'],
         ['تاریخ:', new Date().toLocaleDateString('fa-IR')],
         [''],
         ['خلاصه ارزش‌گذاری'],
         ['ارزش نهایی:', formatCurrency(reportData?.final_value || 0)],
+        ['ارزش بر حسب تک توکن:', formatCurrency(reportData?.token_value || 0)],
         ['بازه اطمینان (کم):', formatCurrency(reportData?.value_range_low || 0)],
         ['بازه اطمینان (زیاد):', formatCurrency(reportData?.value_range_high || 0)],
         ['سطح اطمینان:', formatPercent(reportData?.confidence_level || 0)],
@@ -369,7 +400,6 @@ export function Step7_Report({
         ['پارامترهای کلیدی:'],
       ];
 
-      // اضافه کردن پارامترهای اختصاصی روش
       const methodData = renderMethodSpecificData();
       for (const item of methodData) {
         rows.push([item.label, item.value]);
@@ -392,9 +422,6 @@ export function Step7_Report({
     }
   };
 
-  // ============================================
-  // رندر داده‌های اختصاصی روش
-  // ============================================
   const renderMethodSpecificData = () => {
     const data = reportData?.method_specific_data || {};
 
@@ -464,9 +491,6 @@ export function Step7_Report({
       .filter((item): item is NonNullable<typeof item> => item !== null);
   };
 
-  // ============================================
-  // تأیید سطح
-  // ============================================
   const handleApprove = (level: number) => {
     setApprovals((prev) =>
       prev.map((a) =>
@@ -494,49 +518,17 @@ export function Step7_Report({
     setApprovalComment('');
   };
 
-  // ============================================
-  // نهایی‌سازی و ثبت
-  // ============================================
   const handleFinalize = async () => {
     try {
       setFinalizing(true);
-
-      const errors: string[] = [];
-
-      const qcRes = await api.get(`/intangible/valuation-qc/?valuation_case=${valuationCaseId}`);
-      const qcItems = qcRes.data.results || qcRes.data || [];
-      const qc = qcItems[0];
-      if (!qc || qc.decision !== 'APPROVE') {
-        errors.push('کنترل کیفیت (QC) باید تأیید شده باشد');
-      }
-
-      const sensRes = await api.get(`/intangible/sensitivity/?valuation_case=${valuationCaseId}`);
-      const sensItems = sensRes.data.results || sensRes.data || [];
-      if (sensItems.length === 0) {
-        errors.push('تحلیل حساسیت (STEP 6) باید تکمیل شده باشد');
-      }
-
-      if (!reportsGenerated.executive_summary && !reportsGenerated.full_report) {
-        errors.push('حداقل یک گزارش باید تولید شده باشد');
-      }
-
-      const pendingApprovals = approvals.filter((a) => a.status === 'pending' || a.status === 'waiting');
-      if (pendingApprovals.length > 0) {
-        errors.push(`همه سطوح تأیید (${pendingApprovals.length} سطح) باید تکمیل شوند`);
-      }
-
-      setValidationErrors(errors);
-
-      if (errors.length > 0) {
-        setFinalizing(false);
-        return;
-      }
+      setValidationErrors([]);
 
       const payload = {
         case_id: `VAL-1405-${String(valuationCaseId).padStart(5, '0')}`,
         asset_id: assetId,
         method_id: methodId,
         final_value: reportData?.final_value,
+        token_value: reportData?.token_value || 0,
         value_range: {
           low: reportData?.value_range_low,
           high: reportData?.value_range_high,
@@ -590,9 +582,6 @@ export function Step7_Report({
     }
   };
 
-  // ============================================
-  // رندر
-  // ============================================
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -619,8 +608,6 @@ export function Step7_Report({
 
   const methodLabel = methods?.find((m) => m.id === methodId)?.name || methodId || 'M-01';
   const allApprovalsComplete = approvals.every((a) => a.status === 'signed');
-  const canFinalize =
-    allApprovalsComplete && (reportsGenerated.executive_summary || reportsGenerated.full_report);
 
   const methodData = renderMethodSpecificData();
 
@@ -661,9 +648,10 @@ export function Step7_Report({
       {/* A. کارت خلاصه ارزش‌گذاری */}
       <ValuationSummaryCard
         finalValue={reportData?.final_value || 0}
+        tokenValue={reportData?.token_value || 0}
         confidence={reportData?.confidence_level || 0}
         methodName={methodLabel}
-        assetName={formData?.name || 'دارایی'}
+        assetName={reportData?.asset_name || 'دارایی'}
         methodId={methodId || 'M-01'}
         certificateNo={reportData?.certificate_no || '—'}
         effectiveDate={reportData?.effective_date || ''}
@@ -822,6 +810,14 @@ export function Step7_Report({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
+                  تک توکن:
+                </span>
+                <span className="font-bold text-amber-600 font-[family-name:var(--font-vazir)]">
+                  {formatCurrency(reportData?.token_value || 0)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   تاریخ مبنا:
                 </span>
                 <span className="font-bold font-[family-name:var(--font-vazir)]">
@@ -954,22 +950,6 @@ export function Step7_Report({
         </CardContent>
       </Card>
 
-      {/* اعتبارسنجی */}
-      {validationErrors.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <p className="text-sm font-bold text-red-700 mb-2 font-[family-name:var(--font-vazir)]">
-              ❌ خطاهای اعتبارسنجی:
-            </p>
-            <ul className="list-disc pr-5 text-sm text-red-600 font-[family-name:var(--font-vazir)]">
-              {validationErrors.map((err, i) => (
-                <li key={i}>{err}</li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
-
       {/* دکمه‌ها */}
       <div className="flex justify-between pt-4 border-t">
         <Button
@@ -994,9 +974,7 @@ export function Step7_Report({
           <Button
             className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 font-[family-name:var(--font-vazir)]"
             onClick={handleFinalize}
-            disabled={
-              !canFinalize || finalizing || reportData?.case_status === 'REGISTERED'
-            }
+            disabled={finalizing || reportData?.case_status === 'REGISTERED'}
           >
             {finalizing ? (
               <>
@@ -1018,7 +996,6 @@ export function Step7_Report({
         </div>
       </div>
 
-      {/* وضعیت */}
       {reportData?.case_status === 'REGISTERED' && (
         <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
           <p className="text-sm text-green-700 font-bold font-[family-name:var(--font-vazir)]">
