@@ -128,3 +128,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 CORS_ALLOW_CREDENTIALS = True
+# Neo4j Configuration
+NEO4J_URI = config('NEO4J_URI', default='bolt://neo4j:7687')
+NEO4J_USER = config('NEO4J_USER', default='neo4j')
+NEO4J_PASSWORD = config('NEO4J_PASSWORD', default='password123')

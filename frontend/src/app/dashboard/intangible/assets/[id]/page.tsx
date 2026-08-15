@@ -17,6 +17,8 @@ import { AssetEvidence } from '@/components/asset/AssetEvidence';
 import { ValuationHistory } from '@/components/asset/ValuationHistory';
 import { RadarChartSkeleton } from '@/components/charts/RadarChartSkeleton';
 import { ValuationHistorySkeleton } from '@/components/asset/ValuationHistorySkeleton';
+import { SimpleGraphVisualization } from '@/components/graph/SimpleGraphVisualization';
+
 import * as XLSX from 'xlsx';
 import {
   ArrowLeft,
@@ -1069,7 +1071,11 @@ export default function AssetDetailPage() {
       ) : (
         <ValuationHistorySkeleton />
       )}
-
+        <SimpleGraphVisualization 
+  assetId={parseInt(assetId)} 
+  assetName={asset?.asset_name || 'دارایی'}
+  height={500}
+/>
       {/* ============================================ */}
       {/* 🔥 زمان‌بندی با تاریخ ارزش‌گذاری */}
       {/* ============================================ */}

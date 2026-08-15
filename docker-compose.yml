@@ -25,6 +25,26 @@ services:
     depends_on:
       - db
       - redis
+      - neo4j
+
+  neo4j:
+    image: neo4j:5-enterprise
+    restart: always
+    environment:
+      - NEO4J_AUTH=neo4j/password123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
 
 volumes:
   postgres_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:

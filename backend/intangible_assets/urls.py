@@ -17,6 +17,7 @@ from .discovery_views import DiscoveryAssessmentViewSet, DiscoveryAssetViewSet
 from .views_discovery import SuggestTemplateView
 from .valuation_sensitivity_views import SensitivityAnalysisViewSet
 from .valuation_qc_views import QualityControlViewSet
+from .graph_views import GraphViewSet
 
 router = DefaultRouter()
 
@@ -44,12 +45,16 @@ router.register(r'valuation-step4', ValuationStep4ViewSet, basename='valuation-s
 # Notification routers
 router.register(r'notifications', NotificationViewSet, basename='notifications')
 
-# Discovery routers (موتور شناسایی)
+# Discovery routers
 router.register(r'discovery', DiscoveryAssessmentViewSet, basename='discovery')
 router.register(r'discovery-assets', DiscoveryAssetViewSet, basename='discovery-asset')
 router.register(r'valuation-qc', QualityControlViewSet, basename='valuation-qc')
-# Sensitivity routers (STEP 6 - تحلیل حساسیت)
+
+# Sensitivity routers (STEP 6)
 router.register(r'sensitivity', SensitivityAnalysisViewSet, basename='sensitivity')
+
+# 🔥 Graph routers
+router.register(r'graph', GraphViewSet, basename='graph')
 
 urlpatterns = [
     path('', include(router.urls)),
