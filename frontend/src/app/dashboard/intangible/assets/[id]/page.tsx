@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllValuations } from '@/lib/api-utils';
+// IMPORTANT: import fetchAllValuations has been REMOVED to fix the performance bug
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmModal } from '@/components/ui/delete-confirm-modal';
@@ -316,13 +316,19 @@ export default function AssetDetailPage() {
         }
       }
       
+      // ===============================================================
+      // ✅ FIX APPLIED HERE: Replaced fetchAllValuations with filtered API call
+      // ===============================================================
       try {
-        const allValuations = await fetchAllValuations();
-        const valuations = allValuations as ValuationFromAPI[];
-        const assetValuations = valuations.filter((v: ValuationFromAPI) => v.asset === assetIdNum);
+        console.log(`📥 دریافت ارزیابی‌های دارایی ID: ${assetIdNum}`);
+        const valuationsRes = await api.get(`/intangible/asset-valuations/?asset=${assetId}`);
+        
+        // Ensure we handle different response structures (results wrapper or direct array)
+        const assetValuations = valuationsRes.data.results || valuationsRes.data || [];
         
         if (assetValuations.length > 0) {
-          const completed = assetValuations.find((v: ValuationFromAPI) => v.status === 'completed');
+          // Find a completed valuation first, otherwise use the latest
+          const completed = assetValuations.find((v: any) => v.status === 'completed');
           const targetValuation = completed || assetValuations[assetValuations.length - 1];
           
           if (targetValuation) {
@@ -345,6 +351,7 @@ export default function AssetDetailPage() {
       } catch (e) {
         console.error('Error fetching valuation summary:', e);
       }
+      // ===============================================================
       
       setIsDataReady(true);
     } catch (error: any) {

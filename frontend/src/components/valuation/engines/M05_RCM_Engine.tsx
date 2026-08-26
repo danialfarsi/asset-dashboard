@@ -360,7 +360,7 @@ export function M05_RCM_Engine({
           </Card>
 
           {/* فرمول */}
-          <Card className="border-gray-200 bg-gray-50">
+          {/* <Card className="border-gray-200 bg-gray-50">
             <CardContent className="p-4">
               <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
               <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
@@ -375,7 +375,7 @@ export function M05_RCM_Engine({
                 </span>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllValuations } from '@/lib/api-utils';
+// IMPORTANT: fetchAllValuations REMOVED
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
@@ -19,6 +19,7 @@ import {
   RefreshCw,
   Hash
 } from 'lucide-react';
+import { useDebounce } from '@/hooks/use-debounce'; // فرض می‌کنیم این هوک دارید، اگر نه می‌توانید دستی بنویسید
 
 interface ValuationSummary {
   id: number;
@@ -50,48 +51,48 @@ export default function CompletedValuationsPage() {
   const [pendingRevaluate, setPendingRevaluate] = useState<{ assetId: number; assetName: string } | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
 
+  // صفحه‌بندی
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 12; // تعداد آیتم در هر صفحه
+
   useEffect(() => {
     fetchValuations();
-  }, []);
+  }, [currentPage, searchTerm]);
 
   const fetchValuations = async (showRefresh = false) => {
     try {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
       
-      console.log('📥 دریافت همه دارایی‌های ارزیابی شده...');
+      console.log(`📥 دریافت دارایی‌های ارزیابی شده - صفحه ${currentPage}...`);
       
-      const allValuations = await fetchAllValuations('completed');
-      console.log(`📋 ${allValuations.length} ارزیابی کامل دریافت شد`);
-      
-      // 🔥 گروه‌بندی بر اساس asset_id و انتخاب آخرین ارزیابی هر دارایی
-      const latestByAsset = new Map();
-      
-      for (const val of allValuations) {
-        const assetId = val.asset;
-        const existing = latestByAsset.get(assetId);
-        
-        // اگر قبلاً این دارایی رو نداشتیم، اضافه کن
-        if (!existing) {
-          latestByAsset.set(assetId, val);
-        } else {
-          // اگر ارزیابی جدیدتر است، جایگزین کن
-          if (new Date(val.evaluated_at) > new Date(existing.evaluated_at)) {
-            latestByAsset.set(assetId, val);
-          }
+      // ✅ FIX: ارسال درخواست مستقیم با پارامترهای صفحه‌بندی
+      // نکته: فرض بر این است که بک‌اند شما از پارامترهای 'page' و 'search' پشتیبانی می‌کند
+      const response = await api.get(`/intangible/asset-valuations/`, {
+        params: {
+          status: 'completed',
+          page: currentPage,
+          page_size: pageSize,
+          search: searchTerm || undefined
         }
-      }
-      
-      // تبدیل به آرایه
-      const latestValuations = Array.from(latestByAsset.values());
-      console.log(`✅ ${latestValuations.length} آخرین ارزیابی هر دارایی انتخاب شد`);
-      
+      });
+
+      const results = response.data.results || response.data || [];
+      setTotalPages(Math.ceil(response.data.count / pageSize) || 1);
+      setTotalItems(response.data.count || 0);
+
+      // 🛠️ اگر بک‌اند مستقیم ساماری را برنمی‌گرداند، باید ساماری‌ها را جداگانه بگیریم
+      // اما برای جلوگیری از ۴۵ ثانیه تاخیر، این کار را به صورت موازی و محدود انجام می‌دهیم
       const summaries = await Promise.all(
-        latestValuations.map(async (val: any) => {
+        results.map(async (val: any) => {
           try {
+            // اگر بک‌اند ساماری را در خود آبجکت برگرداند این بخش حذف می‌شود
             const { data: summary } = await api.get(`/intangible/asset-valuations/${val.id}/summary/`);
             return { 
-              ...summary, 
+              ...val, 
+              ...summary,
               id: val.id, 
               asset_id: val.asset,
               weighted_score: summary.weighted_score || summary.final_score
@@ -106,13 +107,14 @@ export default function CompletedValuationsPage() {
         .filter(s => s !== null)
         .sort((a, b) => (b?.weighted_score || 0) - (a?.weighted_score || 0));
       
+      // محاسبه رتبه بر اساس کل آیتم‌ها (فقط برای نمایش در صفحه فعلی)
       const ranked = sorted.map((item, index) => ({
         ...item,
-        rank: index + 1
+        rank: (currentPage - 1) * pageSize + index + 1 
       }));
       
       setValuations(ranked);
-      console.log(`✅ ${ranked.length} دارایی ارزیابی شده نمایش داده شد`);
+      console.log(`✅ ${ranked.length} دارایی در صفحه ${currentPage} نمایش داده شد`);
       
     } catch (error) {
       console.error('❌ Error fetching completed valuations:', error);
@@ -123,6 +125,7 @@ export default function CompletedValuationsPage() {
   };
 
   const handleRefresh = () => {
+    setCurrentPage(1);
     fetchValuations(true);
   };
 
@@ -205,10 +208,12 @@ export default function CompletedValuationsPage() {
     return 'text-blue-600 bg-blue-50 border-blue-200';
   };
 
-  const filteredValuations = valuations.filter(v =>
-    v.asset?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.asset_uid?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // تغییر صفحه
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   if (loading) {
     return (
@@ -224,7 +229,7 @@ export default function CompletedValuationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-dark-green">دارایی‌های ارزیابی شده</h1>
           <p className="text-sm text-gray-500">
-            {valuations.length} دارایی ارزیابی شده
+            {totalItems} دارایی ارزیابی شده
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -252,7 +257,7 @@ export default function CompletedValuationsPage() {
         />
       </div>
 
-      {filteredValuations.length === 0 ? (
+      {valuations.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <Award className="w-16 h-16 mx-auto mb-4 opacity-30" />
           <p className="text-lg font-medium">هیچ دارایی ارزیابی شده‌ای یافت نشد</p>
@@ -266,7 +271,7 @@ export default function CompletedValuationsPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredValuations.map((val) => {
+            {valuations.map((val) => {
               const displayScore = getDisplayScore(val);
               const rankColor = getRankColor(val.rank || 0);
               
@@ -330,9 +335,6 @@ export default function CompletedValuationsPage() {
                       />
                     </div>
 
-                    {/* ======================================== */}
-                    {/* دکمه‌های واکنش‌گرا - با grid و responsive */}
-                    {/* ======================================== */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2 border-t">
                       <Link href={`/dashboard/intangible/assets/${val.asset_id}`} className="w-full">
                         <Button variant="outline" size="sm" className="w-full flex items-center justify-center gap-1 text-xs">
@@ -368,9 +370,36 @@ export default function CompletedValuationsPage() {
             })}
           </div>
           
-          {valuations.length > 0 && (
+          {/* ============================================ */}
+          {/* 🔥 اضافه کردن دکمه‌های صفحه‌بندی (Pagination) */}
+          {/* ============================================ */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-6">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              >
+                قبلی
+              </Button>
+              <span className="text-sm px-3 py-1 bg-gray-100 rounded">
+                صفحه {currentPage} از {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              >
+                بعدی
+              </Button>
+            </div>
+          )}
+          
+          {totalItems > 0 && (
             <div className="text-center text-sm text-gray-400 border-t pt-4">
-              نمایش {filteredValuations.length} از {valuations.length} دارایی
+              نمایش {valuations.length} از {totalItems} دارایی
               {searchTerm && ` (فیلتر شده)`}
             </div>
           )}

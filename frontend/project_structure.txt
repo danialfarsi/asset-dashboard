@@ -1,0 +1,256 @@
+.
+├── backend
+│   └── intangible_assets
+│       ├── services
+│       │   ├── __init__.py
+│       │   └── sensitivity_engine.py
+│       ├── __init__.py
+│       ├── sensitivity_engine.py
+│       ├── urls.py
+│       ├── valuation_formulas.py
+│       ├── valuation_sensitivity_models.py
+│       ├── valuation_sensitivity_serializers.py
+│       └── valuation_sensitivity_views.py
+├── frontend
+│   ├── frontend
+│   │   ├── public
+│   │   └── next.config.ts
+│   ├── next-app
+│   │   ├── app
+│   │   │   ├── favicon.ico
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── components
+│   │   │   └── theme-provider.tsx
+│   │   ├── hooks
+│   │   ├── lib
+│   │   ├── public
+│   │   ├── AGENTS.md
+│   │   ├── README.md
+│   │   ├── eslint.config.mjs
+│   │   ├── next.config.ts
+│   │   ├── package.json
+│   │   ├── postcss.config.mjs
+│   │   └── tsconfig.json
+│   ├── public
+│   │   └── config
+│   │       └── sensitivity
+│   │           ├── confidence
+│   │           ├── drivers
+│   │           ├── interpretation
+│   │           ├── scenarios
+│   │           └── validation
+│   └── src
+│       ├── app
+│       │   └── dashboard
+│       │       ├── layout.tsx
+│       │       └── page.tsx
+│       ├── components
+│       │   └── layout
+│       │       └── app-sidebar.tsx
+│       └── types
+│           └── auth.ts
+├── public
+│   ├── config
+│   │   └── sensitivity
+│   │       ├── confidence
+│   │       │   └── confidence_config.json
+│   │       ├── drivers
+│   │       │   ├── M-01_drivers.json
+│   │       │   ├── M-02_drivers.json
+│   │       │   ├── M-03_drivers.json
+│   │       │   ├── M-04_drivers.json
+│   │       │   ├── M-05_drivers.json
+│   │       │   ├── M-06_drivers.json
+│   │       │   ├── M-07_drivers.json
+│   │       │   ├── M-08_drivers.json
+│   │       │   └── M-09_drivers.json
+│   │       ├── interpretation
+│   │       │   ├── M-01_interpretation.json
+│   │       │   ├── M-02_interpretation.json
+│   │       │   ├── M-03_interpretation.json
+│   │       │   ├── M-04_interpretation.json
+│   │       │   ├── M-05_interpretation.json
+│   │       │   ├── M-06_interpretation.json
+│   │       │   ├── M-07_interpretation.json
+│   │       │   ├── M-08_interpretation.json
+│   │       │   └── M-09_interpretation.json
+│   │       ├── scenarios
+│   │       │   ├── M-01_scenarios.json
+│   │       │   ├── M-02_scenarios.json
+│   │       │   ├── M-03_scenarios.json
+│   │       │   ├── M-04_scenarios.json
+│   │       │   ├── M-05_scenarios.json
+│   │       │   ├── M-06_scenarios.json
+│   │       │   ├── M-07_scenarios.json
+│   │       │   ├── M-08_scenarios.json
+│   │       │   └── M-09_scenarios.json
+│   │       └── validation
+│   │           └── step6_validation_rules.json
+│   ├── fonts
+│   │   ├── Vazirmatn-Black.woff2
+│   │   ├── Vazirmatn-Bold.woff2
+│   │   ├── Vazirmatn-ExtraBold.woff2
+│   │   ├── Vazirmatn-ExtraLight.woff2
+│   │   ├── Vazirmatn-Light.woff2
+│   │   ├── Vazirmatn-Medium.woff2
+│   │   ├── Vazirmatn-Regular.woff2
+│   │   ├── Vazirmatn-SemiBold.woff2
+│   │   ├── Vazirmatn-Thin.woff2
+│   │   └── Vazirmatn[wght].woff2
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── logo.png
+│   ├── next.svg
+│   ├── test.html
+│   ├── vercel.svg
+│   └── window.svg
+├── src
+│   ├── app
+│   │   ├── dashboard
+│   │   │   ├── companies
+│   │   │   │   ├── [code]
+│   │   │   │   └── page.tsx
+│   │   │   ├── departments
+│   │   │   │   ├── [code]
+│   │   │   │   └── page.tsx
+│   │   │   ├── intangible
+│   │   │   │   ├── assets
+│   │   │   │   ├── discovery-wizard
+│   │   │   │   ├── identity-form
+│   │   │   │   ├── screening
+│   │   │   │   ├── stage2
+│   │   │   │   ├── valuation
+│   │   │   │   └── verified
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── login
+│   │   │   └── page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── logo.png
+│   │   └── page.tsx
+│   ├── components
+│   │   ├── asset
+│   │   │   ├── AssetEvidence.tsx
+│   │   │   ├── ValuationHistory.tsx
+│   │   │   └── ValuationHistorySkeleton.tsx
+│   │   ├── charts
+│   │   │   ├── RadarChart.tsx
+│   │   │   └── RadarChartSkeleton.tsx
+│   │   ├── discovery
+│   │   │   ├── steps
+│   │   │   │   ├── Step0_AssetInfo.tsx
+│   │   │   │   ├── Step1_NonPhysical.tsx
+│   │   │   │   ├── Step2_Identifiability.tsx
+│   │   │   │   ├── Step3_Controllability.tsx
+│   │   │   │   └── Step4_ValueCreation.tsx
+│   │   │   ├── DiscoveryStepper.tsx
+│   │   │   ├── DiscoveryWizard.tsx
+│   │   │   └── ResultPage.tsx
+│   │   ├── graph
+│   │   │   └── SimpleGraphVisualization.tsx
+│   │   ├── layout
+│   │   │   ├── app-sidebar.tsx
+│   │   │   ├── app-sidebar.tsx.backup
+│   │   │   └── header.tsx
+│   │   ├── ui
+│   │   │   ├── layout
+│   │   │   │   ├── app-sidebar.tsx
+│   │   │   │   └── header.tsx
+│   │   │   ├── badge.tsx
+│   │   │   ├── button.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── checkbox.tsx
+│   │   │   ├── confirm-modal.tsx
+│   │   │   ├── delete-confirm-modal.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── label.tsx
+│   │   │   ├── loading-spinner.tsx
+│   │   │   ├── notification-bar.tsx
+│   │   │   ├── notification-center.tsx
+│   │   │   ├── page-transition.tsx
+│   │   │   ├── progress.tsx
+│   │   │   ├── select.tsx
+│   │   │   ├── separator.tsx
+│   │   │   ├── sheet.tsx
+│   │   │   ├── sidebar.tsx
+│   │   │   ├── skeleton-loader.tsx
+│   │   │   ├── skeleton.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   ├── textarea.tsx
+│   │   │   └── tooltip.tsx
+│   │   └── valuation
+│   │       ├── engines
+│   │       │   ├── M01_RfR_Engine.tsx
+│   │       │   ├── M02_MEEM_Engine.tsx
+│   │       │   ├── M03_DCF_Engine.tsx
+│   │       │   ├── M04_WWM_Engine.tsx
+│   │       │   ├── M05_RCM_Engine.tsx
+│   │       │   ├── M06_RPCM_Engine.tsx
+│   │       │   ├── M07_TWC_Engine.tsx
+│   │       │   ├── M08_CTM_Engine.tsx
+│   │       │   └── M09_MMM_Engine.tsx
+│   │       ├── sensitivity
+│   │       │   ├── ConfidenceRange.tsx
+│   │       │   ├── MatrixTable.tsx
+│   │       │   ├── SensitivityDrivers.tsx
+│   │       │   ├── SensitivityScenarios.tsx
+│   │       │   ├── SensitivityStatistics.tsx
+│   │       │   ├── SensitivityTornadoChart.tsx
+│   │       │   └── TornadoChart.tsx
+│   │       ├── steps
+│   │       │   ├── panels
+│   │       │   ├── Step1_SelectAsset.tsx
+│   │       │   ├── Step2_InputData.tsx
+│   │       │   ├── Step3_Parameters.tsx
+│   │       │   ├── Step3_Parameters.tsx.backup
+│   │       │   ├── Step4_Calculation.tsx
+│   │       │   ├── Step5_QualityControl.tsx
+│   │       │   ├── Step6_Sensitivity.tsx
+│   │       │   └── Step7_Report.tsx
+│   │       ├── EvidenceUploader.tsx
+│   │       ├── QuestionCard.tsx
+│   │       └── ValuationStepper.tsx
+│   ├── hooks
+│   │   ├── use-mobile.ts
+│   │   └── useSensitivity.ts
+│   ├── lib
+│   │   ├── api-utils.ts
+│   │   ├── api.ts
+│   │   ├── asset-api.ts
+│   │   ├── asset-type-mapping.ts
+│   │   ├── auth.ts
+│   │   ├── date-utils.ts
+│   │   ├── utils.ts
+│   │   └── valuation-api.ts
+│   ├── providers
+│   │   └── QueryProvider.tsx
+│   ├── services
+│   │   └── sensitivity.service.ts
+│   ├── store
+│   │   └── auth-store.ts
+│   ├── types
+│   │   ├── asset.ts
+│   │   ├── auth.ts
+│   │   └── discovery.types.ts
+│   └── middleware.ts.bak
+├── README.md
+├── components.json
+├── cookies.txt
+├── eslint.config.mjs
+├── middleware.ts
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── pnpm-lock.yaml
+├── pnpm-workspace.yaml
+├── postcss.config.mjs
+├── project_structure.txt
+├── tailwind.config.js
+├── tailwind.config.ts
+└── tsconfig.json
+
+72 directories, 182 files

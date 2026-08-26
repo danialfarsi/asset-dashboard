@@ -24,6 +24,22 @@ echo "⏳ Waiting for backend to be ready..."
 sleep 5
 
 # ============================================
+# 2.5. گرفتن Backup از دیتابیس
+# ============================================
+echo "💾 Creating database backup..."
+BACKUP_DIR="./backups"
+mkdir -p "$BACKUP_DIR"
+BACKUP_FILE="$BACKUP_DIR/backup_$(date +%Y%m%d_%H%M%S).sql"
+docker-compose exec -T db pg_dump -U asset_user asset_db > "$BACKUP_FILE"
+if [ $? -eq 0 ]; then
+    echo "✅ Database backup saved to: $BACKUP_FILE"
+    # حذف فایل‌های بکاپ قدیمی‌تر از 30 روز
+    find "$BACKUP_DIR" -name "*.sql" -type f -mtime +30 -delete
+else
+    echo "⚠️  Backup failed! Continuing anyway..."
+fi
+
+# ============================================
 # 3. بستن پورت 3000 اگر اشغال است
 # ============================================
 echo "🧹 Cleaning port 3000..."
@@ -51,5 +67,6 @@ echo "✅ Done! 🎉"
 echo "📍 Backend:   http://localhost:8000"
 echo "📍 Frontend:  http://localhost:3000"
 echo "📍 Swagger:   http://localhost:8000/api/docs/"
+echo "📁 Backup:    $BACKUP_FILE"
 echo ""
 echo "📋 برای توقف: Ctrl+C (فرانت‌اند) و docker-compose down (بک‌اند)"

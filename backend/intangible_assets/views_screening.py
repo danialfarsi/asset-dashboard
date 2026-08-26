@@ -21,24 +21,28 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
     queryset = ScreeningTemplate.objects.filter(is_active=True)
     serializer_class = ScreeningTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
         queryset = ScreeningTemplate.objects.filter(is_active=True)
         
         # فیلتر بر اساس organization_type از query parameter
-        org_type_id = self.request.query_params.get('organization_type')
-        if org_type_id:
+        org_type = self.request.query_params.get('organization_type')
+        if org_type:
             try:
-                queryset = queryset.filter(organization_type_id=int(org_type_id))
-            except ValueError:
-                pass
+                org_type_obj = OrganizationType.objects.get(name=org_type)
+                queryset = queryset.filter(organization_type=org_type_obj)
+            except OrganizationType.DoesNotExist:
+                try:
+                    queryset = queryset.filter(organization_type_id=int(org_type))
+                except ValueError:
+                    pass
         
-        # فیلتر بر اساس سازمان کاربر
         if user.role == 'super_admin':
             return queryset
-        elif user.organization and user.organization.organization_type:
-            return queryset.filter(organization_type=user.organization.organization_type)
+        elif user.organization:
+            return queryset
         return queryset.none()
 
 
@@ -59,11 +63,9 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
             return queryset.filter(created_by=user)
 
     def perform_create(self, serializer):
-        # 🔥 دریافت category و asset_name از data
         category = self.request.data.get('category', 'operational_knowledge')
         asset_name = self.request.data.get('asset_name', '')
         
-        # 🔥 تولید asset_uid با استفاده از category و asset_name
         asset_uid = generate_asset_uid(category, asset_name)
         
         serializer.save(
@@ -81,7 +83,6 @@ class AssetFileViewSet(viewsets.ModelViewSet):
         user = self.request.user
         queryset = AssetFile.objects.all().order_by('-uploaded_at')
         
-        # فیلتر بر اساس asset_id
         asset_id = self.request.query_params.get('asset')
         if asset_id:
             try:
@@ -89,7 +90,6 @@ class AssetFileViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
         
-        # فیلتر بر اساس دسترسی کاربر
         if user.role == 'super_admin':
             return queryset
         elif user.organization:
