@@ -20,6 +20,8 @@ from .views_discovery import SuggestTemplateView
 from .valuation_sensitivity_views import SensitivityAnalysisViewSet
 from .valuation_qc_views import QualityControlViewSet
 from .graph_views import GraphViewSet
+from .views_api_stats import APIStatsView
+from .views_external_users import ExternalUsersView
 
 router = DefaultRouter()
 
@@ -64,4 +66,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('detect-asset-type/<str:asset_uid>/', DetectAssetTypeView.as_view(), name='detect_asset_type'),
     path('suggest-template/', SuggestTemplateView.as_view(), name='suggest-template'),
+    path('api-stats/', APIStatsView.as_view(), name='api-stats'),
+    path('external-users/', ExternalUsersView.as_view(), name='external-users'),
+
 ]

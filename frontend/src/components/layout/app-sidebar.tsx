@@ -30,7 +30,8 @@ import {
   PieChart,
   Target,
   Sparkles,
-  Database
+  Database,
+  Activity
 } from 'lucide-react'
 import {
   Sidebar,
@@ -113,6 +114,13 @@ const settingsNavItems = [
   { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
 ]
 
+// ============ منوی تاریخچه API (جداگانه) ============
+const apiHistoryItem = {
+  label: 'تاریخچه API',
+  href: '/admin/api-dashboard',
+  icon: Activity,
+}
+
 export function AppSidebar() {
   const pathname = usePathname()
   const { user } = useAuthStore()
@@ -191,9 +199,7 @@ export function AppSidebar() {
       <SidebarMenuItem key={item.href}>
         <SidebarMenuButton asChild isActive={isActive} className={isChild ? 'pr-6' : ''}>
           <Link href={item.href} className="flex items-center gap-3 w-full">
-            {/* 🔥 آیکون همیشه خاکستری */}
             <Icon className="w-4 h-4 shrink-0 text-gray-500" />
-            {/* 🔥 متن همیشه مشکی پررنگ */}
             <span className={`text-sm ${isActive ? 'font-semibold' : 'font-normal'} text-gray-800`}>
               {item.label}
             </span>
@@ -257,9 +263,7 @@ export function AppSidebar() {
                         }`}
                       >
                         <span className="flex items-center gap-3 text-sm">
-                          {/* 🔥 آیکون همیشه خاکستری */}
                           <Icon className="w-4 h-4 shrink-0 text-gray-500" />
-                          {/* 🔥 متن همیشه مشکی پررنگ */}
                           <span className={`text-sm ${isActive ? 'font-semibold' : 'font-normal'} text-gray-800`}>
                             {item.label}
                           </span>
@@ -358,6 +362,21 @@ export function AppSidebar() {
     )
   }
 
+  // ============================================================
+  // منوی تاریخچه API - جداگانه زیر شرکت‌ها
+  // ============================================================
+  const renderApiHistoryNav = () => {
+    if (!isSuperAdmin) return null
+    
+    return (
+      <SidebarGroup>
+        <SidebarMenu>
+          {renderMenuItem(apiHistoryItem)}
+        </SidebarMenu>
+      </SidebarGroup>
+    )
+  }
+
   const renderSettingsNav = () => {
     return (
       <SidebarGroup>
@@ -397,6 +416,7 @@ export function AppSidebar() {
         {renderStagesNav()}
         {renderDepartmentsNav()}
         {renderCompaniesNav()}
+        {renderApiHistoryNav()}  {/* ← تاریخچه API به عنوان آیتم جداگانه زیر شرکت‌ها */}
         {renderSettingsNav()}
       </SidebarContent>
     </Sidebar>

@@ -28,6 +28,18 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await login(credentials);
+          
+          // ذخیره توکن در localStorage (برای استفاده در صفحات دیگر)
+          if (data.access) {
+            localStorage.setItem('access_token', data.access);
+          }
+          if (data.refresh) {
+            localStorage.setItem('refresh_token', data.refresh);
+          }
+          if (data.user?.role) {
+            localStorage.setItem('user_role', data.user.role);
+          }
+          
           set({ user: data.user, isLoading: false, isAuthenticated: true });
         } catch (err: any) {
           set({
@@ -41,12 +53,25 @@ export const useAuthStore = create<AuthState>()(
 
       logout: async () => {
         await logout();
+        // پاک کردن localStorage
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_role');
         set({ user: null, isAuthenticated: false });
       },
 
       fetchMe: async () => {
-        // اگر قبلاً لاگین کرده و توکن دارد، اطلاعات را دریافت کن
-        const token = document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+        // ابتدا از localStorage چک کن
+        let token = localStorage.getItem('access_token');
+        
+        // اگر در localStorage نبود، از کوکی چک کن
+        if (!token) {
+          const cookieToken = document.cookie.split('; ').find(row => row.startsWith('access_token='));
+          if (cookieToken) {
+            token = cookieToken.split('=')[1];
+          }
+        }
+        
         if (!token) {
           set({ user: null, isAuthenticated: false, isLoading: false });
           return;
@@ -58,7 +83,6 @@ export const useAuthStore = create<AuthState>()(
           set({ user, isLoading: false, isAuthenticated: true });
         } catch (error) {
           console.error('Error fetching user:', error);
-          // اگر 401 بود، توکن منقضی شده
           set({ user: null, isLoading: false, isAuthenticated: false });
         }
       },
