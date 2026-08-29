@@ -35,6 +35,10 @@ class User(AbstractUser):
     # اضافه کردن organization_type به کاربر
     organization_type = models.CharField(max_length=50, null=True, blank=True)
     
+    # فیلدهای جدید برای اتصال کاربران خارجی
+    external_session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name='شناسه جلسه خارجی')
+    external_user_id = models.UUIDField(null=True, blank=True, verbose_name='شناسه کاربر خارجی')
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
 

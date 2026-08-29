@@ -13,7 +13,10 @@ import { Step3_Controllability } from './steps/Step3_Controllability';
 import { Step4_ValueCreation } from './steps/Step4_ValueCreation';
 import { ResultPage } from './ResultPage';
 import { DISCOVERY_STEPS, DiscoveryAnswers, DiscoveryResult } from '@/types/discovery.types';
+import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
+
+const EXTERNAL_API_KEY = 'cd5d16ad-01cf-4031-a8d9-65d3ddb050a4';
 
 interface DiscoveryWizardProps {
   assetId?: number;
@@ -62,6 +65,9 @@ interface SuggestionResult {
 
 export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const isLoggedIn = !!user;
+  
   const [currentStep, setCurrentStep] = useState(1);
   const [assetData, setAssetData] = useState({
     asset_name: '',
@@ -88,7 +94,7 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isResultReady, setIsResultReady] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);  // ← اضافه شد
+  const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
     if (assetId) {
@@ -219,7 +225,7 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
         setResult(calculated);
         setIsResultReady(true);
         setIsCalculating(false);
-        getSuggestion();
+        // getSuggestion(); // غیرفعال در صفحه عمومی
         if (onComplete) onComplete(calculated);
         setCurrentStep(6);
       }, 500);
@@ -251,72 +257,34 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
     setError(null);
     
     try {
-      const assetResponse = await api.post('/intangible/discovery-assets/', {
-        asset_name: assetData.asset_name,
-        category: assetData.category || 'strategic_economic',
-        organization_type: assetData.organization_type,
-        description: assetData.description || `کشف شده از موتور شناسایی: ${assetData.asset_name}`,
+      // استفاده از API خارجی (بدون احراز هویت)
+      const response = await fetch('http://localhost:8000/api/intangible/external/discovery/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': EXTERNAL_API_KEY,
+          'X-Source': 'discovery-wizard-public',
+        },
+        body: JSON.stringify({
+          asset_name: assetData.asset_name,
+          organization_type: assetData.organization_type,
+          answers: answers
+        })
       });
-      
-      const assetId = assetResponse.data.id;
-      const assetUid = assetResponse.data.asset_uid;
-      setGeneratedCode(assetUid);
-      
-      const answersForApi: Record<string, boolean> = {};
-      Object.entries(answers).forEach(([key, value]) => {
-        answersForApi[key.toLowerCase()] = value;
-      });
-      
-      await api.post('/intangible/discovery/', {
-        asset: assetId,
-        ...answersForApi
-      });
-      
-      if (selectedTemplateId && suggestion) {
-        let assetTypeId = selectedAssetTypeId;
-        
-        if (!assetTypeId) {
-          try {
-            const templateRes = await api.get(`/intangible/screening-templates/${selectedTemplateId}/`);
-            if (templateRes.data?.asset_type?.id) {
-              assetTypeId = templateRes.data.asset_type.id;
-            }
-          } catch (e) {
-            console.warn('Could not fetch template:', e);
-          }
-        }
-        
-        if (!assetTypeId) {
-          try {
-            const searchRes = await api.get('/intangible/asset-types/', {
-              params: { search: suggestion.best_template.name }
-            });
-            if (searchRes.data?.results?.length > 0) {
-              assetTypeId = searchRes.data.results[0].id;
-            }
-          } catch (e) {
-            console.warn('Could not search asset types:', e);
-          }
-        }
-        
-        const updateData: any = {
-          result: result?.status === 'CONFIRMED' ? 'confirmed' : 'conditional',
-          valuation_method: suggestion.best_template?.valuation_method || null,
-        };
-        
-        if (assetTypeId) {
-          updateData.asset_type = assetTypeId;
-        }
-        
-        await api.patch(`/intangible/screened-assets/${assetId}/`, updateData);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `خطای ${response.status}`);
       }
-      
+
+      const data = await response.json();
+      setGeneratedCode(data.asset_uid || `ASSET-${data.asset_id}`);
       setShowSuccess(true);
-      setIsRegistered(true);  // ← اضافه شد
+      setIsRegistered(true);
       
     } catch (error: any) {
       console.error('Error registering asset:', error);
-      setError(error?.response?.data?.detail || 'خطا در ثبت دارایی');
+      setError(error?.message || 'خطا در ثبت دارایی');
     } finally {
       setLoading(false);
     }
@@ -354,7 +322,8 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
               loading={loading}
               error={error}
               selectedTemplateName={selectedTemplateName}
-              isRegistered={isRegistered}  // ← اضافه شد
+              isRegistered={isRegistered}
+              isLoggedIn={isLoggedIn}
             />
           </div>
         );

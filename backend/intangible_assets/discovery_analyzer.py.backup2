@@ -6,36 +6,36 @@ class DiscoveryAnalyzer:
     """تحلیل‌گر موتور شناسایی برای پیشنهاد هوشمند قالب دارایی"""
     
     QUESTION_DESC = {
-    'n1': 'محصول فکری است (نتیجه تفکر و خلاقیت)',
-    'n2': 'هویت غیرفیزیکی دارد (قابل لمس نیست)',
-    'n3': 'قابل مشاهده نیست (غیرملموس است)',
-    'n4': 'قابل لمس نیست (فیزیکی نیست)',
-    'n5': 'اندازه فیزیکی ندارد',
-    'n6': 'وزن فیزیکی ندارد',
-    'i1': 'نام مشخص دارد (شناخته شده است)',
-    'i2': 'کد شناسایی دارد (ثبت شده است)',
-    'i3': 'در اسناد ثبت شده (مستند است)',
-    'i4': 'قابل تمایز است (از دیگران جدا است)',
-    'i5': 'قابل ردیابی است (تاریخچه دارد)',
-    'i6': 'در سیستم ثبت است (سیستماتیک است)',
-    'i7': 'تاریخ ثبت دارد (قدمت دارد)',
-    'c1': 'قابل کنترل است (مدیریت‌پذیر است)',
-    'c2': 'مالکیت مشخص دارد (صاحب دارد)',
-    'c3': 'قرارداد دارد (قانونی است)',
-    'c4': 'ثبت قانونی دارد (رسمی است)',
-    'c5': 'حمایت قانونی دارد (محافظت شده است)',
-    'c6': 'منافع اقتصادی دارد (سودآور است)',
-    'c7': 'قابل انتقال است (قابل فروش است)',
-    'v1': 'ارزش اقتصادی دارد (قیمت دارد)',
-    'v2': 'درآمدزا است (پول می‌سازد)',
-    'v3': 'هزینه‌زا است (هزینه دارد)',
-    'v4': 'مزیت رقابتی دارد (از رقبا جلوتر است)',
-    'v5': 'ارتقاءدهنده است (بهتر می‌کند)',
-    'v6': 'توسعه‌دهنده است (رشد می‌دهد)',
-    'v7': 'نوآورانه است (جدید است)',
-    'v8': 'کاربردی است (مفید است)',
-    'v9': 'مفید است (به کار می‌آید)'
-}
+        'N1': 'محصول فکری است (نتیجه تفکر و خلاقیت)',
+        'N2': 'هویت غیرفیزیکی دارد (قابل لمس نیست)',
+        'N3': 'قابل مشاهده نیست (غیرملموس است)',
+        'N4': 'قابل لمس نیست (فیزیکی نیست)',
+        'N5': 'اندازه فیزیکی ندارد',
+        'N6': 'وزن فیزیکی ندارد',
+        'I1': 'نام مشخص دارد (شناخته شده است)',
+        'I2': 'کد شناسایی دارد (ثبت شده است)',
+        'I3': 'در اسناد ثبت شده (مستند است)',
+        'I4': 'قابل تمایز است (از دیگران جدا است)',
+        'I5': 'قابل ردیابی است (تاریخچه دارد)',
+        'I6': 'در سیستم ثبت است (سیستماتیک است)',
+        'I7': 'تاریخ ثبت دارد (قدمت دارد)',
+        'C1': 'قابل کنترل است (مدیریت‌پذیر است)',
+        'C2': 'مالکیت مشخص دارد (صاحب دارد)',
+        'C3': 'قرارداد دارد (قانونی است)',
+        'C4': 'ثبت قانونی دارد (رسمی است)',
+        'C5': 'حمایت قانونی دارد (محافظت شده است)',
+        'C6': 'منافع اقتصادی دارد (سودآور است)',
+        'C7': 'قابل انتقال است (قابل فروش است)',
+        'V1': 'ارزش اقتصادی دارد (قیمت دارد)',
+        'V2': 'درآمدزا است (پول می‌سازد)',
+        'V3': 'هزینه‌زا است (هزینه دارد)',
+        'V4': 'مزیت رقابتی دارد (از رقبا جلوتر است)',
+        'V5': 'ارتقاءدهنده است (بهتر می‌کند)',
+        'V6': 'توسعه‌دهنده است (رشد می‌دهد)',
+        'V7': 'نوآورانه است (جدید است)',
+        'V8': 'کاربردی است (مفید است)',
+        'V9': 'مفید است (به کار می‌آید)'
+    }
     
     # کلمات کلیدی کامل برای هر دارایی بر اساس فایل PDF
     KEYWORDS = {
@@ -1367,7 +1367,6 @@ class DiscoveryAnalyzer:
         return best_alternative
     
     def generate_summary(self, best_template, errors, alternative):
-        """تولید خلاصه مناسب برای نمایش به کاربر"""
         if not errors:
             return {
                 'type': 'perfect',
@@ -1381,64 +1380,29 @@ class DiscoveryAnalyzer:
         
         for error_group in errors:
             for error in error_group['errors']:
-                if error.get('is_critical', False):
+                if error['is_critical']:
                     critical_errors.append(error)
                 else:
                     normal_errors.append(error)
         
         if critical_errors:
-            # تولید پیام‌های خوانا با توضیحات کامل از QUESTION_DESC
-            suggestions = []
-            for e in critical_errors:
-                key = e['key'].lower()
-                # دریافت توضیحات از QUESTION_DESC
-                desc = self.QUESTION_DESC.get(key, e.get('description', key))
-                expected = 'بله' if e.get('expected', 1) == 1 else 'خیر'
-                user = 'بله' if e.get('user_value', 0) == 1 else 'خیر'
-                # اضافه کردن توضیحات کامل به جای کلید
-                suggestions.append(f"• {desc} (وضعیت فعلی: {user} | باید: {expected})")
-            
-            # پیام اصلی
-            if len(critical_errors) == 1:
-                message = f'دارایی شما به "{best_template.item_name}" نزدیک است، فقط یک مورد نیاز به اصلاح دارد:'
-            elif len(critical_errors) <= 3:
-                message = f'دارایی شما به "{best_template.item_name}" نزدیک است، این موارد را اصلاح کنید:'
-            else:
-                message = f'برای تطابق بهتر با "{best_template.item_name}"، این موارد ضروری را بررسی کنید:'
+            suggestions = [f"{e['key']} - {e['description']}" for e in critical_errors]
             
             if alternative:
-                alt_message = f'💡 پیشنهاد: اگر این موارد را ندارید، "{alternative.item_name}" می‌تواند گزینه مناسبی باشد.'
+                alt_message = f'یا اگر این موارد رو ندارید، "{alternative.item_name}" مناسب‌تر است.'
             else:
                 alt_message = None
             
             return {
                 'type': 'fixable',
-                'message': message,
+                'message': f'شما به "{best_template.item_name}" نزدیک‌اید ولی در بخش‌های زیر ضعیف‌اید:',
                 'suggestions': suggestions,
                 'alternative_message': alt_message
             }
         else:
-            # فقط خطاهای غیرضروری
-            if normal_errors:
-                suggestions = []
-                for e in normal_errors[:5]:
-                    key = e['key'].lower()
-                    desc = self.QUESTION_DESC.get(key, e.get('description', key))
-                    suggestions.append(f"• {desc}")
-                
-                if len(normal_errors) > 5:
-                    suggestions.append(f"• ... و {len(normal_errors) - 5} مورد دیگر")
-                
-                return {
-                    'type': 'good',
-                    'message': f'✅ دارایی شما با "{best_template.item_name}" تطابق خوبی دارد، اما چند نکته جزئی وجود دارد:',
-                    'suggestions': suggestions,
-                    'alternative_message': None
-                }
-            else:
-                return {
-                    'type': 'perfect',
-                    'message': f'✅ عالی! دارایی شما کاملاً با قالب "{best_template.item_name}" مطابقت دارد.',
-                    'suggestions': [],
-                    'alternative_message': None
-                }
+            return {
+                'type': 'good',
+                'message': f'دارایی شما تا حد زیادی با "{best_template.item_name}" مطابقت دارد، اما چند نکته جزئی وجود دارد:',
+                'suggestions': [f"{e['key']} - {e['description']}" for e in normal_errors],
+                'alternative_message': None
+            }

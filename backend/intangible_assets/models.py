@@ -224,7 +224,7 @@ class ScreenedAsset(models.Model):
         ('rejected', 'رد شده'),
     ]
     
-    asset_name = models.CharField(max_length=255, default='دارایی بدون نام')
+    asset_name = models.CharField(max_length=500, default='دارایی بدون نام')
     asset_uid = models.CharField(max_length=50, unique=True, null=True, blank=True)
     category = models.CharField(max_length=50, default='unknown')
     result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')
@@ -250,6 +250,17 @@ class ScreenedAsset(models.Model):
         null=True,
         help_text='روش ارزش‌گذاری انتخاب شده برای این دارایی'
     )
+    
+    # فیلدهای جدید برای کاربران خارجی
+    source_type = models.CharField(
+        max_length=20,
+        choices=[('internal', 'داخلی'), ('external', 'خارجی')],
+        default='internal',
+        verbose_name='نوع منبع'
+    )
+    external_user_id = models.UUIDField(null=True, blank=True, verbose_name='شناسه کاربر خارجی')
+    session_id = models.CharField(max_length=500, null=True, blank=True, verbose_name='شناسه جلسه')
+    source_app = models.CharField(max_length=500, null=True, blank=True, verbose_name='اپلیکیشن مبدا')
     
     def __str__(self):
         return f"{self.asset_uid or 'بدون کد'} - {self.asset_name}"
@@ -306,6 +317,25 @@ from .valuation_models import (
 # ============ مدل‌های STEP 4 ============
 from .valuation_step4_models import ValuationStep4
 
+# ============ مدل‌های گراف دانش ============
+from .graph import (
+    AssetOntology,
+    EconomicDimension,
+    EcosystemDimension,
+    EvolutionaryDimension,
+    LegalDimension,
+    OrganizationalDimension,
+    RiskOpportunityDimension,
+    SecurityDimension,
+    StrategicDimension
+)
+
+# ============ مدل‌های کشف ============
+from .discovery_models import DiscoveryAssessment
+
 # اضافه کردن فیلد discovery_scores به مدل ScreeningTemplate
 # این فیلد برای ذخیره نمرات موتور شناسایی استفاده می‌شود
 ScreeningTemplate.add_to_class('discovery_scores', models.JSONField(blank=True, null=True, verbose_name='نمرات موتور شناسایی'))
+
+# ============ مدل‌های مدیریت API ============
+from .api_management_models import APIKey, ExternalUser, APIRequestLog

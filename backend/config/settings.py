@@ -132,3 +132,33 @@ CORS_ALLOW_CREDENTIALS = True
 NEO4J_URI = config('NEO4J_URI', default='bolt://neo4j:7687')
 NEO4J_USER = config('NEO4J_USER', default='neo4j')
 NEO4J_PASSWORD = config('NEO4J_PASSWORD', default='password123')
+
+# CORS settings - Complete
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+    "x-api-key",
+    "x-source",
+    "x-session-id",
+]
+CORS_EXPOSE_HEADERS = [
+    "content-type",
+    "x-api-key",
+]
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+# Disable append slash to fix external API
+APPEND_SLASH = False

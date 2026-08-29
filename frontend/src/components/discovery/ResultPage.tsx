@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   CheckCircle, 
   AlertCircle, 
@@ -14,9 +16,12 @@ import {
   Award,
   Sparkles,
   Loader2,
-  ChevronLeft
+  ChevronLeft,
+  TrendingUp,
+  LogIn
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 interface ResultPageProps {
   result: any;
@@ -29,7 +34,8 @@ interface ResultPageProps {
   loading?: boolean;
   error?: string | null;
   selectedTemplateName?: string | null;
-  isRegistered?: boolean;  // ← اضافه شد
+  isRegistered?: boolean;
+  isLoggedIn?: boolean;  // اضافه شد
 }
 
 export function ResultPage({ 
@@ -43,8 +49,11 @@ export function ResultPage({
   loading = false,
   error = null,
   selectedTemplateName = null,
-  isRegistered = false  // ← اضافه شد
+  isRegistered = false,
+  isLoggedIn = false  // اضافه شد
 }: ResultPageProps) {
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+
   const statusColors: Record<string, string> = {
     CONFIRMED: 'text-green-600 bg-green-50 border-green-200',
     CONDITIONAL: 'text-yellow-600 bg-yellow-50 border-yellow-200',
@@ -70,10 +79,20 @@ export function ResultPage({
   };
 
   const status = result?.status || 'REJECTED';
+  const isConfirmed = status === 'CONFIRMED';
 
   const handleCopyCode = () => {
     if (generatedCode) {
       navigator.clipboard.writeText(generatedCode);
+    }
+  };
+
+  const handleValuationClick = () => {
+    if (!isLoggedIn) {
+      setShowLoginDialog(true);
+    } else {
+      // اگر لاگین هست، به صفحه ارزش‌گذاری برو
+      window.location.href = '/dashboard/intangible/valuation';
     }
   };
 
@@ -96,6 +115,21 @@ export function ResultPage({
             <Copy className="w-4 h-4" />
           </button>
         </div>
+
+        {/* دکمه ارزیابی و ارزش‌گذاری - فقط برای دارایی قطعی */}
+        {isConfirmed && (
+          <div className="mt-6">
+            <Button 
+              onClick={handleValuationClick}
+              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+            >
+              <TrendingUp className="w-5 h-5 ml-2" />
+              ارزیابی و ارزش‌گذاری دارایی
+              <ArrowRight className="w-5 h-5 mr-2" />
+            </Button>
+          </div>
+        )}
+
         <div className="mt-6 flex gap-4 justify-center flex-wrap">
           <Button
             className="bg-primary hover:bg-primary-dark"
@@ -350,7 +384,7 @@ export function ResultPage({
           )}
 
           {/* ============================================
-              دکمه‌های اقدام - فقط اگر ثبت نشده باشه
+              دکمه‌های اقدام
               ============================================ */}
           {!isRegistered && (
             <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
@@ -409,8 +443,79 @@ export function ResultPage({
               </Button>
             </div>
           )}
+
+          {/* ============================================
+              دکمه ارزیابی و ارزش‌گذاری - فقط برای دارایی قطعی
+              ============================================ */}
+          {isRegistered && isConfirmed && (
+            <div className="pt-4 border-t">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-green-800 font-medium">
+                  ✅ دارایی شما به عنوان یک دارایی نامشهود قطعی شناسایی شده است.
+                </p>
+                <p className="text-green-700 text-sm mt-1">
+                  برای ارزیابی و ارزش‌گذاری دقیق، روی دکمه زیر کلیک کنید.
+                </p>
+                <Button 
+                  onClick={handleValuationClick}
+                  className="mt-4 bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
+                >
+                  <TrendingUp className="w-5 h-5 ml-2" />
+                  ارزیابی و ارزش‌گذاری دارایی
+                  <ArrowRight className="w-5 h-5 mr-2" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* ============================================
+          دیالوگ برای کاربران لاگین نشده
+          ============================================ */}
+      <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl text-dark-green">
+              🚀 برای ارزش‌گذاری دارایی خود وارد شوید
+            </DialogTitle>
+            <DialogDescription className="text-center text-gray-600">
+              برای ارزیابی و ارزش‌گذاری دارایی نامشهود خود، باید وارد 
+              <span className="font-semibold text-blue-600"> پلتفرم مدیریت دارایی‌های نامشهود (META) </span>
+              شوید.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-green-50 rounded-lg p-4 my-4 text-center">
+            <p className="text-sm text-green-800">
+              ✅ دارایی شما به عنوان یک <span className="font-bold">دارایی نامشهود قطعی</span> شناسایی شده است.
+            </p>
+            <p className="text-sm text-green-700 mt-1">
+              برای ادامه فرآیند ارزش‌گذاری، لطفاً وارد حساب کاربری خود شوید.
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col gap-3 sm:flex-row">
+            <Link href="/login" className="w-full">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                <LogIn className="w-4 h-4 ml-2" />
+                ورود به پلتفرم META
+              </Button>
+            </Link>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowLoginDialog(false)}
+              className="w-full"
+            >
+              بعداً
+            </Button>
+          </DialogFooter>
+
+          <p className="text-xs text-center text-gray-400 mt-4">
+            🔒 اطلاعات شما با امنیت کامل ذخیره شده است
+          </p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -70,6 +70,10 @@ class DiscoveryAssessment(models.Model):
     total_score = models.IntegerField(default=0)
     max_score = models.IntegerField(default=29)
     
+    # فیلدهای جدید برای کاربران خارجی
+    is_external = models.BooleanField(default=False, verbose_name='ارزیابی خارجی')
+    external_session_id = models.CharField(max_length=255, null=True, blank=True, verbose_name='شناسه جلسه خارجی')
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

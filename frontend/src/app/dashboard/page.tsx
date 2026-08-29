@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
+import { ClaimAssetsButton } from '@/components/ClaimAssetsButton';
+
 import {
   Building2,
   Package,
@@ -774,7 +776,10 @@ export default function DashboardPage() {
           </Card>
         </Link>
       </div>
-
+        {/* ============================================
+    CLAIM ASSETS BUTTON (برای کاربران لاگین شده)
+    ============================================ */}
+      <ClaimAssetsButton />
     </PageTransition>
   );
 }

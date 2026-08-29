@@ -35,8 +35,8 @@ class SmartAssetMatcher:
         'مشتری': ['مشتری', 'خریدار', 'کاربر', 'مراجع', 'متقاضی', 'مشتریان'],
         'فروش': ['فروش', 'فروشندگی', 'بازار', 'تجارت', 'معامله'],
         'تجارت': ['تجارت', 'بازرگانی', 'کسب و کار', 'Business', 'بیزینس'],
-            'مارک': ['مارک', 'برند', 'نام تجاری', 'علامت'],
-            'فولاد': ['فولاد', 'آهن', 'فلز', 'صنعت'],
+        'مارک': ['مارک', 'برند', 'نام تجاری', 'علامت'],
+        'فولاد': ['فولاد', 'آهن', 'فلز', 'صنعت'],
 
         # ---------- قرارداد و حقوق ----------
         'قرارداد': ['قرارداد', 'تفاهم‌نامه', 'توافق', 'پیمان', 'مذاکره', 'قراردادی'],
@@ -156,8 +156,19 @@ class SmartAssetMatcher:
     
     @classmethod
     def calculate_semantic_similarity(cls, text1, text2):
+        # اگر text1 دیکشنری بود، به رشته تبدیل کن
+        if isinstance(text1, dict):
+            text1 = text1.get('name', '') or str(text1)
+        if isinstance(text2, dict):
+            text2 = text2.get('name', '') or str(text2)
+        
+        # اگر خالی بود، برگرد 0
+        if not text1 or not text2:
+            return 0
+        
         words1 = set(re.sub(r'[^\w\s]', '', text1).split())
         words2 = set(re.sub(r'[^\w\s]', '', text2).split())
+        
         if not words1 or not words2:
             return 0
         
@@ -180,12 +191,21 @@ class SmartAssetMatcher:
         
         intersection = len(expanded1.intersection(expanded2))
         union = len(expanded1.union(expanded2))
+        
         if union == 0:
             return 0
+        
         return intersection / union
     
     @classmethod
     def find_best_match(cls, asset_name):
+        # اگر asset_name دیکشنری بود، به رشته تبدیل کن
+        if isinstance(asset_name, dict):
+            asset_name = asset_name.get('name', '') or str(asset_name)
+        
+        if not asset_name:
+            return None
+        
         all_asset_types = AssetType.objects.all()
         if not all_asset_types:
             return None
@@ -205,8 +225,10 @@ class SmartAssetMatcher:
             })
         
         scores.sort(key=lambda x: x['score'], reverse=True)
+        
         if scores and scores[0]['score'] > 0.1:
             return scores[0]
+        
         return None
     
     @classmethod
@@ -230,6 +252,7 @@ class SmartAssetMatcher:
         result = cls.find_best_match(asset_name)
         if not result:
             return None
+        
         return {
             'asset_type': result['asset_type'].name,
             'asset_type_id': result['asset_type'].id,
@@ -240,5 +263,3 @@ class SmartAssetMatcher:
                 'متنی': f'{result["textual_score"] * 100:.1f}%',
             }
         }
-
-
