@@ -246,6 +246,8 @@ class AssetValuation(models.Model):
 class ValuationAnswer(models.Model):
     valuation = models.ForeignKey(AssetValuation, on_delete=models.CASCADE, related_name='answers')
     question = models.ForeignKey(ValuationQuestion, on_delete=models.CASCADE)
+    question_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='کد سوال')
+    selected_option = models.TextField(null=True, blank=True, verbose_name='گزینه انتخاب شده')
     score = models.IntegerField(choices=[(1, '۱'), (2, '۲'), (3, '۳'), (4, '۴'), (5, '۵')], null=True, blank=True)
     evidence = models.TextField(blank=True)
     notes = models.TextField(blank=True)

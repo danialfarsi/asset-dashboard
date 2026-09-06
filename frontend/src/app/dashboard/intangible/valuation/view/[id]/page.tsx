@@ -33,6 +33,7 @@ interface Answer {
   question_text: string;
   dimension_name: string;
   score: number;
+  selected_option: string;
   evidence: string;
   notes: string;
 }
@@ -266,43 +267,55 @@ export default function ViewValuationPage() {
                   {/* گزینه‌ها */}
                   <div className="space-y-1.5 mt-2">
                     <p className="text-xs text-gray-500">گزینه‌های انتخاب:</p>
-                    {scoreGuides.length > 0 ? (
-                      scoreGuides.map((guide: ScoreGuide) => {
-                        const isSelected = guide.score === selectedScore;
-                        return (
-                          <div
-                            key={guide.score}
-                            className={`p-2.5 rounded-lg border-2 transition-all ${
-                              isSelected 
-                                ? 'border-dark-green bg-dark-green/10 shadow-sm' 
-                                : 'border-gray-200 bg-gray-50/50'
-                            }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                                isSelected 
-                                  ? 'bg-dark-green text-white' 
-                                  : 'bg-gray-200 text-gray-400'
-                              }`}>
-                                {guide.score}
-                              </div>
-                              <div className="flex-1">
-                                <p className={`text-sm ${isSelected ? 'text-dark-green font-medium' : 'text-gray-600'}`}>
-                                  {guide.condition}
-                                </p>
-                                {isSelected && (
-                                  <p className="text-xs text-green-600 mt-0.5 flex items-center gap-1">
-                                    <CheckCircle className="w-3 h-3" />
-                                    گزینه انتخاب شده
-                                  </p>
-                                )}
-                              </div>
-                            </div>
+                    
+                    {/* نمایش گزینه انتخاب شده از selected_option */}
+                    {item.selected_option ? (
+                      <div className="p-2.5 rounded-lg border-2 border-dark-green bg-dark-green/10 shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold">
+                            {selectedScore}
                           </div>
-                        );
-                      })
+                          <div className="flex-1">
+                            <p className="text-sm text-dark-green font-medium">
+                              {item.selected_option}
+                            </p>
+                            <p className="text-xs text-green-600 mt-0.5 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" />
+                              گزینه انتخاب شده
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
                       <p className="text-xs text-gray-400">گزینه‌ای برای این سوال ثبت نشده است</p>
+                    )}
+                    
+                    {/* نمایش سایر گزینه‌ها (اختیاری - از score_guides) */}
+                    {scoreGuides.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] text-gray-400">سایر گزینه‌ها:</p>
+                        {scoreGuides.map((guide: ScoreGuide) => {
+                          const isSelected = guide.score === selectedScore;
+                          if (isSelected) return null;
+                          return (
+                            <div
+                              key={guide.score}
+                              className="p-2 rounded-lg border border-gray-200 bg-gray-50/50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center text-[10px] font-bold">
+                                  {guide.score}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-xs text-gray-600">
+                                    {guide.condition}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </CardContent>

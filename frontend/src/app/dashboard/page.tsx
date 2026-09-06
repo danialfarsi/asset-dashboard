@@ -20,40 +20,23 @@ import {
   Building,
   TrendingUp,
   Search,
-  Calendar,
   Users,
-  Activity,
-  Award,
   Crown,
   PieChart,
   Sparkles,
-  Target,
-  Rocket,
-  Shield,
-  Star,
-  Briefcase,
-  Globe,
-  Compass,
   BarChart3,
   LineChart as LineChartIcon,
-  Zap,
-  Eye,
   ArrowUpRight,
   ArrowDownRight,
   Minus,
   Layers,
   FileCheck,
-  GitBranch,
-  Workflow,
-  Users2,
   ClipboardCheck,
   Gauge,
-  Timer,
   AlertTriangle,
-  CheckSquare,
-  FileText,
   DollarSign,
-  Clock as ClockIcon
+  Clock as ClockIcon,
+  ChevronLeft,
 } from 'lucide-react';
 
 import {
@@ -63,16 +46,12 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  LineChart,
   Line,
   ComposedChart,
-  Area,
-  AreaChart
+  Bar,
 } from 'recharts';
 
 const COLORS = ['#015345', '#8ECFAF', '#D4A547', '#3B7A6E', '#F5A8A8', '#6B8E9C', '#FF6B6B', '#4ECDC4'];
@@ -229,21 +208,21 @@ export default function DashboardPage() {
       const now = new Date();
       const currentMonth = now.getMonth();
       const currentYear = now.getFullYear();
-      
+
       const currentMonthAssets = assets.filter((a: any) => {
         const d = new Date(a.created_at);
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }).length;
-      
+
       const lastMonthAssets = assets.filter((a: any) => {
         const d = new Date(a.created_at);
         const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
         const lastYear = currentMonth === 0 ? currentYear - 1 : currentYear;
         return d.getMonth() === lastMonth && d.getFullYear() === lastYear;
       }).length;
-      
-      const growthRate = lastMonthAssets > 0 
-        ? Math.round(((currentMonthAssets - lastMonthAssets) / lastMonthAssets) * 100) 
+
+      const growthRate = lastMonthAssets > 0
+        ? Math.round(((currentMonthAssets - lastMonthAssets) / lastMonthAssets) * 100)
         : 0;
 
       // 📌 میانگین زمان تأیید (تخمینی)
@@ -354,11 +333,15 @@ export default function DashboardPage() {
   // RENDER HELPERS
   // ============================================
   const getResultBadge = (result: string) => {
-    const colors = { confirmed: 'bg-emerald-100 text-emerald-800', conditional: 'bg-amber-100 text-amber-800', rejected: 'bg-red-100 text-red-800' };
-    const labels = { confirmed: 'تأیید', conditional: 'مشروط', rejected: 'رد' };
+    const styles: Record<string, string> = {
+      confirmed: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
+      conditional: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200',
+      rejected: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200',
+    };
+    const labels: Record<string, string> = { confirmed: 'تأیید', conditional: 'مشروط', rejected: 'رد' };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${colors[result as keyof typeof colors] || 'bg-gray-100'}`}>
-        {labels[result as keyof typeof labels] || result}
+      <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap ${styles[result] || 'bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-200'}`}>
+        {labels[result] || result}
       </span>
     );
   };
@@ -382,31 +365,38 @@ export default function DashboardPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'صبح بخیر ☀️';
-    if (hour < 17) return 'ظهر بخیر 🌤️';
-    if (hour < 21) return 'عصر بخیر 🌅';
-    return 'شب بخیر 🌙';
+    if (hour < 12) return 'صبح بخیر';
+    if (hour < 17) return 'ظهر بخیر';
+    if (hour < 21) return 'عصر بخیر';
+    return 'شب بخیر';
   };
 
-  const renderStatCard = (stat: { label: string; value: number; icon: any; color: string; subtitle?: string }) => {
+  const approvalRate = stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0;
+
+  const renderStatCard = (stat: { label: string; value: number; icon: any; color: string; subtitle?: string; trend?: 'up' | 'down' | 'flat' }) => {
     const Icon = stat.icon;
+    const TrendIcon = stat.trend === 'up' ? ArrowUpRight : stat.trend === 'down' ? ArrowDownRight : Minus;
     return (
-      <Card className="border-0 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] duration-200">
+      <Card className="group relative overflow-hidden border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-[0_8px_24px_rgba(1,83,69,0.08)] hover:-translate-y-0.5 transition-all duration-300">
+        <div className={`absolute inset-x-0 top-0 h-0.5 ${stat.color.replace('text', 'bg')} opacity-70`} />
         <CardContent className="p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">{stat.label}</p>
-              <p className={`text-2xl font-bold ${stat.color} mt-1`}>
-                {toPersianNumberWithComma(stat.value)}
-              </p>
-              {stat.subtitle && (
-                <p className="text-[10px] text-gray-400 mt-0.5">{stat.subtitle}</p>
-              )}
-            </div>
+          <div className="flex items-start justify-between">
             <div className={`${stat.color.replace('text', 'bg')}/10 p-2.5 rounded-xl`}>
               <Icon className={`w-5 h-5 ${stat.color}`} />
             </div>
+            {stat.trend && (
+              <span className={`flex items-center gap-0.5 text-[10px] font-semibold ${stat.trend === 'up' ? 'text-emerald-600' : stat.trend === 'down' ? 'text-red-500' : 'text-gray-400'}`}>
+                <TrendIcon className="w-3 h-3" />
+              </span>
+            )}
           </div>
+          <p className={`text-[26px] leading-none font-bold ${stat.color} mt-4 tabular-nums`}>
+            {toPersianNumberWithComma(stat.value)}
+          </p>
+          <p className="text-xs text-gray-500 font-medium mt-2">{stat.label}</p>
+          {stat.subtitle && (
+            <p className="text-[10px] text-gray-400 mt-1">{stat.subtitle}</p>
+          )}
         </CardContent>
       </Card>
     );
@@ -424,47 +414,76 @@ export default function DashboardPage() {
   // MAIN DASHBOARD
   // ============================================================
   return (
-    <PageTransition className="p-6 space-y-6 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+    <PageTransition className="p-6 space-y-6 bg-[#F7F8F7] min-h-screen">
 
       {/* ============================================
           HEADER
       ============================================ */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-dark-green via-medium-green to-aqua-green p-6 text-white">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-60 h-60 bg-golden-amber rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-        </div>
-        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-dark-green via-medium-green to-aqua-green p-7 md:p-8 text-white shadow-[0_20px_50px_rgba(1,83,69,0.25)]">
+        {/* decorative layers */}
+        <div
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-golden-amber/30 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3" />
+
+        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm border border-white/20">
+            <div className="p-3 bg-white/15 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
               {isSuperAdmin ? <Crown className="w-7 h-7" /> : <Building2 className="w-7 h-7" />}
             </div>
             <div>
-              <p className="text-sm text-white/80">{getGreeting()}</p>
-              <h1 className="text-xl md:text-2xl font-bold">{getFullName()}</h1>
-              <div className="flex flex-wrap items-center gap-2 mt-0.5">
-                <span className="bg-white/20 px-2.5 py-0.5 rounded-full text-[10px] backdrop-blur-sm border border-white/10 flex items-center gap-1">
+              <p className="text-sm text-white/70 font-medium">{getGreeting()}،</p>
+              <h1 className="text-2xl md:text-[28px] font-bold tracking-tight mt-0.5">{getFullName()}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                <span className="bg-white/15 px-3 py-1 rounded-full text-[11px] font-medium backdrop-blur-sm border border-white/10 flex items-center gap-1.5">
                   {isSuperAdmin ? <Crown className="w-3 h-3" /> : <User className="w-3 h-3" />}
                   {getRoleDisplay(role)}
                 </span>
                 {user?.organization_name && (
-                  <span className="bg-golden-amber/30 px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 border border-golden-amber/30">
+                  <span className="bg-golden-amber/25 px-3 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 border border-golden-amber/30">
                     <Building2 className="w-3 h-3" /> {user.organization_name}
                   </span>
                 )}
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+
+          {/* signature: confidence / approval gauge */}
+          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-4">
+            <div className="relative w-16 h-16 shrink-0">
+              <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
+                <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="6" />
+                <circle
+                  cx="32" cy="32" r="27" fill="none" stroke="#D4A547" strokeWidth="6" strokeLinecap="round"
+                  strokeDasharray={`${(approvalRate / 100) * 169.6} 169.6`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-bold">
+                {toPersianPercent(approvalRate)}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] text-white/70">نرخ تأیید کلی</p>
+              <p className="text-sm font-semibold">{toPersianNumberWithComma(stats.verifiedAssets)} از {toPersianNumberWithComma(stats.totalAssets)} دارایی</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link href="/dashboard/intangible/screening/new">
-              <Button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/20 text-white text-sm h-9">
-                <Search className="w-4 h-4 ml-1.5" />
+              <Button className="bg-white/15 hover:bg-white/25 backdrop-blur-sm border border-white/20 text-white text-sm h-10 px-4 rounded-xl">
+                <Search className="w-4 h-4 ml-2" />
                 غربالگری جدید
               </Button>
             </Link>
             <Link href="/dashboard/intangible/discovery-wizard">
-              <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0 text-sm h-9">
-                <Sparkles className="w-4 h-4 ml-1.5" />
+              <Button className="bg-golden-amber hover:bg-golden-amber/90 text-white border-0 text-sm h-10 px-4 rounded-xl shadow-lg shadow-golden-amber/30">
+                <Sparkles className="w-4 h-4 ml-2" />
                 موتور شناسایی
               </Button>
             </Link>
@@ -475,64 +494,53 @@ export default function DashboardPage() {
       {/* ============================================
           KPI CARDS
       ============================================ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {renderStatCard({ 
-          label: 'کل دارایی‌ها', 
-          value: stats.totalAssets, 
-          icon: Package, 
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        {renderStatCard({
+          label: 'کل دارایی‌ها',
+          value: stats.totalAssets,
+          icon: Package,
           color: 'text-dark-green',
-          subtitle: `${stats.growthRate > 0 ? '+' : ''}${toPersianNumber(stats.growthRate)}% نسبت به ماه قبل`
+          subtitle: `${stats.growthRate > 0 ? '+' : ''}${toPersianNumber(stats.growthRate)}٪ نسبت به ماه قبل`,
+          trend: stats.growthRate > 0 ? 'up' : stats.growthRate < 0 ? 'down' : 'flat',
         })}
         {renderStatCard({ label: 'تأیید شده', value: stats.verifiedAssets, icon: CheckCircle, color: 'text-emerald-600' })}
         {renderStatCard({ label: 'در انتظار', value: stats.pendingAssets, icon: Clock, color: 'text-amber-600' })}
         {renderStatCard({ label: 'رد شده', value: stats.rejectedAssets, icon: AlertCircle, color: 'text-red-600' })}
-        {renderStatCard({ 
-          label: 'نرخ تأیید', 
-          value: stats.totalAssets > 0 ? Math.round((stats.verifiedAssets / stats.totalAssets) * 100) : 0, 
-          icon: TrendingUp, 
+        {renderStatCard({
+          label: 'نرخ تأیید',
+          value: approvalRate,
+          icon: TrendingUp,
           color: 'text-emerald-600',
-          subtitle: stats.totalAssets > 0 ? `${toPersianNumber(stats.totalAssets - stats.verifiedAssets - stats.pendingAssets)} رد` : ''
+          subtitle: stats.totalAssets > 0 ? `${toPersianNumber(stats.totalAssets - stats.verifiedAssets - stats.pendingAssets)} رد` : '',
         })}
       </div>
 
       {/* ============================================
           SECOND ROW - عملیاتی
       ============================================ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="bg-blue-50 p-2 rounded-lg"><Users className="w-5 h-5 text-blue-600" /></div>
-            <div>
-              <p className="text-[10px] text-gray-400">کاربران</p>
-              <p className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.totalUsers)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="bg-purple-50 p-2 rounded-lg"><Building className="w-5 h-5 text-purple-600" /></div>
-            <div>
-              <p className="text-[10px] text-gray-400">واحدها</p>
-              <p className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.totalDepartments)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="bg-amber-50 p-2 rounded-lg"><FileCheck className="w-5 h-5 text-amber-600" /></div>
-            <div>
-              <p className="text-[10px] text-gray-400">قالب‌ها</p>
-              <p className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.totalScreeningTemplates)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="bg-emerald-50 p-2 rounded-lg"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
-            <div>
-              <p className="text-[10px] text-gray-400">ارزش تقریبی</p>
-              <p className="text-lg font-bold text-dark-green">{toPersianNumberWithComma(stats.estimatedValue)}</p>
-              <p className="text-[8px] text-gray-400">ریال</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        {[
+          { label: 'کاربران', value: stats.totalUsers, icon: Users, bg: 'bg-blue-50', color: 'text-blue-600' },
+          { label: 'واحدها', value: stats.totalDepartments, icon: Building, bg: 'bg-purple-50', color: 'text-purple-600' },
+          { label: 'قالب‌ها', value: stats.totalScreeningTemplates, icon: FileCheck, bg: 'bg-amber-50', color: 'text-amber-600' },
+        ].map((row) => (
+          <Card key={row.label} className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-3.5">
+              <div className={`${row.bg} p-2.5 rounded-xl`}><row.icon className={`w-5 h-5 ${row.color}`} /></div>
+              <div>
+                <p className="text-[10px] text-gray-400 font-medium">{row.label}</p>
+                <p className="text-lg font-bold text-dark-green tabular-nums">{toPersianNumberWithComma(row.value)}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow">
+          <CardContent className="p-4 flex items-center gap-3.5">
+            <div className="bg-emerald-50 p-2.5 rounded-xl"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-gray-400 font-medium">ارزش تقریبی</p>
+              <p className="text-lg font-bold text-dark-green tabular-nums truncate">{toPersianNumberWithComma(stats.estimatedValue)}</p>
+              <p className="text-[9px] text-gray-400">ریال</p>
             </div>
           </CardContent>
         </Card>
@@ -542,12 +550,12 @@ export default function DashboardPage() {
           CHARTS ROW
       ============================================ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-        
+
         {/* 1. توزیع دسته‌بندی */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-dark-green">
-              <PieChart className="w-4 h-4" />
+            <CardTitle className="text-sm flex items-center gap-2 text-dark-green font-semibold">
+              <div className="bg-dark-green/10 p-1.5 rounded-lg"><PieChart className="w-4 h-4" /></div>
               دسته‌بندی دارایی‌ها
             </CardTitle>
           </CardHeader>
@@ -561,83 +569,82 @@ export default function DashboardPage() {
                   labelLine={false}
                   label={({ name, percent }) => percent > 0.05 ? `${name} ${toPersianPercent((percent || 0) * 100)}` : ''}
                   outerRadius={70}
+                  innerRadius={38}
+                  paddingAngle={2}
                   dataKey="value"
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="white" strokeWidth={2} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 12 }} />
+                <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 12, borderRadius: 10, border: '1px solid #eee' }} />
               </RePieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* 2. وضعیت ارزیابی */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-dark-green">
-              <ClipboardCheck className="w-4 h-4" />
+            <CardTitle className="text-sm flex items-center gap-2 text-dark-green font-semibold">
+              <div className="bg-dark-green/10 p-1.5 rounded-lg"><ClipboardCheck className="w-4 h-4" /></div>
               وضعیت ارزیابی‌ها
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">تکمیل شده</span>
-                <span className="font-semibold text-green-600">{toPersianNumber(valuationStatus.completed)}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.totalAssets > 0 ? (valuationStatus.completed / stats.totalAssets) * 100 : 0}%` }} />
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">در حال انجام</span>
-                <span className="font-semibold text-amber-600">{toPersianNumber(valuationStatus.inProgress)}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${stats.totalAssets > 0 ? (valuationStatus.inProgress / stats.totalAssets) * 100 : 0}%` }} />
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-600">شروع نشده</span>
-                <span className="font-semibold text-gray-500">{toPersianNumber(valuationStatus.notStarted)}</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-gray-400 h-2 rounded-full" style={{ width: `${stats.totalAssets > 0 ? (valuationStatus.notStarted / stats.totalAssets) * 100 : 0}%` }} />
-              </div>
+            <div className="space-y-3.5">
+              {[
+                { label: 'تکمیل شده', value: valuationStatus.completed, color: 'bg-emerald-500', text: 'text-emerald-600' },
+                { label: 'در حال انجام', value: valuationStatus.inProgress, color: 'bg-amber-500', text: 'text-amber-600' },
+                { label: 'شروع نشده', value: valuationStatus.notStarted, color: 'bg-gray-300', text: 'text-gray-500' },
+              ].map((row) => (
+                <div key={row.label}>
+                  <div className="flex justify-between items-center text-sm mb-1.5">
+                    <span className="text-gray-600">{row.label}</span>
+                    <span className={`font-semibold tabular-nums ${row.text}`}>{toPersianNumber(row.value)}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`${row.color} h-2 rounded-full transition-all duration-700`}
+                      style={{ width: `${stats.totalAssets > 0 ? (row.value / stats.totalAssets) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
         {/* 3. توزیع نوع دارایی */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-dark-green">
-              <Layers className="w-4 h-4" />
+            <CardTitle className="text-sm flex items-center gap-2 text-dark-green font-semibold">
+              <div className="bg-dark-green/10 p-1.5 rounded-lg"><Layers className="w-4 h-4" /></div>
               نوع دارایی‌ها
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1.5">
+            <div className="space-y-2.5">
               {assetTypeDistribution.length > 0 ? (
                 assetTypeDistribution.slice(0, 5).map((item, index) => (
                   <div key={item.name} className="flex justify-between items-center text-xs">
                     <span className="text-gray-600 truncate max-w-[120px]">{item.name}</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-20 bg-gray-200 rounded-full h-1.5">
-                        <div 
-                          className="h-1.5 rounded-full" 
-                          style={{ 
+                      <div className="w-20 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-1.5 rounded-full transition-all duration-700"
+                          style={{
                             width: `${(item.value / stats.totalAssets) * 100}%`,
                             backgroundColor: COLORS[index % COLORS.length]
-                          }} 
+                          }}
                         />
                       </div>
-                      <span className="font-semibold text-gray-700 text-xs">{toPersianNumber(item.value)}</span>
+                      <span className="font-semibold text-gray-700 text-xs w-6 text-left tabular-nums">{toPersianNumber(item.value)}</span>
                     </div>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-gray-400 text-center py-4">داده‌ای برای نمایش وجود ندارد</p>
+                <p className="text-xs text-gray-400 text-center py-6">داده‌ای برای نمایش وجود ندارد</p>
               )}
             </div>
           </CardContent>
@@ -647,23 +654,29 @@ export default function DashboardPage() {
       {/* ============================================
           TREND CHART
       ============================================ */}
-      <Card className="border-0 shadow-sm">
+      <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2 text-dark-green">
-            <LineChartIcon className="w-4 h-4" />
+          <CardTitle className="text-sm flex items-center gap-2 text-dark-green font-semibold">
+            <div className="bg-dark-green/10 p-1.5 rounded-lg"><LineChartIcon className="w-4 h-4" /></div>
             روند ثبت دارایی‌ها (۳۰ روز اخیر)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={220}>
             <ComposedChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 12 }} />
+              <defs>
+                <linearGradient id="barFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#015345" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#015345" stopOpacity={0.55} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EEF1F0" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 12, borderRadius: 10, border: '1px solid #eee' }} />
               <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 11 }} />
-              <Bar dataKey="count" fill="#015345" radius={[3, 3, 0, 0]} />
-              <Line type="monotone" dataKey="count" stroke="#D4A547" strokeWidth={2} dot={false} />
+              <Bar dataKey="count" fill="url(#barFill)" radius={[4, 4, 0, 0]} name="ثبت‌شده" />
+              <Line type="monotone" dataKey="count" stroke="#D4A547" strokeWidth={2.5} dot={false} name="روند" />
             </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
@@ -673,11 +686,11 @@ export default function DashboardPage() {
           ALERTS & RECENT ACTIVITY
       ============================================ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        
+
         {/* هشدارها */}
-        <Card className="border-0 shadow-sm border-r-4 border-r-amber-500">
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] border-r-4 border-r-amber-400 overflow-hidden">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-amber-600">
+            <CardTitle className="text-sm flex items-center gap-2 text-amber-600 font-semibold">
               <AlertTriangle className="w-4 h-4" />
               نیاز به توجه
             </CardTitle>
@@ -686,53 +699,55 @@ export default function DashboardPage() {
             {pendingAlerts.length > 0 ? (
               <div className="space-y-2">
                 {pendingAlerts.map((alert) => (
-                  <div key={alert.id} className="flex items-center justify-between text-sm p-2 bg-amber-50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-gray-700">{alert.asset_name}</p>
+                  <div key={alert.id} className="flex items-center justify-between text-sm p-3 bg-amber-50/70 rounded-xl border border-amber-100">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-700 truncate">{alert.asset_name}</p>
                       <p className="text-[10px] text-gray-400">{alert.asset_uid}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-amber-600 font-bold">{toPersianNumber(alert.days)} روز</p>
+                    <div className="text-left shrink-0 pl-2">
+                      <p className="text-amber-600 font-bold tabular-nums">{toPersianNumber(alert.days)} روز</p>
                       <p className="text-[10px] text-gray-400">در انتظار</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 text-center py-4">✅ همه چیز خوب است، هیچ هشداری وجود ندارد</p>
+              <p className="text-xs text-gray-400 text-center py-6">همه چیز خوب است، هیچ هشداری وجود ندارد</p>
             )}
           </CardContent>
         </Card>
 
         {/* آخرین فعالیت‌ها */}
-        <Card className="border-0 shadow-sm">
+        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm flex items-center gap-2 text-dark-green">
+            <CardTitle className="text-sm flex items-center gap-2 text-dark-green font-semibold">
               <ClockIcon className="w-4 h-4" />
               آخرین فعالیت‌ها
             </CardTitle>
             <Link href="/dashboard/intangible/screening/list">
-              <Button variant="ghost" size="sm" className="text-xs text-dark-green h-7">مشاهده همه</Button>
+              <Button variant="ghost" size="sm" className="text-xs text-dark-green h-7 gap-1">
+                مشاهده همه <ChevronLeft className="w-3 h-3" />
+              </Button>
             </Link>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="divide-y divide-gray-50">
               {recentAssets.map((asset) => (
                 <Link href={`/dashboard/intangible/screening/${asset.id}`} key={asset.id}>
-                  <div className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">{asset.asset_name}</p>
+                  <div className="flex items-center justify-between py-2.5 px-1 hover:bg-gray-50 rounded-lg transition-colors -mx-1">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">{asset.asset_name}</p>
                       <p className="text-[10px] text-gray-400">{asset.asset_uid}</p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 pl-1">
                       {getResultBadge(asset.result)}
-                      <span className="text-[10px] text-gray-400">{formatDate(asset.created_at)}</span>
+                      <span className="text-[10px] text-gray-400 whitespace-nowrap">{formatDate(asset.created_at)}</span>
                     </div>
                   </div>
                 </Link>
               ))}
               {recentAssets.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-4">هیچ فعالیتی ثبت نشده است</p>
+                <p className="text-xs text-gray-400 text-center py-6">هیچ فعالیتی ثبت نشده است</p>
               )}
             </div>
           </CardContent>
@@ -742,41 +757,30 @@ export default function DashboardPage() {
       {/* ============================================
           QUICK ACTIONS
       ============================================ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Link href="/dashboard/intangible/screening/new">
-          <Card className="border-0 shadow-sm hover:shadow-md hover:border-dark-green transition-all cursor-pointer">
-            <CardContent className="p-3 text-center">
-              <Search className="w-6 h-6 mx-auto text-dark-green" />
-              <p className="text-xs font-medium mt-1">غربالگری جدید</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/intangible/discovery-wizard">
-          <Card className="border-0 shadow-sm hover:shadow-md hover:border-dark-green transition-all cursor-pointer">
-            <CardContent className="p-3 text-center">
-              <Sparkles className="w-6 h-6 mx-auto text-golden-amber" />
-              <p className="text-xs font-medium mt-1">موتور شناسایی</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/intangible/evaluation/list">
-          <Card className="border-0 shadow-sm hover:shadow-md hover:border-dark-green transition-all cursor-pointer">
-            <CardContent className="p-3 text-center">
-              <ClipboardCheck className="w-6 h-6 mx-auto text-medium-green" />
-              <p className="text-xs font-medium mt-1">ارزیابی‌ها</p>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link href="/dashboard/intangible/valuation/valuation">
-          <Card className="border-0 shadow-sm hover:shadow-md hover:border-dark-green transition-all cursor-pointer">
-            <CardContent className="p-3 text-center">
-              <Gauge className="w-6 h-6 mx-auto text-dark-green" />
-              <p className="text-xs font-medium mt-1">ارزش‌گذاری</p>
-            </CardContent>
-          </Card>
-        </Link>
+      <div>
+        <p className="text-xs font-semibold text-gray-400 mb-2.5 px-1">دسترسی سریع</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+          {[
+            { href: '/dashboard/intangible/screening/new', icon: Search, label: 'غربالگری جدید', color: 'text-dark-green', bg: 'bg-dark-green/10' },
+            { href: '/dashboard/intangible/discovery-wizard', icon: Sparkles, label: 'موتور شناسایی', color: 'text-golden-amber', bg: 'bg-golden-amber/10' },
+            { href: '/dashboard/intangible/evaluation/list', icon: ClipboardCheck, label: 'ارزیابی‌ها', color: 'text-medium-green', bg: 'bg-medium-green/10' },
+            { href: '/dashboard/intangible/valuation/valuation', icon: Gauge, label: 'ارزش‌گذاری', color: 'text-dark-green', bg: 'bg-dark-green/10' },
+          ].map((action) => (
+            <Link href={action.href} key={action.href}>
+              <Card className="group border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-lg hover:-translate-y-0.5 hover:border-dark-green/30 transition-all cursor-pointer">
+                <CardContent className="p-4 text-center">
+                  <div className={`${action.bg} w-11 h-11 mx-auto rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                    <action.icon className={`w-5 h-5 ${action.color}`} />
+                  </div>
+                  <p className="text-xs font-medium mt-2.5 text-gray-700">{action.label}</p>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
       </div>
-        {/* ============================================
+
+      {/* ============================================
     CLAIM ASSETS BUTTON (برای کاربران لاگین شده)
     ============================================ */}
       <ClaimAssetsButton />

@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-// IMPORTANT: import fetchAllValuations has been REMOVED to fix the performance bug
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmModal } from '@/components/ui/delete-confirm-modal';
@@ -317,17 +316,14 @@ export default function AssetDetailPage() {
       }
       
       // ===============================================================
-      // ✅ FIX APPLIED HERE: Replaced fetchAllValuations with filtered API call
+      // دریافت ارزیابی‌ها
       // ===============================================================
       try {
         console.log(`📥 دریافت ارزیابی‌های دارایی ID: ${assetIdNum}`);
         const valuationsRes = await api.get(`/intangible/asset-valuations/?asset=${assetId}`);
-        
-        // Ensure we handle different response structures (results wrapper or direct array)
         const assetValuations = valuationsRes.data.results || valuationsRes.data || [];
         
         if (assetValuations.length > 0) {
-          // Find a completed valuation first, otherwise use the latest
           const completed = assetValuations.find((v: any) => v.status === 'completed');
           const targetValuation = completed || assetValuations[assetValuations.length - 1];
           
@@ -335,7 +331,8 @@ export default function AssetDetailPage() {
             const { data: summary } = await api.get(`/intangible/asset-valuations/${targetValuation.id}/summary/`);
             setValuation({
               id: targetValuation.id,
-              final_score: summary.final_score || 0,
+              final_score: summary.weighted_score || summary.final_score || 0,
+              // 🔥 برای نمودار رادار باید strategic_score خام (مجموع) ارسال شود
               strategic_score: summary.strategic_score || 0,
               technical_score: summary.technical_score || 0,
               operational_score: summary.operational_score || 0,

@@ -188,15 +188,11 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
   const getSuggestion = async () => {
     setIsGettingSuggestion(true);
     try {
-      const answersForApi: Record<string, boolean> = {};
-      Object.entries(answers).forEach(([key, value]) => {
-        answersForApi[key.toUpperCase()] = value;
-      });
-
+      // 🔥 ارسال مستقیم answers بدون تغییر کلیدها
       const response = await api.post('/intangible/suggest-template/', {
         asset_name: assetData.asset_name,
         organization_type: assetData.organization_type,
-        answers: answersForApi
+        answers: answers
       });
       
       setSuggestion(response.data);
@@ -225,7 +221,7 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
         setResult(calculated);
         setIsResultReady(true);
         setIsCalculating(false);
-        // getSuggestion(); // غیرفعال در صفحه عمومی
+        getSuggestion();
         if (onComplete) onComplete(calculated);
         setCurrentStep(6);
       }, 500);
@@ -257,7 +253,6 @@ export function DiscoveryWizard({ assetId, onComplete }: DiscoveryWizardProps) {
     setError(null);
     
     try {
-      // استفاده از API خارجی (بدون احراز هویت)
       const response = await fetch('http://localhost:8000/api/intangible/external/discovery/', {
         method: 'POST',
         headers: {

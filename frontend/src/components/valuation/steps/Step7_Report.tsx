@@ -553,7 +553,7 @@ export function Step7_Report({
         case_status: 'REGISTERED',
       };
 
-      await api.post('/intangible/valuation-cases/finalize/', payload);
+      await api.post(`/intangible/valuation-cases/${valuationCaseId}/submit/`, payload);
 
       if (onComplete) {
         onComplete(payload);

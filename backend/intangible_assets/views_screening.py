@@ -66,12 +66,36 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         category = self.request.data.get('category', 'operational_knowledge')
         asset_name = self.request.data.get('asset_name', '')
         
+        # 🔥 دریافت template_id و asset_type_id از درخواست
+        template_id = self.request.data.get('template_id')
+        asset_type_id = self.request.data.get('asset_type_id')
+        valuation_method = self.request.data.get('valuation_method')
+        
+        # اگر asset_type_id ارسال نشده، از قالب بگیر
+        if not asset_type_id and template_id:
+            try:
+                template = ScreeningTemplate.objects.get(id=template_id)
+                if template.asset_type_id:
+                    asset_type_id = template.asset_type_id
+                if template.valuation_method:
+                    valuation_method = template.valuation_method
+            except ScreeningTemplate.DoesNotExist:
+                pass
+        
         asset_uid = generate_asset_uid(category, asset_name)
         
-        serializer.save(
-            created_by=self.request.user,
-            asset_uid=asset_uid
-        )
+        # ایجاد دارایی با داده‌های اضافی
+        save_data = {
+            'created_by': self.request.user,
+            'asset_uid': asset_uid,
+        }
+        
+        if asset_type_id:
+            save_data['asset_type_id'] = asset_type_id
+        if valuation_method:
+            save_data['valuation_method'] = valuation_method
+        
+        serializer.save(**save_data)
 
 
 class AssetFileViewSet(viewsets.ModelViewSet):

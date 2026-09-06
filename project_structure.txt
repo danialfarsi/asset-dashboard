@@ -1,0 +1,347 @@
+.
+├── README.md
+├── add_coefficients.py
+├── backend
+│   ├── Dockerfile
+│   ├── accounts
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_user_organization_type.py
+│   │   │   ├── 0003_add_external_fields_to_user.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   ├── views_department.py
+│   │   ├── views_organization.py
+│   │   └── views_user.py
+│   ├── add_assets_9_10_11.py
+│   ├── assets
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── serializer.py
+│   │   ├── serializers.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   └── views.py
+│   ├── config
+│   │   ├── __init__.py
+│   │   ├── asgi.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   └── wsgi.py
+│   ├── connect_asset_types.py
+│   ├── create_valuation_weights.py
+│   ├── fill_discovery_scores_final.py
+│   ├── fill_remaining_scores.py
+│   ├── frontend
+│   │   └── public
+│   │       └── config
+│   ├── intangible_assets
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── api_management_models.py
+│   │   ├── apps.py
+│   │   ├── asset_codes.py
+│   │   ├── asset_matcher.py
+│   │   ├── asset_type_mapping.py
+│   │   ├── discovery_analyzer.py
+│   │   ├── discovery_analyzer.py.backup2
+│   │   ├── discovery_analyzer_fix.py
+│   │   ├── discovery_models.py
+│   │   ├── discovery_serializers.py
+│   │   ├── discovery_views.py
+│   │   ├── external_discovery_views.py
+│   │   ├── fixtures
+│   │   │   └── screening_templates.json
+│   │   ├── graph
+│   │   │   ├── __init__.py
+│   │   │   ├── dimension_models.py
+│   │   │   └── models.py
+│   │   ├── graph_views.py
+│   │   ├── management
+│   │   │   └── commands
+│   │   ├── migrations
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_alter_screenedasset_created_at.py
+│   │   │   ├── 0003_alter_screenedasset_created_at.py
+│   │   │   ├── 0004_assetfile.py
+│   │   │   ├── 0005_assettype_valuationdimension_assetvaluation_and_more.py
+│   │   │   ├── 0006_screenedasset_asset_type.py
+│   │   │   ├── 0007_valuationweight.py
+│   │   │   ├── 0008_add_asset_type_to_screening_template.py
+│   │   │   ├── 0009_add_asset_type_to_screening.py
+│   │   │   ├── 0010_add_asset_type_field.py
+│   │   │   ├── 0011_add_notification_model.py
+│   │   │   ├── 0012_add_evidence_files.py
+│   │   │   ├── 0013_add_valuation_method.py
+│   │   │   ├── 0014_add_valuation_method_and_evidence_fields.py
+│   │   │   ├── 0015_screeningtemplate_valuation_method.py
+│   │   │   ├── 0016_add_valuation_models.py
+│   │   │   ├── 0017_add_valuation_step3_models.py
+│   │   │   ├── 0018_screenedasset_valuation_method.py
+│   │   │   ├── 0019_add_valuation_step4_models.py
+│   │   │   ├── 0020_load_screening_templates.py
+│   │   │   ├── 0021_discoveryassessment.py
+│   │   │   ├── 0022_add_discovery_scores.py
+│   │   │   ├── 0023_valuationstep3evidence_cac_breakdown_and_more.py
+│   │   │   ├── 0024_add_sensitivity_model_manual.py
+│   │   │   ├── 0025_add_sensitivity_table.py
+│   │   │   ├── 0026_qualitycontrolresult.py
+│   │   │   ├── 0027_add_token_value.py
+│   │   │   ├── 0028_add_graph_dimensions.py
+│   │   │   ├── 0029_add_external_fields.py
+│   │   │   ├── 0030_apikey_externaluser_apirequestlog.py
+│   │   │   ├── 0031_alter_apikey_name_alter_externaluser_session_id_and_more.py
+│   │   │   ├── 0032_externaluser_email.py
+│   │   │   ├── 0033_valuationanswer_selected_option.py
+│   │   │   ├── 0034_valuationanswer_question_code.py
+│   │   │   └── __init__.py
+│   │   ├── models.py
+│   │   ├── models.py.backup
+│   │   ├── notification_models.py
+│   │   ├── notification_serializers.py
+│   │   ├── notification_views.py
+│   │   ├── sensitivity_engine.py
+│   │   ├── serializers.py
+│   │   ├── services
+│   │   │   ├── __init__.py
+│   │   │   ├── graph_service.py
+│   │   │   └── sensitivity_engine.py
+│   │   ├── signals.py
+│   │   ├── smart_matcher.py
+│   │   ├── tests
+│   │   │   ├── __init__.py
+│   │   │   ├── test_all_methods.py
+│   │   │   ├── test_sensitivity_all_methods.py
+│   │   │   └── test_valuation_full.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   ├── urls.py.backup
+│   │   ├── valuation_case_serializers.py
+│   │   ├── valuation_case_views.py
+│   │   ├── valuation_formulas.py
+│   │   ├── valuation_models.py
+│   │   ├── valuation_qc_models.py
+│   │   ├── valuation_qc_serializers.py
+│   │   ├── valuation_qc_views.py
+│   │   ├── valuation_sensitivity_models.py
+│   │   ├── valuation_sensitivity_serializers.py
+│   │   ├── valuation_sensitivity_views.py
+│   │   ├── valuation_serializers.py
+│   │   ├── valuation_step3_models.py
+│   │   ├── valuation_step3_serializers.py
+│   │   ├── valuation_step3_views.py
+│   │   ├── valuation_step4_models.py
+│   │   ├── valuation_step4_serializers.py
+│   │   ├── valuation_step4_views.py
+│   │   ├── valuation_views.py
+│   │   ├── views.py
+│   │   ├── views.py.backup
+│   │   ├── views_api_stats.py
+│   │   ├── views_asset_type_detection.py
+│   │   ├── views_backup.py
+│   │   ├── views_claim_assets.py
+│   │   ├── views_discovery.py
+│   │   ├── views_external_users.py
+│   │   ├── views_screening.py
+│   │   └── views_screening.py.backup
+│   ├── intangible_views_api_stats.py
+│   ├── manage.py
+│   ├── media
+│   │   ├── asset_files
+│   │   │   └── 2026
+│   │   ├── evidence
+│   │   │   ├── databases
+│   │   │   ├── documents
+│   │   │   ├── interviews
+│   │   │   └── processes
+│   │   └── valuation
+│   │       └── step3
+│   ├── requirements.txt
+│   ├── scripts
+│   ├── staticfiles
+│   │   ├── admin
+│   │   │   ├── css
+│   │   │   ├── img
+│   │   │   └── js
+│   │   └── rest_framework
+│   │       ├── css
+│   │       ├── docs
+│   │       ├── fonts
+│   │       ├── img
+│   │       └── js
+│   ├── update_asset_valuation_methods.py
+│   └── update_valuation_methods.py
+├── backend.zip
+├── backend_files_list.txt
+├── backend_structure.txt
+├── backups
+│   ├── backup_20260829_113500.sql
+│   ├── backup_20260830_021859.sql
+│   └── backup_20260904_144235.sql
+├── cookies.txt
+├── core_files.txt
+├── data.py
+├── docker-compose.ym
+├── docker-compose.yml
+├── file_list.txt
+├── files.txt
+├── frontend
+│   ├── README.md
+│   ├── backend
+│   │   └── intangible_assets
+│   │       ├── __init__.py
+│   │       ├── sensitivity_engine.py
+│   │       ├── services
+│   │       ├── urls.py
+│   │       ├── valuation_formulas.py
+│   │       ├── valuation_sensitivity_models.py
+│   │       ├── valuation_sensitivity_serializers.py
+│   │       └── valuation_sensitivity_views.py
+│   ├── components.json
+│   ├── cookies.txt
+│   ├── eslint.config.mjs
+│   ├── frontend
+│   │   ├── frontend
+│   │   │   ├── next.config.ts
+│   │   │   └── public
+│   │   ├── next-app
+│   │   │   ├── AGENTS.md
+│   │   │   ├── README.md
+│   │   │   ├── app
+│   │   │   ├── components
+│   │   │   ├── eslint.config.mjs
+│   │   │   ├── hooks
+│   │   │   ├── lib
+│   │   │   ├── next.config.ts
+│   │   │   ├── package.json
+│   │   │   ├── postcss.config.mjs
+│   │   │   ├── public
+│   │   │   └── tsconfig.json
+│   │   ├── public
+│   │   │   └── config
+│   │   └── src
+│   │       ├── app
+│   │       ├── components
+│   │       └── types
+│   ├── middleware.ts
+│   ├── next-env.d.ts
+│   ├── next.config.ts
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── pnpm-workspace.yaml
+│   ├── postcss.config.mjs
+│   ├── project_structure.txt
+│   ├── public
+│   │   ├── config
+│   │   │   └── sensitivity
+│   │   ├── file.svg
+│   │   ├── fonts
+│   │   │   ├── Vazirmatn-Black.woff2
+│   │   │   ├── Vazirmatn-Bold.woff2
+│   │   │   ├── Vazirmatn-ExtraBold.woff2
+│   │   │   ├── Vazirmatn-ExtraLight.woff2
+│   │   │   ├── Vazirmatn-Light.woff2
+│   │   │   ├── Vazirmatn-Medium.woff2
+│   │   │   ├── Vazirmatn-Regular.woff2
+│   │   │   ├── Vazirmatn-SemiBold.woff2
+│   │   │   ├── Vazirmatn-Thin.woff2
+│   │   │   └── Vazirmatn[wght].woff2
+│   │   ├── globe.svg
+│   │   ├── logo.png
+│   │   ├── next.svg
+│   │   ├── test.html
+│   │   ├── vercel.svg
+│   │   └── window.svg
+│   ├── src
+│   │   ├── app
+│   │   │   ├── admin
+│   │   │   ├── dashboard
+│   │   │   ├── discovery-wizard
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   ├── login
+│   │   │   ├── logo.png
+│   │   │   └── page.tsx
+│   │   ├── components
+│   │   │   ├── ClaimAssetsButton.tsx
+│   │   │   ├── asset
+│   │   │   ├── charts
+│   │   │   ├── discovery
+│   │   │   ├── graph
+│   │   │   ├── layout
+│   │   │   ├── ui
+│   │   │   └── valuation
+│   │   ├── hooks
+│   │   │   ├── use-mobile.ts
+│   │   │   └── useSensitivity.ts
+│   │   ├── lib
+│   │   │   ├── api-utils.ts
+│   │   │   ├── api.ts
+│   │   │   ├── asset-api.ts
+│   │   │   ├── asset-type-mapping.ts
+│   │   │   ├── auth.ts
+│   │   │   ├── date-utils.ts
+│   │   │   ├── utils.ts
+│   │   │   └── valuation-api.ts
+│   │   ├── middleware.ts.bak
+│   │   ├── providers
+│   │   │   └── QueryProvider.tsx
+│   │   ├── services
+│   │   │   └── sensitivity.service.ts
+│   │   ├── store
+│   │   │   └── auth-store.ts
+│   │   └── types
+│   │       ├── asset.ts
+│   │       ├── auth.ts
+│   │       └── discovery.types.ts
+│   ├── tailwind.config.js
+│   ├── tailwind.config.ts
+│   └── tsconfig.json
+├── frontend_structure.txt
+├── full_backup_20260824_131734.sql
+├── package-lock.json
+├── package.json
+├── project_dump.txt
+├── project_files.tar.gz
+├── project_files.txt
+├── project_info.txt
+├── project_structure.txt
+├── public
+│   └── fonts
+│       ├── Vazirmatn-Black.woff2
+│       ├── Vazirmatn-Bold.woff2
+│       ├── Vazirmatn-ExtraBold.woff2
+│       ├── Vazirmatn-ExtraLight.woff2
+│       ├── Vazirmatn-Light.woff2
+│       ├── Vazirmatn-Medium.woff2
+│       ├── Vazirmatn-Regular.woff2
+│       ├── Vazirmatn-SemiBold.woff2
+│       ├── Vazirmatn-Thin.woff2
+│       └── Vazirmatn[wght].woff2
+├── src
+│   ├── hooks
+│   │   ├── index.ts
+│   │   └── useValuationData.ts
+│   ├── providers
+│   │   └── QueryProvider.tsx
+│   └── services
+│       └── sensitivity.service.ts
+├── start.sh
+├── step3.txt
+├── structure.txt
+└── پروژه_کلیدی.txt
+
+90 directories, 255 files

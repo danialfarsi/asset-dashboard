@@ -41,10 +41,12 @@ class ValuationAnswerSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = ValuationAnswer
-        fields = ['id', 'question', 'question_code', 'question_text', 'score', 
-                  'evidence', 'notes', 'updated_at',
-                  'evidence_interview', 'evidence_document', 
-                  'evidence_process', 'evidence_database']
+        fields = [
+            'id', 'question', 'question_code', 'question_text', 
+            'score', 'selected_option', 'evidence', 'notes', 'updated_at',
+            'evidence_interview', 'evidence_document', 
+            'evidence_process', 'evidence_database'
+        ]
 
 
 class AssetValuationSerializer(serializers.ModelSerializer):
@@ -63,7 +65,7 @@ class AssetValuationSerializer(serializers.ModelSerializer):
 class ValuationAnswerCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ValuationAnswer
-        fields = ['question', 'score', 'evidence', 'notes',
+        fields = ['question', 'selected_option', 'score', 'evidence', 'notes',
                   'evidence_interview', 'evidence_document', 
                   'evidence_process', 'evidence_database']
 

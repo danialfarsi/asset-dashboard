@@ -298,7 +298,7 @@ export function Step3_Parameters({
   }, []);
 
   // ============================================
-  // 🔥 آپلود شاهد - اصلاح شده
+  // 🔥 آپلود شاهد - اصلاح شده با داده‌های پیش‌فرض
   // ============================================
   const handleUploadEvidence = async (file: File, evidenceType: string): Promise<void> => {
     let currentStep3Id = step3Id;
@@ -322,22 +322,90 @@ export function Step3_Parameters({
           }
         });
         
-        // اگر داده‌ای وجود نداشت، یک شیء خالی با فیلدهای پیش‌فرض بساز
+        // فیلدهای پیش‌فرض برای هر روش
+        const defaultInputs: Record<string, any> = {
+          'M-01': { 
+            royalty_rate: 4, 
+            industry_benchmark: 'software', 
+            revenue_attribution: 80, 
+            revenue_growth_rate: 8,
+            attribution_basis: '',
+            expert_signoffs: [],
+            quality_multiplier: 1
+          },
+          'M-02': { 
+            ebit_attributable: 20000000000, 
+            customer_attrition_rate: 10,
+            contributory_assets: '',
+            expert_signoffs: [],
+            quality_multiplier: 1
+          },
+          'M-03': { 
+            intangible_share_percent: 70,
+            fcf_schedule: '',
+            expert_signoffs: [],
+            quality_multiplier: 1
+          },
+          'M-04': { 
+            ramp_up_period: 12, 
+            revenue_attribution: 80, 
+            revenue_growth_rate: 8,
+            with_asset_fcf: '',
+            without_asset_fcf: '',
+            expert_signoffs: []
+          },
+          'M-05': { 
+            overhead_pct: 20, 
+            developer_profit_pct: 15,
+            labor_breakdown: '',
+            material_infra_cost: '',
+            functional_obs_pct: 0,
+            economic_obs_pct: 0
+          },
+          'M-06': { 
+            coordination_overhead: 20,
+            labor_breakdown: '',
+            direct_reproduction_cost: '',
+            relevance_obsolescence: '',
+            age_factor: 1,
+            last_review_date: ''
+          },
+          'M-07': { 
+            ramp_up_duration: 6, 
+            productivity_loss: 30, 
+            turnover_rate: 8,
+            team_members: 1,
+            expert_signoffs: [],
+            quality_multiplier: 1
+          },
+          'M-08': { 
+            market_comparability_context: 'High',
+            comparable_deals: '',
+            industry_classification: '',
+            expert_signoffs: [],
+            quality_multiplier: 1,
+            source_reliability: 'high'
+          },
+          'M-09': { 
+            market_multiple: 2.5, 
+            intangible_share_percent: 40,
+            base_metric: '',
+            base_metric_value: '',
+            multiple_source: '',
+            control_premium_percent: 0,
+            marketability_discount_percent: 0,
+            industry_classification: '',
+            market_comparability_context: 'High',
+            expert_signoffs: [],
+            quality_multiplier: 1,
+            source_reliability: 'high'
+          },
+        };
+        
+        // اگر داده‌ای وجود نداشت، از مقادیر پیش‌فرض استفاده کن
         if (Object.keys(filteredInputs).length === 0) {
-          // فیلدهای پیش‌فرض برای هر روش
-          const defaultInputs: Record<string, any> = {
-            'M-01': { royalty_rate: 4, industry_benchmark: 'software', revenue_attribution: 80, revenue_growth_rate: 8 },
-            'M-02': { ebit_attributable: 20000000000, customer_attrition_rate: 10 },
-            'M-03': { intangible_share_percent: 70 },
-            'M-04': { ramp_up_period: 12, revenue_attribution: 80, revenue_growth_rate: 8 },
-            'M-05': { overhead_pct: 20, developer_profit_pct: 15 },
-            'M-06': { coordination_overhead: 20 },
-            'M-07': { ramp_up_duration: 6, productivity_loss: 30, turnover_rate: 8 },
-            'M-08': { market_comparability_context: 'High' },
-            'M-09': { market_multiple: 2.5, intangible_share_percent: 40 },
-          };
-          
-          Object.assign(filteredInputs, defaultInputs[methodId] || {});
+          const defaults = defaultInputs[methodId] || {};
+          Object.assign(filteredInputs, defaults);
         }
         
         const payload = {

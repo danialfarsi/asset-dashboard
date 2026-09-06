@@ -17,6 +17,8 @@ interface ScreeningItem {
   category_label: string;
   default_result: string;
   result_label: string;
+  asset_type_id?: number;
+  valuation_method?: string;
 }
 
 interface AssetEntry {
@@ -201,11 +203,19 @@ export default function NewScreeningPage() {
         if (!item) continue;
         
         for (const entry of entries) {
+          // 🔥 دریافت asset_type_id و valuation_method از item
+          const assetTypeId = (item as any).asset_type_id;
+          const valuationMethod = (item as any).valuation_method;
+          
           await api.post('/intangible/screened-assets/', {
             asset_name: entry.name,
             category: item.category,
             result: item.default_result,
             description: `غربالگری شده از مورد: ${item.item_name}`,
+            // 🔥 اضافه کردن فیلدهای جدید
+            template_id: Number(templateId),
+            asset_type_id: assetTypeId,
+            valuation_method: valuationMethod,
           });
         }
       }
@@ -363,7 +373,7 @@ export default function NewScreeningPage() {
       )}
 
       {/* ======================================== */}
-      {/* فوتر با دکمه‌های واکنش‌گرا - اصلاح شده */}
+      {/* فوتر با دکمه‌های واکنش‌گرا */}
       {/* ======================================== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-50">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-3">
