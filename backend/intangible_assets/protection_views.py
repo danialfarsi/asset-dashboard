@@ -1,0 +1,243 @@
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Sum
+from .protection_models import (
+    ProtectionProfile, ProtectionStep1, ProtectionStep2,
+    ProtectionStep3, ProtectionStep4, ProtectionStep5
+)
+from .protection_serializers import (
+    ProtectionProfileSerializer, ProtectionStep1Serializer,
+    ProtectionStep2Serializer, ProtectionStep3Serializer,
+    ProtectionStep4Serializer, ProtectionStep5Serializer
+)
+from .protection_config import PROTECTION_ARCHETYPES
+from .protection_tools import ProtectionTool
+
+class ProtectionViewSet(viewsets.ModelViewSet):
+    queryset = ProtectionProfile.objects.all()
+    serializer_class = ProtectionProfileSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return ProtectionProfile.objects.all()
+    
+    @action(detail=True, methods=['get'])
+    def full(self, request, pk=None):
+        profile = self.get_object()
+        data = {
+            'profile': ProtectionProfileSerializer(profile).data,
+            'step1': ProtectionStep1Serializer(getattr(profile, 'step1', None)).data if hasattr(profile, 'step1') else None,
+            'step2': ProtectionStep2Serializer(getattr(profile, 'step2', None)).data if hasattr(profile, 'step2') else None,
+            'step3': ProtectionStep3Serializer(getattr(profile, 'step3', None)).data if hasattr(profile, 'step3') else None,
+            'step4': ProtectionStep4Serializer(getattr(profile, 'step4', None)).data if hasattr(profile, 'step4') else None,
+            'step5': ProtectionStep5Serializer(getattr(profile, 'step5', None)).data if hasattr(profile, 'step5') else None,
+        }
+        return Response(data)
+    
+    @action(detail=True, methods=['post'])
+    def step1(self, request, pk=None):
+        try:
+            profile = self.get_object()
+            step, _ = ProtectionStep1.objects.get_or_create(protection_profile=profile)
+            
+            archetype_config = PROTECTION_ARCHETYPES.get(profile.archetype, {})
+            
+            tools = ProtectionTool.objects.filter(
+                archetype=profile.archetype,
+                is_active=True
+            )
+            
+            legal_tools = tools.filter(tool_type='legal')
+            technical_tools = tools.filter(tool_type='technical')
+            
+            legal_count = legal_tools.count()
+            technical_count = technical_tools.count()
+            
+            legal_weight_sum = legal_tools.aggregate(Sum('weight'))['weight__sum'] or 0
+            technical_weight_sum = technical_tools.aggregate(Sum('weight'))['weight__sum'] or 0
+            total_weight_sum = tools.aggregate(Sum('weight'))['weight__sum'] or 0
+            
+            if total_weight_sum > 0:
+                legal_score = min((legal_weight_sum / total_weight_sum) * 100, 100)
+                technical_score = min((technical_weight_sum / total_weight_sum) * 100, 100)
+            else:
+                legal_score = 0
+                technical_score = 0
+            
+            procedural_score = (legal_score + technical_score) / 2
+            overall_score = (legal_score * 0.4 + technical_score * 0.4 + procedural_score * 0.2)
+            
+            step.analysis_result = {
+                'archetype': profile.archetype,
+                'archetype_name': archetype_config.get('name', ''),
+                'archetype_description': archetype_config.get('description', ''),
+                'legal_strength': archetype_config.get('legal_strength', ''),
+                'technical_strength': archetype_config.get('technical_strength', ''),
+                'step3_active': archetype_config.get('step3_active', False),
+                'step4_active': archetype_config.get('step4_active', False),
+                'asset_name': profile.screening_template.item_name,
+                'scores': {
+                    'overall': round(overall_score, 1),
+                    'legal': round(legal_score, 1),
+                    'technical': round(technical_score, 1),
+                    'procedural': round(procedural_score, 1),
+                },
+                'stats': {
+                    'total_tools': tools.count(),
+                    'legal_tools': legal_count,
+                    'technical_tools': technical_count,
+                }
+            }
+            
+            step.available_tools = {
+                'legal': list(legal_tools.values('id', 'code', 'name', 'description', 'icon', 'weight')),
+                'technical': list(technical_tools.values('id', 'code', 'name', 'description', 'icon', 'weight')),
+            }
+            
+            recommended = []
+            for tool in tools.order_by('-weight')[:5]:
+                recommended.append({
+                    'id': tool.code,
+                    'name': tool.name,
+                    'description': tool.description,
+                    'icon': tool.icon,
+                    'weight': tool.weight,
+                })
+            step.recommended_tools = recommended
+            
+            step.save()
+            
+            profile.step1_result = step.analysis_result
+            profile.status = 'in_progress'
+            profile.save(update_fields=['status', 'step1_result'])
+            
+            return Response(ProtectionStep1Serializer(step).data)
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=500)
+    
+    @action(detail=True, methods=['post'])
+    def step2(self, request, pk=None):
+        profile = self.get_object()
+        step, _ = ProtectionStep2.objects.get_or_create(protection_profile=profile)
+        step.decision_tree = request.data.get('decision_tree', {})
+        step.selected_strategy = request.data.get('selected_strategy', {})
+        step.legal_strategy = request.data.get('legal_strategy', '')
+        step.technical_strategy = request.data.get('technical_strategy', '')
+        step.save()
+        
+        profile.step2_result = {
+            'decision_tree': step.decision_tree,
+            'legal_strategy': step.legal_strategy,
+            'technical_strategy': step.technical_strategy,
+        }
+        profile.status = 'in_progress'
+        profile.save(update_fields=['status', 'step2_result'])
+        
+        return Response(ProtectionStep2Serializer(step).data)
+    
+    @action(detail=True, methods=['post'])
+    def step3(self, request, pk=None):
+        profile = self.get_object()
+        step, _ = ProtectionStep3.objects.get_or_create(protection_profile=profile)
+        
+        step.selected_legal_tools = request.data.get('selected_legal_tools', [])
+        step.legal_status = request.data.get('legal_status', 'pending')
+        step.registration_number = request.data.get('registration_number', '')
+        step.registration_date = request.data.get('registration_date')
+        step.expiry_date = request.data.get('expiry_date')
+        step.issuing_authority = request.data.get('issuing_authority', '')
+        step.notes = request.data.get('notes', '')
+        
+        # فیلدهای جدید
+        step.jurisdiction = request.data.get('jurisdiction', '')
+        step.estimated_cost = request.data.get('estimated_cost', '')
+        step.registration_classes = request.data.get('registration_classes', [])
+        step.legal_document = request.data.get('legal_document', None)
+        
+        step.save()
+        
+        if step.selected_legal_tools:
+            tools_count = len(step.selected_legal_tools)
+            profile.legal_score = min(tools_count * 20, 100)
+        else:
+            profile.legal_score = 0
+            
+        profile.step3_result = {
+            'selected_legal_tools': step.selected_legal_tools,
+            'legal_status': step.legal_status,
+            'registration_number': step.registration_number,
+            'jurisdiction': step.jurisdiction,
+            'estimated_cost': step.estimated_cost,
+            'registration_classes': step.registration_classes,
+        }
+        
+        # 🔥 مهم: وقتی گام ۳ ویرایش میشه، گام ۵ رو پاک کن و وضعیت رو ریست کن
+        if hasattr(profile, 'step5'):
+            profile.step5.delete()
+            profile.step5_result = {}
+            profile.status = 'in_progress'
+        
+        profile.save(update_fields=['legal_score', 'step3_result', 'status', 'step5_result'])
+        
+        return Response(ProtectionStep3Serializer(step).data)
+    
+    @action(detail=True, methods=['post'])
+    def step4(self, request, pk=None):
+        profile = self.get_object()
+        step, _ = ProtectionStep4.objects.get_or_create(protection_profile=profile)
+        step.selected_technical_tools = request.data.get('selected_technical_tools', [])
+        step.security_level = request.data.get('security_level', 'medium')
+        step.encryption_enabled = request.data.get('encryption_enabled', False)
+        step.access_control_enabled = request.data.get('access_control_enabled', False)
+        step.backup_enabled = request.data.get('backup_enabled', False)
+        step.monitoring_enabled = request.data.get('monitoring_enabled', False)
+        step.notes = request.data.get('notes', '')
+        step.save()
+        
+        score = len(step.selected_technical_tools) * 15
+        if step.encryption_enabled: score += 10
+        if step.access_control_enabled: score += 10
+        if step.backup_enabled: score += 10
+        if step.monitoring_enabled: score += 10
+        profile.technical_score = min(score, 100)
+        profile.step4_result = {
+            'selected_technical_tools': step.selected_technical_tools,
+            'security_level': step.security_level,
+            'encryption_enabled': step.encryption_enabled,
+            'access_control_enabled': step.access_control_enabled,
+        }
+        
+        # 🔥 مهم: وقتی گام ۴ ویرایش میشه، گام ۵ رو پاک کن و وضعیت رو ریست کن
+        if hasattr(profile, 'step5'):
+            profile.step5.delete()
+            profile.step5_result = {}
+            profile.status = 'in_progress'
+        
+        profile.save(update_fields=['technical_score', 'step4_result', 'status', 'step5_result'])
+        
+        return Response(ProtectionStep4Serializer(step).data)
+    
+    @action(detail=True, methods=['post'])
+    def step5(self, request, pk=None):
+        profile = self.get_object()
+        step, _ = ProtectionStep5.objects.get_or_create(protection_profile=profile)
+        step.protection_map = request.data.get('protection_map', {})
+        step.notes = request.data.get('notes', '')
+        step.is_completed = True
+        step.is_approved = request.data.get('is_approved', False)
+        if step.is_approved:
+            step.approved_by = request.user
+            step.approved_at = request.data.get('approved_at')
+        step.save()
+        
+        profile.status = 'approved' if step.is_approved else 'completed'
+        profile.protection_score = (profile.legal_score + profile.technical_score) / 2
+        profile.step5_result = step.protection_map
+        profile.save()
+        
+        return Response(ProtectionStep5Serializer(step).data)

@@ -7,6 +7,7 @@ from .models import (
     OrganizationType, ScreeningTemplate, ScreenedAsset,
     AssetFile
 )
+from .valuation_models import AssetType
 
 User = get_user_model()
 
@@ -78,6 +79,7 @@ class OrganizationTypeSerializer(serializers.ModelSerializer):
 class ScreeningTemplateSerializer(serializers.ModelSerializer):
     category_label = serializers.CharField(source='get_category_display', read_only=True)
     result_label = serializers.CharField(source='get_default_result_display', read_only=True)
+    asset_type_name = serializers.CharField(source='asset_type.name', read_only=True, default='نامشخص')
 
     class Meta:
         model = ScreeningTemplate
@@ -85,7 +87,7 @@ class ScreeningTemplateSerializer(serializers.ModelSerializer):
                   'default_result', 'result_label', 'order', 'is_active',
                   'condition_1_non_physical', 'condition_2_identifiable',
                   'condition_3_controllable', 'condition_4_value_creating',
-                  'valuation_method', 'asset_type']
+                  'valuation_method', 'asset_type', 'asset_type_name']
 
 
 class ScreenedAssetSerializer(serializers.ModelSerializer):
@@ -93,6 +95,8 @@ class ScreenedAssetSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.email', read_only=True)
     organization_name = serializers.CharField(source='created_by.organization.name', read_only=True, default='')
     department_name = serializers.CharField(source='created_by.department.name', read_only=True, default='')
+    # 🔥 اضافه کردن asset_type_name
+    asset_type_name = serializers.CharField(source='asset_type.name', read_only=True, default='نامشخص')
     
     created_by = serializers.SerializerMethodField()
 

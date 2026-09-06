@@ -31,7 +31,8 @@ import {
   Target,
   Sparkles,
   Database,
-  Activity
+  Activity,
+  ShieldCheck
 } from 'lucide-react'
 import {
   Sidebar,
@@ -64,19 +65,25 @@ const stage2Children = [
   { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
 ]
 
-// ============ منوی مرحله ۳ ============
+// ============ منوهای مرحله ۳ ============
 const stage3Children = [
   { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
   { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
   { label: 'ارزش‌گذاری دارایی‌ها', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
   {
-  label: "دارایی‌های ارزش‌گذاری شده",
-  href: "/dashboard/intangible/valuation/registered",
-  icon: Database,
-}
+    label: "دارایی‌های ارزش‌گذاری شده",
+    href: "/dashboard/intangible/valuation/registered",
+    icon: Database,
+  }
 ]
 
-// ============ منوی مراحل ۱۰ گانه ============
+// ============ منوهای مرحله ۴ ============
+const stage4Children = [
+  { label: 'حفاظت و امنیت دارایی‌ها', href: '/dashboard/intangible/protection', icon: Shield },
+  { label: 'دارایی‌های حفاظت شده', href: '/dashboard/intangible/protected-assets', icon: ShieldCheck },
+]
+
+// ============ منوهای مراحل ۱۰ گانه ============
 const stageNavItems = [
   { 
     label: 'مرحله ۱: برنامه و نقشه راهبردی', 
@@ -99,7 +106,13 @@ const stageNavItems = [
     children: stage3Children,
     id: 'stage3'
   },
-  { label: 'مرحله ۴: حفاظت و امنیت', href: '/dashboard/intangible/stage4', icon: Shield },
+  { 
+    label: 'مرحله ۴: حفاظت و امنیت', 
+    href: '/dashboard/intangible/protection', 
+    icon: Shield,
+    children: stage4Children,
+    id: 'stage4'
+  },
   { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
   { label: 'مرحله ۶: تجاری سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
   { label: 'مرحله ۷: پایش و حکمرانی', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
@@ -149,6 +162,10 @@ export function AppSidebar() {
                pathname.includes('/dashboard/intangible/valuation')) {
       setIsStagesOpen(true)
       setOpenStage('stage3')
+    } else if (pathname.includes('/dashboard/intangible/protection') ||
+               pathname.includes('/dashboard/intangible/protected-assets')) {
+      setIsStagesOpen(true)
+      setOpenStage('stage4')
     } else {
       setOpenStage(null)
     }
@@ -362,9 +379,6 @@ export function AppSidebar() {
     )
   }
 
-  // ============================================================
-  // منوی تاریخچه API - جداگانه زیر شرکت‌ها
-  // ============================================================
   const renderApiHistoryNav = () => {
     if (!isSuperAdmin) return null
     
@@ -416,7 +430,7 @@ export function AppSidebar() {
         {renderStagesNav()}
         {renderDepartmentsNav()}
         {renderCompaniesNav()}
-        {renderApiHistoryNav()}  {/* ← تاریخچه API به عنوان آیتم جداگانه زیر شرکت‌ها */}
+        {renderApiHistoryNav()}
         {renderSettingsNav()}
       </SidebarContent>
     </Sidebar>

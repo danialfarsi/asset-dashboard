@@ -174,6 +174,15 @@ class ScreeningTemplate(models.Model):
         ('rejected', 'رد شده'),
     ]
     
+    PROTECTION_ARCHETYPE_CHOICES = [
+        ('PA-1', 'مالکیت فکری ثبتی'),
+        ('PA-2', 'قراردادی'),
+        ('PA-3', 'راز تجاری'),
+        ('PA-4', 'دیجیتال/داده'),
+        ('PA-5', 'رویه‌ای/فرهنگی'),
+        ('N/A', 'قابل حفاظت نیست'),
+    ]
+    
     organization_type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE, related_name='templates')
     item_name = models.CharField(max_length=255)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
@@ -210,6 +219,16 @@ class ScreeningTemplate(models.Model):
             ('M-09', 'M-09 - Market Multiple Method'),
         ],
         help_text='روش اصلی ارزش‌گذاری برای این دارایی'
+    )
+    
+    # ==================== فیلد جدید STEP 4 - Protection Archetype ====================
+    protection_archetype = models.CharField(
+        max_length=5,
+        choices=PROTECTION_ARCHETYPE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='آرکی‌تایپ حفاظتی',
+        help_text='نوع استراتژی حفاظتی مناسب برای این دارایی بر اساس موتور ۳'
     )
     
     def __str__(self):

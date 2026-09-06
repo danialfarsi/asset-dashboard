@@ -23,6 +23,9 @@ from .graph_views import GraphViewSet
 from .views_api_stats import APIStatsView
 from .views_external_users import ExternalUsersView
 
+# STEP 4 - Protection
+from .protection_views import ProtectionViewSet
+
 router = DefaultRouter()
 
 # Screening routers
@@ -43,8 +46,11 @@ router.register(r'valuation-cases', ValuationCaseViewSet, basename='valuation-ca
 # STEP 3 routers
 router.register(r'valuation-step3', ValuationStep3ViewSet, basename='valuation-step3')
 
-# STEP 4 routers
+# STEP 4 routers (Existing - Valuation Step4)
 router.register(r'valuation-step4', ValuationStep4ViewSet, basename='valuation-step4')
+
+# STEP 4 - Protection (NEW)
+router.register(r'protection', ProtectionViewSet, basename='protection')
 
 # Notification routers
 router.register(r'notifications', NotificationViewSet, basename='notifications')
@@ -57,7 +63,7 @@ router.register(r'valuation-qc', QualityControlViewSet, basename='valuation-qc')
 # Sensitivity routers (STEP 6)
 router.register(r'sensitivity', SensitivityAnalysisViewSet, basename='sensitivity')
 
-# 🔥 Graph routers
+# Graph routers
 router.register(r'graph', GraphViewSet, basename='graph')
 
 urlpatterns = [
@@ -68,5 +74,4 @@ urlpatterns = [
     path('suggest-template/', SuggestTemplateView.as_view(), name='suggest-template'),
     path('api-stats/', APIStatsView.as_view(), name='api-stats'),
     path('external-users/', ExternalUsersView.as_view(), name='external-users'),
-
 ]

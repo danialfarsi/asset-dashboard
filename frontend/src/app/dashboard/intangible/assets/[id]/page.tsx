@@ -39,7 +39,10 @@ import {
   Shield,
   FileText,
   FileCheck,
-  Printer
+  Printer,
+  Lock,
+  ShieldCheck,
+  Star
 } from 'lucide-react';
 
 // تبدیل اعداد به فارسی
@@ -157,6 +160,20 @@ interface SensitivityData {
   critical_drivers: any[];
 }
 
+interface ProtectionProfile {
+  id: number;
+  archetype: string;
+  archetype_display: string;
+  status: string;
+  status_display: string;
+  protection_score: number;
+  legal_score: number;
+  technical_score: number;
+  screening_template_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 const FILE_TYPES = [
   { value: 'interview', label: '📄 مصاحبه' },
   { value: 'document', label: '📄 سند' },
@@ -175,6 +192,7 @@ export default function AssetDetailPage() {
   const [financialData, setFinancialData] = useState<ValuationFinancialData | null>(null);
   const [qcData, setQCData] = useState<QCData | null>(null);
   const [sensitivityData, setSensitivityData] = useState<SensitivityData | null>(null);
+  const [protectionProfile, setProtectionProfile] = useState<ProtectionProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -245,6 +263,22 @@ export default function AssetDetailPage() {
       } finally {
         setLoadingFiles(false);
       }
+      
+      // ===============================================================
+      // 🔥 دریافت اطلاعات حفاظت (Protection Profile)
+      // ===============================================================
+      try {
+        const protectionRes = await api.get(`/intangible/protection/?screening_template=${assetData.asset_type?.id}`);
+        const protectionData = protectionRes.data.results || protectionRes.data || [];
+        if (protectionData.length > 0) {
+          const profile = protectionData[0];
+          setProtectionProfile(profile);
+          console.log('✅ Protection Profile:', profile);
+        }
+      } catch (e) {
+        console.error('Error fetching protection profile:', e);
+      }
+      // ===============================================================
       
       const casesRes = await api.get(`/intangible/valuation-cases/?asset=${assetId}`);
       const cases = casesRes.data.results || casesRes.data || [];
@@ -332,7 +366,6 @@ export default function AssetDetailPage() {
             setValuation({
               id: targetValuation.id,
               final_score: summary.weighted_score || summary.final_score || 0,
-              // 🔥 برای نمودار رادار باید strategic_score خام (مجموع) ارسال شود
               strategic_score: summary.strategic_score || 0,
               technical_score: summary.technical_score || 0,
               operational_score: summary.operational_score || 0,
@@ -557,6 +590,28 @@ export default function AssetDetailPage() {
   const canDeleteResult = canDelete();
   const isValuationCompleted = valuation?.status === 'completed';
   const hasFinancialData = financialData && financialData.final_value > 0;
+  
+  // ============================================================
+  // 🔥 وضعیت حفاظت
+  // ============================================================
+  const isProtected = protectionProfile && protectionProfile.status === 'approved';
+  const getProtectionStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'text-green-600 bg-green-50 border-green-200';
+      case 'completed': return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'in_progress': return 'text-amber-600 bg-amber-50 border-amber-200';
+      default: return 'text-gray-400 bg-gray-50 border-gray-200';
+    }
+  };
+  
+  const getProtectionStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved': return <ShieldCheck className="w-5 h-5 text-green-600" />;
+      case 'completed': return <ShieldCheck className="w-5 h-5 text-blue-600" />;
+      case 'in_progress': return <Lock className="w-5 h-5 text-amber-600" />;
+      default: return <Shield className="w-5 h-5 text-gray-400" />;
+    }
+  };
 
   if (loading) {
     return (
@@ -601,6 +656,116 @@ export default function AssetDetailPage() {
           </Link>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* 🔥 بخش وضعیت حفاظت - طراحی شیک و زیبا */}
+      {/* ============================================================ */}
+      {protectionProfile && (
+        <Card className={`border-2 overflow-hidden transition-all duration-300 ${
+          isProtected 
+            ? 'border-green-400 shadow-lg shadow-green-100/50' 
+            : protectionProfile.status === 'in_progress'
+            ? 'border-amber-400 shadow-lg shadow-amber-100/50'
+            : 'border-gray-200'
+        }`}>
+          <div className={`px-5 py-3 ${
+            isProtected 
+              ? 'bg-gradient-to-l from-green-600 to-emerald-700' 
+              : protectionProfile.status === 'in_progress'
+              ? 'bg-gradient-to-l from-amber-600 to-orange-600'
+              : 'bg-gradient-to-l from-gray-500 to-gray-600'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isProtected ? (
+                  <ShieldCheck className="w-6 h-6 text-white" />
+                ) : protectionProfile.status === 'in_progress' ? (
+                  <Lock className="w-6 h-6 text-white" />
+                ) : (
+                  <Shield className="w-6 h-6 text-white" />
+                )}
+                <span className="text-white font-bold text-sm">
+                  {isProtected ? '✅ دارایی حفاظت شده' : protectionProfile.status === 'in_progress' ? '⏳ در حال حفاظت' : '⏳ حفاظت شروع نشده'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-white/80 text-xs">
+                  {protectionProfile.archetype_display || 'نامشخص'}
+                </span>
+                <span className="text-white/40 text-xs">|</span>
+                <span className="text-white/80 text-xs">
+                  {protectionProfile.status_display || 'پیش‌نویس'}
+                </span>
+              </div>
+            </div>
+          </div>
+          <CardContent className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* امتیاز کل */}
+              <div className={`text-center p-4 rounded-xl border-2 ${
+                isProtected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Star className={`w-4 h-4 ${isProtected ? 'text-yellow-500 fill-yellow-400' : 'text-gray-400'}`} />
+                  <span className="text-xs text-gray-500">امتیاز حفاظت</span>
+                </div>
+                <p className={`text-3xl font-bold ${isProtected ? 'text-green-700' : 'text-gray-500'}`}>
+                  {toPersianNumber(Math.round(protectionProfile.protection_score || 0))}
+                </p>
+                <p className="text-[10px] text-gray-400">از ۱۰۰</p>
+              </div>
+
+              {/* امتیاز حقوقی */}
+              <div className="text-center p-4 rounded-xl border-2 border-indigo-100 bg-indigo-50/50">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <FileText className="w-4 h-4 text-indigo-500" />
+                  <span className="text-xs text-gray-500">حقوقی</span>
+                </div>
+                <p className="text-2xl font-bold text-indigo-700">
+                  {toPersianNumber(Math.round(protectionProfile.legal_score || 0))}
+                </p>
+                <p className="text-[10px] text-gray-400">از ۱۰۰</p>
+              </div>
+
+              {/* امتیاز فنی */}
+              <div className="text-center p-4 rounded-xl border-2 border-cyan-100 bg-cyan-50/50">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Shield className="w-4 h-4 text-cyan-500" />
+                  <span className="text-xs text-gray-500">فنی</span>
+                </div>
+                <p className="text-2xl font-bold text-cyan-700">
+                  {toPersianNumber(Math.round(protectionProfile.technical_score || 0))}
+                </p>
+                <p className="text-[10px] text-gray-400">از ۱۰۰</p>
+              </div>
+
+              {/* وضعیت + دکمه */}
+              <div className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50">
+                <div className="flex items-center gap-2">
+                  {getProtectionStatusIcon(protectionProfile.status)}
+                  <span className={`text-sm font-medium ${getProtectionStatusColor(protectionProfile.status)}`}>
+                    {protectionProfile.status_display || 'پیش‌نویس'}
+                  </span>
+                </div>
+                <Link href={`/dashboard/intangible/protection/${assetId}`}>
+                  <Button 
+                    size="sm" 
+                    className={`mt-2 ${
+                      isProtected 
+                        ? 'bg-emerald-600 hover:bg-emerald-700' 
+                        : protectionProfile.status === 'in_progress'
+                        ? 'bg-amber-600 hover:bg-amber-700'
+                        : 'bg-dark-green hover:bg-dark-green/90'
+                    } text-white`}
+                  >
+                    {isProtected ? 'مشاهده حفاظت' : protectionProfile.status === 'in_progress' ? 'ادامه حفاظت' : 'شروع حفاظت'}
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* اطلاعات پایه */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
