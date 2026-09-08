@@ -241,3 +241,43 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         profile.save()
         
         return Response(ProtectionStep5Serializer(step).data)
+
+    @action(detail=False, methods=['post'])
+    def create_for_asset(self, request):
+        """
+        ایجاد خودکار پروفایل حفاظتی برای یک دارایی
+        """
+        asset_id = request.data.get('asset_id')
+        if not asset_id:
+            return Response({'error': 'asset_id الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            from .models import ScreenedAsset, ScreeningTemplate
+            from .protection_config import ASSET_TYPE_TO_ARCHETYPE
+            
+            asset = ScreenedAsset.objects.get(pk=asset_id)
+            
+            if not asset.asset_type_id:
+                return Response({'error': 'این دارایی AssetType ندارد'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            template = ScreeningTemplate.objects.filter(asset_type_id=asset.asset_type_id).first()
+            if not template:
+                return Response({'error': 'قالب دارایی پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+            
+            archetype = ASSET_TYPE_TO_ARCHETYPE.get(asset.asset_type_id, 'PA-5')
+            
+            profile, created = ProtectionProfile.objects.get_or_create(
+                screening_template=template,
+                defaults={'archetype': archetype, 'status': 'draft'}
+            )
+            
+            return Response({
+                'profile_id': profile.id,
+                'created': created,
+                'archetype': profile.archetype
+            }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+            
+        except ScreenedAsset.DoesNotExist:
+            return Response({'error': 'دارایی یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

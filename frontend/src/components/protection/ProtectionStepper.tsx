@@ -19,7 +19,6 @@ interface ProtectionStepperProps {
   isLoading: boolean;
 }
 
-// 🔥 تبدیل عدد به فارسی
 const toPersianNumber = (num: number): string => {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
   return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
@@ -33,7 +32,6 @@ const STEP_CONFIGS: Record<string, { step3: string; step4: string }> = {
   'PA-5': { step3: 'minimal', step4: 'medium' },
 };
 
-// 🔥 رنگ‌های آرکی‌تایپ
 const ARCHETYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   'PA-1': { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
   'PA-2': { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
@@ -45,7 +43,6 @@ const ARCHETYPE_COLORS: Record<string, { bg: string; text: string; border: strin
 export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  // 🔥 حالت بارگذاری
   if (isLoading) {
     return (
       <div className="mx-auto max-w-6xl p-6">
@@ -57,7 +54,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
     );
   }
 
-  // 🔥 حالت نبود داده
   if (!data) {
     return (
       <div className="mx-auto max-w-6xl p-6">
@@ -69,7 +65,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
     );
   }
 
-  // 🔥 Fix: بررسی وجود profile
   if (!data.profile) {
     return (
       <div className="mx-auto max-w-6xl p-6">
@@ -86,8 +81,9 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
   const config = STEP_CONFIGS[archetype] || STEP_CONFIGS['PA-5'];
   const color = ARCHETYPE_COLORS[archetype] || ARCHETYPE_COLORS['PA-5'];
 
-  // 🔥 ساخت Asset ID
-  const assetId = `IA-${String(id).padStart(6, '0')}`;
+  // 🔥 استفاده از asset_uid از API (که الان درسته)
+  const assetId = profile.asset_uid || `IA-${String(id).padStart(6, '0')}`;
+  const assetName = profile.asset_name || profile.screening_template_name || 'دارایی بدون نام';
 
   const steps = [
     { title: 'تحلیل قابلیت حفاظت', description: 'بررسی ابزارهای قابل اعمال', active: true },
@@ -107,9 +103,9 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  // Step component mapping
+  // Step component mapping - ارسال assetName به Step1
   const stepComponents = [
-    <Step1_Analysis key={0} id={id} data={data.step1} archetype={archetype} onComplete={nextStep} />,
+    <Step1_Analysis key={0} id={id} data={data.step1} archetype={archetype} assetName={assetName} onComplete={nextStep} />,
     <Step2_Strategy key={1} id={id} data={data.step2} archetype={archetype} onComplete={nextStep} />,
     <Step3_Legal key={2} id={id} data={data.step3} archetype={archetype} config={config} onComplete={nextStep} />,
     <Step4_Technical key={3} id={id} data={data.step4} archetype={archetype} config={config} onComplete={nextStep} />,
@@ -118,13 +114,15 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
 
   const activeComponents = stepComponents.filter((_, index) => steps[index].active);
   const progressPercent = Math.round(((currentStep + 1) / activeSteps.length) * 100);
-
-  // 🔥 بررسی آیا گام آخر است
   const isLastStep = currentStep === activeSteps.length - 1;
+
+  // 🔥 چاپ در کنسول برای دیباگ
+  console.log('🔍 ProtectionStepper - profile:', profile);
+  console.log('🔍 asset_uid:', profile.asset_uid);
+  console.log('🔍 assetId:', assetId);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 font-vazir">
-      {/* 🔥 هدر دارایی با Asset ID، نام و آرکی‌تایپ */}
       <Card className="rounded-xl border-slate-200 shadow-none overflow-hidden">
         <div className={`border-r-8 ${color.border}`}>
           <CardHeader className="pb-4">
@@ -139,7 +137,7 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
                   </Badge>
                 </div>
                 <CardTitle className="text-xl font-bold text-slate-900">
-                  {profile.screening_template_name || 'دارایی بدون نام'}
+                  {assetName}
                 </CardTitle>
                 <CardDescription className="text-sm text-slate-500">
                   فرآیند {toPersianNumber(5)} گام حفاظت و امنیت
@@ -161,7 +159,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
         </div>
       </Card>
 
-      {/* نوار پیشرفت + نشانگر مراحل */}
       <div className="rounded-xl border border-slate-200 bg-white px-6 py-5">
         <div className="mb-5 flex items-center justify-between">
           <span className="text-xs font-medium text-slate-400">
@@ -171,9 +168,7 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
         </div>
 
         <div className="relative flex items-start justify-between">
-          {/* خط اتصال پس‌زمینه */}
           <div className="absolute right-0 top-4 h-0.5 w-full bg-slate-100" />
-          {/* خط اتصال پیشرفت */}
           <div
             className="absolute right-0 top-4 h-0.5 bg-emerald-500 transition-all duration-500"
             style={{ width: activeSteps.length > 1 ? `${(currentStep / (activeSteps.length - 1)) * 100}%` : '0%' }}
@@ -214,7 +209,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
         </div>
       </div>
 
-      {/* محتوای گام جاری */}
       <Card className="rounded-xl border-slate-200 shadow-none">
         <CardContent className="pt-6">{activeComponents[currentStep]}</CardContent>
         <CardFooter className="flex items-center justify-between border-t border-slate-100 pt-4">
@@ -233,7 +227,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
           {!isLastStep && (
             <Button
               onClick={nextStep}
-              disabled={currentStep === activeSteps.length - 1}
               className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
             >
               بعدی

@@ -17,7 +17,7 @@ export default function ProtectedAssetsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['protected-assets', 'completed'],
     queryFn: async () => {
-      // گرفتن همه پروفایل‌هایی که گام ۵ تکمیل شده (is_completed = true)
+      // گرفتن همه پروفایل‌ها
       const response = await api.get('/intangible/protection/');
       const allProfiles = response.data.results || [];
       
@@ -30,7 +30,10 @@ export default function ProtectedAssetsPage() {
           if (fullData.step5 && fullData.step5.is_completed === true) {
             completedProfiles.push({
               ...profile,
-              step5: fullData.step5
+              step5: fullData.step5,
+              // 🔥 استفاده از asset_name و asset_uid از fullData
+              asset_name: fullData.profile?.asset_name || profile.screening_template_name,
+              asset_uid: fullData.profile?.asset_uid || null,
             });
           }
         } catch (e) {
@@ -90,7 +93,12 @@ export default function ProtectedAssetsPage() {
             <Card key={profile.id} className="border-2 border-emerald-200 hover:shadow-lg transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-base">{profile.screening_template_name}</CardTitle>
+                  <div>
+                    <CardTitle className="text-base">{profile.asset_name || profile.screening_template_name}</CardTitle>
+                    {profile.asset_uid && (
+                      <p className="text-xs text-muted-foreground">{profile.asset_uid}</p>
+                    )}
+                  </div>
                   <Badge className="bg-emerald-500 text-white">
                     <CheckCircle className="w-3 h-3 ml-1" />
                     تکمیل شده
@@ -126,7 +134,7 @@ export default function ProtectedAssetsPage() {
                       <span>{new Date(profile.step5.updated_at).toLocaleDateString('fa-IR')}</span>
                     </div>
                   )}
-                  <Link href={`/dashboard/intangible/protection/${profile.screening_template}`}>
+                  <Link href={`/dashboard/intangible/protection/${profile.id}`}>
                     <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                       مشاهده جزئیات حفاظت
                     </Button>

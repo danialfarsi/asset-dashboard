@@ -31,15 +31,9 @@ interface Step1AnalysisProps {
   data: any;
   archetype: string;
   onComplete: () => void;
+  assetName?: string;
 }
 
-// 🔥 تبدیل عدد به فارسی
-const toPersianNumber = (num: number): string => {
-  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-  return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
-};
-
-// 🔥 هر آرکی‌تایپ یک رنگ ملایم و اختصاصی می‌گیرد؛ فقط برای نمایش استفاده می‌شود
 const ARCHETYPE_LABELS: Record<
   string,
   { name: string; tint: string; text: string; ring: string; icon: any }
@@ -63,24 +57,36 @@ const TOOL_ICONS: Record<string, any> = {
   'T17': Clock,
 };
 
-// 🔥 تابع محاسبه امتیاز با استفاده از code
+// 🔥 محاسبه امتیاز بر اساس وزن (weight) - امتیاز پتانسیل حفاظتی
 const calculateScores = (tools: Array<{ id: number; code: string; name: string; weight: number }>) => {
   if (!tools || tools.length === 0) {
     return { overall: 0, legal: 0, procedural: 0, technical: 0 };
   }
 
-  const legalTools = tools.filter(t => t.code && t.code.startsWith('L')).length;
-  const technicalTools = tools.filter(t => t.code && t.code.startsWith('T')).length;
+  const legalWeight = tools
+    .filter(t => t.code && t.code.startsWith('L'))
+    .reduce((sum, t) => sum + (t.weight || 0), 0);
+  
+  const technicalWeight = tools
+    .filter(t => t.code && t.code.startsWith('T'))
+    .reduce((sum, t) => sum + (t.weight || 0), 0);
 
-  const legalScore = Math.min(legalTools * 25, 100);
-  const technicalScore = Math.min(technicalTools * 20, 100);
+  const maxLegalWeight = 20;
+  const maxTechnicalWeight = 20;
+
+  const legalScore = Math.min((legalWeight / maxLegalWeight) * 100, 100);
+  const technicalScore = Math.min((technicalWeight / maxTechnicalWeight) * 100, 100);
   const proceduralScore = Math.min(Math.round((legalScore + technicalScore) / 2), 100);
   const overall = Math.round((legalScore + technicalScore + proceduralScore) / 3);
 
-  return { overall, legal: legalScore, procedural: proceduralScore, technical: technicalScore };
+  return { overall, legal: Math.round(legalScore), procedural: Math.round(proceduralScore), technical: Math.round(technicalScore) };
 };
 
-// 🔥 حلقه‌ی امتیاز کلی به‌صورت SVG با اعداد فارسی
+const toPersianNumber = (num: number): string => {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
 function ScoreRing({ value }: { value: number }) {
   const radius = 54;
   const circumference = 2 * Math.PI * radius;
@@ -118,7 +124,6 @@ function ScoreRing({ value }: { value: number }) {
   );
 }
 
-// 🔥 نوار ریز‌متریک با رنگ اختصاصی هر دسته و اعداد فارسی
 function SubMetricBar({
   icon: Icon,
   label,
@@ -151,7 +156,7 @@ function SubMetricBar({
   );
 }
 
-export default function Step1_Analysis({ id, data, archetype, onComplete }: Step1AnalysisProps) {
+export default function Step1_Analysis({ id, data, archetype, onComplete, assetName: propAssetName }: Step1AnalysisProps) {
   const [isAnalyzed, setIsAnalyzed] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const step1Mutation = useProtectionStep1();
@@ -192,14 +197,12 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
     icon: Shield,
   };
 
-  // 🔥 گرفتن ابزارها از result
   const apiTools = result?.available_tools?.legal || [];
   const apiTechTools = result?.available_tools?.technical || [];
   const allApiTools = [...apiTools, ...apiTechTools];
-
   const tools = allApiTools.length > 0 ? allApiTools : [];
 
-  // 🔥 محاسبه امتیازات
+  // 🔥 امتیاز پتانسیل حفاظتی (گام ۱)
   const scores = calculateScores(tools);
 
   const validations = [
@@ -209,13 +212,11 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
     { label: 'بررسی صلاحیت', icon: Users, status: isAnalyzed ? 'done' : 'pending' },
   ];
 
-  // 🔥 استفاده از asset_name واقعی از API
-  const assetName = result?.analysis_result?.asset_name || result?.analysis_result?.archetype_name || archetypeInfo.name;
+  const assetName = propAssetName || result?.analysis_result?.asset_name || result?.analysis_result?.archetype_name || archetypeInfo.name;
   const assetId = `IA-${String(id).padStart(6, '0')}`;
 
   const ArchetypeIcon = archetypeInfo.icon;
 
-  // 🔥 حالت: در حال بارگذاری
   if (step1Mutation.isPending) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-slate-200 bg-white py-16 font-vazir">
@@ -231,11 +232,9 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
     );
   }
 
-  // 🔥 حالت: نمایش نتیجه
   if (showResult && isAnalyzed) {
     return (
       <div className="space-y-5 font-vazir">
-        {/* هدر */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className={`flex h-11 w-11 items-center justify-center rounded-full ${archetypeInfo.tint} ring-4 ${archetypeInfo.ring}`}>
@@ -255,7 +254,6 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
         </div>
 
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-          {/* مشخصات دارایی */}
           <Card className="rounded-xl border-slate-200 shadow-none lg:col-span-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-slate-800">مشخصات دارایی</CardTitle>
@@ -294,7 +292,6 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
             </CardContent>
           </Card>
 
-          {/* امتیاز محافظت‌پذیری */}
           <Card className="rounded-xl border-slate-200 shadow-none lg:col-span-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-slate-800">امتیاز محافظت‌پذیری</CardTitle>
@@ -313,7 +310,6 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
             </CardContent>
           </Card>
 
-          {/* ابزارهای حفاظتی */}
           <Card className="rounded-xl border-slate-200 shadow-none lg:col-span-1">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-semibold text-slate-800">ابزارهای حفاظتی قابل اجرا</CardTitle>
@@ -325,7 +321,6 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
                   tools.map((tool: any) => {
                     const Icon = TOOL_ICONS[tool.code] || Shield;
                     const isLegal = tool.code && tool.code.startsWith('L');
-                    const accent = isLegal ? 'border-indigo-400 bg-indigo-50 text-indigo-600' : 'border-teal-400 bg-teal-50 text-teal-600';
                     const desc = tool.description || 'قابل اعمال برای این دارایی';
                     return (
                       <div
@@ -363,7 +358,6 @@ export default function Step1_Analysis({ id, data, archetype, onComplete }: Step
     );
   }
 
-  // 🔥 حالت: قبل از تحلیل
   return (
     <div className="space-y-5 font-vazir">
       <div className="flex flex-wrap items-center justify-between gap-3">

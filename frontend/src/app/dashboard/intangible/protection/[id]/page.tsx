@@ -1,19 +1,63 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { ProtectionStepper } from '@/components/protection/ProtectionStepper';
 import { useProtectionFull } from '@/hooks/useProtection';
 import { Card, CardContent } from '@/components/ui/card';
 import { Shield, Loader2 } from 'lucide-react';
+import api from '@/lib/api';
 
 export default function ProtectionPage() {
   const params = useParams();
+  const router = useRouter();
   const id = parseInt(params.id as string);
-  const { data, isLoading, error } = useProtectionFull(id);
+  const [isCreating, setIsCreating] = useState(false);
+  const [profileId, setProfileId] = useState<number | null>(null);
+  
+  const { data, isLoading, error, refetch } = useProtectionFull(id);
 
-  console.log('🔍 Page render:', { id, isLoading, hasData: !!data, data });
+  useEffect(() => {
+    const createProfile = async () => {
+      if (isCreating) return;
+      
+      try {
+        // اول چک کن پروفایل هست یا نه
+        const checkResponse = await api.get(`/intangible/protection/${id}/full/`);
+        if (checkResponse.data && checkResponse.data.profile) {
+          setProfileId(id);
+          return;
+        }
+      } catch (error: any) {
+        // اگر 404 بود یا پروفایل نبود، ایجاد کن
+        if (error.response?.status === 404 || !error.response?.data?.profile) {
+          setIsCreating(true);
+          try {
+            const response = await api.post('/intangible/protection/create_for_asset/', {
+              asset_id: id
+            });
+            
+            if (response.data && response.data.profile_id) {
+              setProfileId(response.data.profile_id);
+              console.log('✅ پروفایل حفاظتی ایجاد شد! ID:', response.data.profile_id);
+              // ریدایرکت به پروفایل جدید
+              router.push(`/dashboard/intangible/protection/${response.data.profile_id}`);
+            }
+          } catch (createError) {
+            console.error('❌ خطا در ایجاد پروفایل:', createError);
+          } finally {
+            setIsCreating(false);
+          }
+        }
+      }
+    };
 
-  if (isLoading) {
+    if (!isLoading && !data) {
+      createProfile();
+    }
+  }, [id, data, isLoading]);
+
+  if (isLoading || isCreating) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -23,7 +67,6 @@ export default function ProtectionPage() {
   }
 
   if (error) {
-    console.error('❌ Error:', error);
     return (
       <div className="flex justify-center items-center h-64">
         <Card>
@@ -39,44 +82,23 @@ export default function ProtectionPage() {
     );
   }
 
-  // 🔥 بررسی دقیق داده
-  if (!data) {
-    console.warn('⚠️ data is null or undefined');
+  if (!data || !data.profile) {
     return (
       <div className="flex justify-center items-center h-64">
         <Card>
           <CardContent className="py-12 text-center">
             <Shield className="h-16 w-16 mx-auto mb-4 text-yellow-300" />
-            <p className="text-lg text-gray-500">داده‌ای وجود ندارد</p>
+            <p className="text-lg text-gray-500">در حال ایجاد پروفایل حفاظتی...</p>
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mt-4 text-gray-400" />
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  // 🔥 بررسی اینکه data.profile وجود داره
-  if (!data.profile) {
-    console.warn('⚠️ data.profile is null or undefined', data);
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Shield className="h-16 w-16 mx-auto mb-4 text-yellow-300" />
-            <p className="text-lg text-gray-500">پروفایل حفاظتی یافت نشد</p>
-            <p className="text-sm text-gray-400 mt-2">
-              data keys: {Object.keys(data).join(', ')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  console.log('✅ Rendering ProtectionStepper with data:', data);
 
   return (
     <div className="container mx-auto py-8">
-      <ProtectionStepper id={id} data={data} isLoading={false} />
+      <ProtectionStepper id={data.profile.id} data={data} isLoading={isLoading} />
     </div>
   );
 }

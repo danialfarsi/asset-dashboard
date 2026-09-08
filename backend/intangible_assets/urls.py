@@ -75,3 +75,11 @@ urlpatterns = [
     path('api-stats/', APIStatsView.as_view(), name='api-stats'),
     path('external-users/', ExternalUsersView.as_view(), name='external-users'),
 ]
+
+# IAM URLs
+from .iam_urls import urlpatterns as iam_urls
+urlpatterns += iam_urls
+
+# Strategic Planning URLs
+from .strategic_planning_urls import urlpatterns as strategic_urls
+urlpatterns += strategic_urls

@@ -21,7 +21,7 @@ interface ScreenedAsset {
   asset_name: string;
   asset_uid: string;
   asset_type: { id: number; code: string; name: string } | null;
-  asset_type_name: string | null;  // 🔥 فیلد جدید
+  asset_type_name: string | null;
   description: string;
   created_at: string;
   result: string;
@@ -46,9 +46,7 @@ export default function ProtectionListPage() {
     queryKey: ['screened-assets', 'valuation-completed'],
     queryFn: async () => {
       const response = await api.get('/intangible/screened-assets/', {
-        params: {
-          limit: 100,
-        },
+        params: { limit: 100 },
       });
       return response.data;
     },
@@ -65,21 +63,16 @@ export default function ProtectionListPage() {
 
   const assetsWithProtection = useMemo(() => {
     if (!data?.results) return [];
-    
     return data.results.map((asset: ScreenedAsset) => {
       const profile = protectionProfiles?.find(
         (p: any) => p.screening_template === asset.asset_type?.id
       );
-      return {
-        ...asset,
-        protection_profile: profile || null,
-      };
+      return { ...asset, protection_profile: profile || null };
     });
   }, [data, protectionProfiles]);
 
   const filteredAssets = useMemo(() => {
     let result = assetsWithProtection;
-    
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       result = result.filter(
@@ -89,7 +82,6 @@ export default function ProtectionListPage() {
           (asset.asset_type_name || '').toLowerCase().includes(term)
       );
     }
-    
     if (filterStatus === 'completed') {
       result = result.filter((a: ScreenedAsset) => a.protection_profile?.status === 'approved');
     } else if (filterStatus === 'in_progress') {
@@ -100,12 +92,15 @@ export default function ProtectionListPage() {
     } else if (filterStatus === 'pending') {
       result = result.filter((a: ScreenedAsset) => !a.protection_profile);
     }
-    
     return result;
   }, [assetsWithProtection, searchTerm, filterStatus]);
 
-  const handleStartProtection = (assetId: number) => {
-    router.push(`/dashboard/intangible/protection/${assetId}`);
+  const handleStartProtection = (profileId: number | null, assetId: number) => {
+    if (profileId) {
+      router.push(`/dashboard/intangible/protection/${profileId}`);
+    } else {
+      router.push(`/dashboard/intangible/protection/${assetId}`);
+    }
   };
 
   if (isLoading) {
@@ -187,7 +182,7 @@ export default function ProtectionListPage() {
             <Card
               key={asset.id}
               className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-dark-green/50"
-              onClick={() => handleStartProtection(asset.id)}
+              onClick={() => handleStartProtection(asset.protection_profile?.id || null, asset.id)}
             >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -238,7 +233,12 @@ export default function ProtectionListPage() {
                     className="w-full mt-2 border-dark-green text-dark-green hover:bg-dark-green/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStartProtection(asset.id);
+                      const profileId = asset.protection_profile?.id || null;
+                      if (profileId) {
+                        router.push(`/dashboard/intangible/protection/${profileId}`);
+                      } else {
+                        router.push(`/dashboard/intangible/protection/${asset.id}`);
+                      }
                     }}
                   >
                     {asset.protection_profile ? 'ادامه فرآیند' : 'شروع حفاظت'}
