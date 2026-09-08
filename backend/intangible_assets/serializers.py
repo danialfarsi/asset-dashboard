@@ -7,7 +7,7 @@ from .models import (
     OrganizationType, ScreeningTemplate, ScreenedAsset,
     AssetFile
 )
-from .valuation_models import AssetType
+from .valuation_models import AssetType, AssetValuation, ValuationCase
 
 User = get_user_model()
 
@@ -95,8 +95,10 @@ class ScreenedAssetSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.email', read_only=True)
     organization_name = serializers.CharField(source='created_by.organization.name', read_only=True, default='')
     department_name = serializers.CharField(source='created_by.department.name', read_only=True, default='')
-    # 🔥 اضافه کردن asset_type_name
     asset_type_name = serializers.CharField(source='asset_type.name', read_only=True, default='نامشخص')
+    approved_by_name = serializers.CharField(source='approved_by.email', read_only=True, default='')
+    valuation_score = serializers.SerializerMethodField()
+    valuation_case_id = serializers.SerializerMethodField()
     
     created_by = serializers.SerializerMethodField()
 
@@ -116,6 +118,24 @@ class ScreenedAssetSerializer(serializers.ModelSerializer):
                 'department_name': obj.created_by.department.name if obj.created_by.department else None,
             }
         return None
+    
+    def get_valuation_score(self, obj):
+        try:
+            valuation = AssetValuation.objects.filter(asset=obj).order_by('-evaluated_at').first()
+            if valuation:
+                return valuation.final_score
+            return 0
+        except:
+            return 0
+    
+    def get_valuation_case_id(self, obj):
+        try:
+            vc = ValuationCase.objects.filter(asset=obj).first()
+            if vc:
+                return vc.id
+            return None
+        except:
+            return None
 
 
 class AssetFileSerializer(serializers.ModelSerializer):

@@ -28,6 +28,7 @@ interface Asset {
   created_at: string;
   created_by_name?: string;
   valuation_method?: string;
+  is_approved_for_valuation?: boolean;
 }
 
 interface ValuationMethod {
@@ -103,6 +104,7 @@ export default function ValuationPage() {
             created_at: data.created_at,
             created_by_name: data.created_by_name || 'نامشخص',
             valuation_method: data.valuation_method,
+            is_approved_for_valuation: data.is_approved_for_valuation || false,
           };
         } catch {
           return null;
@@ -112,6 +114,7 @@ export default function ValuationPage() {
       const results = await Promise.all(assetPromises);
       const validAssets: Asset[] = results
         .filter((item): item is NonNullable<typeof item> => item !== null)
+        .filter((item) => item.is_approved_for_valuation === true)
         .map((item) => ({
           id: item.id,
           asset_name: item.asset_name,
@@ -121,7 +124,10 @@ export default function ValuationPage() {
           created_at: item.created_at,
           created_by_name: item.created_by_name,
           valuation_method: item.valuation_method,
+          is_approved_for_valuation: item.is_approved_for_valuation,
         }));
+      
+      console.log('📊 دارایی‌های تایید شده:', validAssets.length);
       
       setAssets(validAssets);
       
@@ -140,6 +146,8 @@ export default function ValuationPage() {
           console.log('✅ روش دارایی (از دیتابیس):', firstAsset.valuation_method);
         }
         await createValuationCase(firstAsset.id);
+      } else {
+        console.log('⚠️ هیچ دارایی تایید شده‌ای برای ارزش‌گذاری وجود ندارد!');
       }
     } catch (error) {
       console.error('Error fetching assets:', error);

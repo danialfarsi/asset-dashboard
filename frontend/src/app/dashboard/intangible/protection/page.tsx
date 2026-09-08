@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Shield, Search, ChevronLeft, Filter } from 'lucide-react';
+import { Shield, Search, ChevronLeft, Filter, ShieldCheck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 
@@ -27,6 +27,7 @@ interface ScreenedAsset {
   result: string;
   category: string;
   valuation_method: string | null;
+  is_approved_for_protection?: boolean;
   protection_profile?: {
     id: number;
     archetype: string;
@@ -43,7 +44,7 @@ export default function ProtectionListPage() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['screened-assets', 'valuation-completed'],
+    queryKey: ['screened-assets', 'all'],
     queryFn: async () => {
       const response = await api.get('/intangible/screened-assets/', {
         params: { limit: 100 },
@@ -61,14 +62,17 @@ export default function ProtectionListPage() {
     enabled: !!data,
   });
 
+  // 🔥 فقط دارایی‌هایی که is_approved_for_protection = true
   const assetsWithProtection = useMemo(() => {
     if (!data?.results) return [];
-    return data.results.map((asset: ScreenedAsset) => {
-      const profile = protectionProfiles?.find(
-        (p: any) => p.screening_template === asset.asset_type?.id
-      );
-      return { ...asset, protection_profile: profile || null };
-    });
+    return data.results
+      .filter((asset: ScreenedAsset) => asset.is_approved_for_protection === true)
+      .map((asset: ScreenedAsset) => {
+        const profile = protectionProfiles?.find(
+          (p: any) => p.screening_template === asset.asset_type?.id
+        );
+        return { ...asset, protection_profile: profile || null };
+      });
   }, [data, protectionProfiles]);
 
   const filteredAssets = useMemo(() => {
@@ -95,12 +99,8 @@ export default function ProtectionListPage() {
     return result;
   }, [assetsWithProtection, searchTerm, filterStatus]);
 
-  const handleStartProtection = (profileId: number | null, assetId: number) => {
-    if (profileId) {
-      router.push(`/dashboard/intangible/protection/${profileId}`);
-    } else {
-      router.push(`/dashboard/intangible/protection/${assetId}`);
-    }
+  const handleStartProtection = (assetId: number) => {
+    router.push(`/dashboard/intangible/protection/${assetId}`);
   };
 
   if (isLoading) {
@@ -128,9 +128,12 @@ export default function ProtectionListPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold">حفاظت و امنیت دارایی‌ها</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 text-emerald-600" />
+            حفاظت و امنیت دارایی‌ها
+          </h1>
           <p className="text-muted-foreground">
-            دارایی‌های ارزش‌گذاری شده‌ای که نیاز به فرآیند حفاظت دارند
+            دارایی‌هایی که تایید حفاظت شده‌اند و آماده طی فرآیند ۵ گام حفاظت هستند
           </p>
         </div>
       </div>
@@ -169,10 +172,10 @@ export default function ProtectionListPage() {
             <Shield className="h-16 w-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-medium">هیچ دارایی برای حفاظت یافت نشد</h3>
             <p className="text-muted-foreground mt-2">
-              ابتدا یک دارایی را ارزش‌گذاری کنید تا فرآیند حفاظت شروع شود
+              ابتدا مدیر باید دارایی‌های ارزش‌گذاری شده را برای حفاظت تایید کند
             </p>
-            <Link href="/dashboard/intangible/valuation">
-              <Button className="mt-4">شروع ارزش‌گذاری</Button>
+            <Link href="/dashboard">
+              <Button className="mt-4">بازگشت به داشبورد</Button>
             </Link>
           </CardContent>
         </Card>
@@ -181,8 +184,8 @@ export default function ProtectionListPage() {
           {filteredAssets.map((asset: ScreenedAsset) => (
             <Card
               key={asset.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-dark-green/50"
-              onClick={() => handleStartProtection(asset.protection_profile?.id || null, asset.id)}
+              className="hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-emerald-500/50"
+              onClick={() => handleStartProtection(asset.id)}
             >
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
@@ -190,23 +193,10 @@ export default function ProtectionListPage() {
                     <CardTitle className="text-base">{asset.asset_name}</CardTitle>
                     <CardDescription className="text-xs">{asset.asset_uid}</CardDescription>
                   </div>
-                  {asset.protection_profile ? (
-                    <Badge
-                      variant={
-                        asset.protection_profile.status === 'approved'
-                          ? 'default'
-                          : asset.protection_profile.status === 'in_progress'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                    >
-                      {asset.protection_profile.status_display}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-amber-500 border-amber-500">
-                      شروع نشده
-                    </Badge>
-                  )}
+                  <Badge className="bg-emerald-500 text-white">
+                    <ShieldCheck className="w-3 h-3 ml-1" />
+                    تایید شده
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent>
@@ -222,23 +212,17 @@ export default function ProtectionListPage() {
                   {asset.protection_profile && (
                     <div className="flex items-center gap-2 text-sm">
                       <Shield className="h-3 w-3 text-muted-foreground" />
-                      <span className="text-muted-foreground">امتیاز حفاظت:</span>
+                      <span className="text-muted-foreground">وضعیت حفاظت:</span>
                       <span className="font-medium">
-                        {asset.protection_profile.protection_score || 0}
+                        {asset.protection_profile.status_display || 'شروع نشده'}
                       </span>
                     </div>
                   )}
                   <Button
-                    variant="outline"
-                    className="w-full mt-2 border-dark-green text-dark-green hover:bg-dark-green/10"
+                    className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const profileId = asset.protection_profile?.id || null;
-                      if (profileId) {
-                        router.push(`/dashboard/intangible/protection/${profileId}`);
-                      } else {
-                        router.push(`/dashboard/intangible/protection/${asset.id}`);
-                      }
+                      handleStartProtection(asset.id);
                     }}
                   >
                     {asset.protection_profile ? 'ادامه فرآیند' : 'شروع حفاظت'}

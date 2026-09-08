@@ -1,3 +1,4 @@
+
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -162,7 +163,7 @@ class ScreeningTemplate(models.Model):
         ('operational_knowledge', 'عملیاتی - دانشی'),
         ('operational_cultural', 'عملیاتی - فرهنگی'),
         ('operational_environmental', 'عملیاتی - زیست‌محیطی'),
-        ('support_economic', 'پشتیبان - اقتصادی'),
+        ('support_economic', 'پشتیبان -経済ی'),
         ('support_social', 'پشتیبان - اجتماعی'),
         ('support_knowledge', 'پشتیبان - دانشی'),
         ('support_cultural', 'پشتیبان - فرهنگی'),
@@ -221,7 +222,6 @@ class ScreeningTemplate(models.Model):
         help_text='روش اصلی ارزش‌گذاری برای این دارایی'
     )
     
-    # ==================== فیلد جدید STEP 4 - Protection Archetype ====================
     protection_archetype = models.CharField(
         max_length=5,
         choices=PROTECTION_ARCHETYPE_CHOICES,
@@ -280,6 +280,44 @@ class ScreenedAsset(models.Model):
     external_user_id = models.UUIDField(null=True, blank=True, verbose_name='شناسه کاربر خارجی')
     session_id = models.CharField(max_length=500, null=True, blank=True, verbose_name='شناسه جلسه')
     source_app = models.CharField(max_length=500, null=True, blank=True, verbose_name='اپلیکیشن مبدا')
+    
+    # ==================== فیلدهای تایید برای ارزش‌گذاری ====================
+    is_approved_for_valuation = models.BooleanField(
+        default=False,
+        verbose_name='تایید شده برای ارزش‌گذاری'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_assets',
+        verbose_name='تاییدکننده'
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='تاریخ تایید'
+    )
+    
+    # ==================== فیلدهای تایید برای حفاظت ====================
+    is_approved_for_protection = models.BooleanField(
+        default=False,
+        verbose_name='تایید شده برای حفاظت'
+    )
+    protection_approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_protection_assets',
+        verbose_name='تاییدکننده حفاظت'
+    )
+    protection_approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='تاریخ تایید حفاظت'
+    )
     
     def __str__(self):
         return f"{self.asset_uid or 'بدون کد'} - {self.asset_name}"
