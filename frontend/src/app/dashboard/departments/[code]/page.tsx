@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { 
   Building, 
   Package, 
@@ -15,15 +16,35 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  AlertCircle,
   Eye,
   Building2,
   FileText,
   BarChart3,
-  Users,
-  Crown
+  Crown,
+  Star,
+  Search,
+  XCircle,
+  Shield,
+  ChevronDown
 } from 'lucide-react';
 import Link from 'next/link';
+import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+
+const toPersianNumber = (num: number): string => {
+  const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+  return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+};
+
+const convertScore = (score: number): number => {
+  if (!score) return 0;
+  return Math.round((score / 100) * 5 * 10) / 10;
+};
 
 interface DepartmentDetail {
   id: number;
@@ -65,6 +86,17 @@ interface Asset {
   organization_name: string;
   department_name: string;
   description: string;
+  valuation_score?: number;
+  is_approved_for_valuation?: boolean;
+  is_approved_for_protection?: boolean;
+  protection_profile?: {
+    id: number;
+    status: string;
+    status_display: string;
+    protection_score: number;
+    archetype_display: string;
+    step5_completed: boolean;
+  };
 }
 
 export default function DepartmentDetailPage() {
@@ -75,14 +107,12 @@ export default function DepartmentDetailPage() {
   const [manager, setManager] = useState<DepartmentManager | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    total: 0,
-    verified: 0,
-    pending: 0,
-    rejected: 0,
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedList, setSelectedList] = useState<'all' | 'valuation' | 'protection'>('all');
+  const [approving, setApproving] = useState<number | null>(null);
 
   const departmentCode = params.code as string;
+  const isAdmin = user?.role === 'org_admin' || user?.role === 'super_admin';
 
   useEffect(() => {
     if (departmentCode) {
@@ -111,20 +141,10 @@ export default function DepartmentDetailPage() {
 
   const fetchDepartmentManager = async () => {
     try {
-      console.log('🔍 Fetching manager for department:', department?.id);
-      
-      // دریافت همه کاربران
       const { data } = await api.get('/auth/users/');
       const users = data.results || data || [];
-      console.log('👥 Total users:', users.length);
-      
-      // پیدا کردن کاربری که department_id مطابق دارد
       const deptManager = users.find((u: any) => {
-        const match = u.department === department?.id || u.department_id === department?.id;
-        if (match) {
-          console.log('✅ Found manager:', u.email);
-        }
-        return match;
+        return u.department === department?.id || u.department_id === department?.id;
       });
       
       if (deptManager) {
@@ -136,9 +156,6 @@ export default function DepartmentDetailPage() {
           role: deptManager.role,
           department_name: deptManager.department_name || department?.name || '',
         });
-        console.log('✅ Manager set:', deptManager.first_name, deptManager.last_name);
-      } else {
-        console.log('⚠️ No manager found for department:', department?.id);
       }
     } catch (error) {
       console.error('Error fetching manager:', error);
@@ -158,13 +175,6 @@ export default function DepartmentDetailPage() {
       });
       
       setAssets(filtered);
-      
-      setStats({
-        total: filtered.length,
-        verified: filtered.filter((a: any) => a.result === 'confirmed').length,
-        pending: filtered.filter((a: any) => a.result === 'conditional').length,
-        rejected: filtered.filter((a: any) => a.result === 'rejected').length,
-      });
     } catch (error) {
       console.error('Error fetching assets:', error);
     } finally {
@@ -172,24 +182,84 @@ export default function DepartmentDetailPage() {
     }
   };
 
+  const handleApproveProtection = async (assetId: number) => {
+    setApproving(assetId);
+    try {
+      await api.patch(`/intangible/screened-assets/${assetId}/`, {
+        is_approved_for_protection: true,
+      });
+      await fetchDepartmentAssets();
+    } catch (error) {
+      console.error('Error approving protection:', error);
+      alert('خطا در تایید حفاظت');
+    } finally {
+      setApproving(null);
+    }
+  };
+
   const handleViewAsset = (assetId: number) => {
     router.push(`/dashboard/intangible/assets/${assetId}`);
   };
 
-  const getResultBadge = (result: string) => {
-    const config = {
-      confirmed: { icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50', label: 'تأیید شده' },
-      conditional: { icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50', label: 'در انتظار' },
-      rejected: { icon: AlertCircle, color: 'text-red-600', bg: 'bg-red-50', label: 'رد شده' },
-    };
-    const c = config[result as keyof typeof config] || config.confirmed;
-    const Icon = c.icon;
-    return (
-      <span className={`${c.bg} ${c.color} px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1`}>
-        <Icon className="w-3 h-3" />
-        {c.label}
-      </span>
-    );
+  // ============================================================
+  // 🔥 لیست‌ها
+  // ============================================================
+  const allAssets = assets;
+  
+  // دارایی‌های نیازمند تایید ارزش‌گذاری (امتیاز >= 60 و تایید نشده)
+  const pendingValuationAssets = assets.filter((a: any) => {
+    const score = a.valuation_score || 0;
+    return score >= 60 && !a.is_approved_for_valuation;
+  });
+  
+  // 🔥 دارایی‌های نیازمند تایید حفاظت:
+  // شرط: is_approved_for_valuation = true و is_approved_for_protection = false
+  const pendingProtectionAssets = assets.filter((a: any) => {
+    return a.is_approved_for_valuation === true && a.is_approved_for_protection !== true;
+  });
+
+  const getCurrentList = () => {
+    if (selectedList === 'all') return allAssets;
+    if (selectedList === 'valuation') return pendingValuationAssets;
+    return pendingProtectionAssets;
+  };
+
+  const getListLabel = () => {
+    if (selectedList === 'all') return '📦 کل دارایی‌ها';
+    if (selectedList === 'valuation') return '📊 نیازمند تایید ارزش‌گذاری';
+    return '🛡️ نیازمند تایید حفاظت';
+  };
+
+  const getListCount = () => {
+    if (selectedList === 'all') return allAssets.length;
+    if (selectedList === 'valuation') return pendingValuationAssets.length;
+    return pendingProtectionAssets.length;
+  };
+
+  const filteredAssets = getCurrentList().filter((asset: any) => {
+    return asset.asset_name?.includes(searchTerm) || asset.asset_uid?.includes(searchTerm);
+  });
+
+  const getValuationStatusBadge = (asset: any) => {
+    const score = asset.valuation_score || 0;
+    
+    if (asset.is_approved_for_valuation === true) {
+      return (
+        <Badge className="bg-green-500 text-white text-xs">
+          <CheckCircle className="w-3 h-3 ml-1" />
+          تأیید ارزش‌گذاری
+        </Badge>
+      );
+    }
+    if (score >= 60) {
+      return (
+        <Badge className="bg-amber-500 text-white text-xs">
+          <Clock className="w-3 h-3 ml-1" />
+          نیاز به تایید ارزش‌گذاری
+        </Badge>
+      );
+    }
+    return null;
   };
 
   const getCategoryLabel = (category: string) => {
@@ -284,7 +354,7 @@ export default function DepartmentDetailPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50/50 min-h-screen">
+    <div className="p-6 space-y-6 bg-gray-50/50 min-h-screen font-vazir">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -320,7 +390,6 @@ export default function DepartmentDetailPage() {
             </div>
           </div>
 
-          {/* اطلاعات مدیر واحد */}
           {manager ? (
             <div className="mt-4 flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2.5">
               <div className="bg-white/20 p-2 rounded-lg">
@@ -350,121 +419,194 @@ export default function DepartmentDetailPage() {
         </div>
       </div>
 
-      {/* آمار کارت‌ها */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">کل دارایی‌ها</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
+      {/* جستجو */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="جستجوی دارایی..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pr-10"
+          />
+        </div>
+      </div>
+
+      {/* ۳ دراپ‌داون */}
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="text-sm text-gray-500">لیست:</span>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="gap-2 min-w-[200px] justify-between">
+              <span>{getListLabel()}</span>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[300px]">
+            <DropdownMenuItem onClick={() => setSelectedList('all')} className="gap-2">
+              <Package className="h-4 w-4" />
+              <div className="flex flex-col">
+                <span>کل دارایی‌ها</span>
+                <span className="text-xs text-gray-400">همه دارایی‌های واحد</span>
               </div>
-              <div className="bg-blue-50 p-3 rounded-xl">
-                <Package className="w-6 h-6 text-blue-600" />
+              <Badge variant="secondary" className="mr-auto">{toPersianNumber(allAssets.length)}</Badge>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedList('valuation')} className="gap-2">
+              <TrendingUp className="h-4 w-4 text-amber-500" />
+              <div className="flex flex-col">
+                <span>نیازمند تایید ارزش‌گذاری</span>
+                <span className="text-xs text-gray-400">امتیاز ارزیابی بالای ۶۰</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">تأیید شده</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">{stats.verified}</p>
+              <Badge variant="secondary" className="mr-auto bg-amber-100 text-amber-700">
+                {toPersianNumber(pendingValuationAssets.length)}
+              </Badge>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedList('protection')} className="gap-2">
+              <Shield className="h-4 w-4 text-purple-500" />
+              <div className="flex flex-col">
+                <span>نیازمند تایید حفاظت</span>
+                <span className="text-xs text-gray-400">تایید ارزش‌گذاری شده، نیاز به تایید حفاظت</span>
               </div>
-              <div className="bg-emerald-50 p-3 rounded-xl">
-                <CheckCircle className="w-6 h-6 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">در انتظار</p>
-                <p className="text-2xl font-bold text-amber-600 mt-1">{stats.pending}</p>
-              </div>
-              <div className="bg-amber-50 p-3 rounded-xl">
-                <Clock className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500 font-medium">رد شده</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">{stats.rejected}</p>
-              </div>
-              <div className="bg-red-50 p-3 rounded-xl">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              <Badge variant="secondary" className="mr-auto bg-purple-100 text-purple-700">
+                {toPersianNumber(pendingProtectionAssets.length)}
+              </Badge>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* لیست دارایی‌ها */}
-      <Card className="border-0 shadow-sm bg-white">
+      <Card className="border-0 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-4">
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-600" />
-            لیست دارایی‌ها
+            {getListLabel()}
             <span className="text-sm text-gray-400 font-normal mr-2">
-              ({assets.length} مورد)
+              ({toPersianNumber(filteredAssets.length)} مورد)
             </span>
           </CardTitle>
-          <Link href={`/dashboard/intangible/screening/new?type=${user?.organization_type || 'manufacturing'}`}>
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-              + افزودن دارایی جدید
-            </Button>
-          </Link>
         </CardHeader>
         <CardContent className="pt-4">
-          {assets.length === 0 ? (
+          {filteredAssets.length === 0 ? (
             <div className="text-center py-12 text-gray-500">
               <Package className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">هیچ دارایی ثبت نشده</p>
-              <p className="text-sm mt-1">برای این واحد هنوز دارایی ثبت نشده است</p>
+              <p className="text-lg font-medium">هیچ دارایی یافت نشد</p>
+              <p className="text-sm mt-1">
+                {selectedList === 'all' && 'هیچ دارایی در این واحد ثبت نشده است'}
+                {selectedList === 'valuation' && 'هیچ دارایی برای تایید ارزش‌گذاری وجود ندارد'}
+                {selectedList === 'protection' && 'هیچ دارایی برای حفاظت وجود ندارد'}
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {assets.map((asset) => (
-                <div 
-                  key={asset.id} 
-                  className="flex items-center justify-between p-4 border rounded-xl hover:shadow-md hover:border-blue-200 transition-all cursor-pointer bg-white"
-                  onClick={() => handleViewAsset(asset.id)}
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900 truncate">{asset.asset_name}</p>
-                      {getResultBadge(asset.result)}
+              {filteredAssets.map((asset: any) => {
+                const score = asset.valuation_score || 0;
+                const displayScore = convertScore(score);
+                const isPendingValuation = score >= 60 && !asset.is_approved_for_valuation;
+                const isApprovedValuation = asset.is_approved_for_valuation === true;
+                const isPendingProtection = asset.is_approved_for_valuation === true && asset.is_approved_for_protection !== true;
+                
+                return (
+                  <div 
+                    key={asset.id} 
+                    className={`flex flex-wrap items-start justify-between p-4 border rounded-xl hover:shadow-md transition-all cursor-pointer ${
+                      isPendingValuation ? 'border-amber-200 bg-amber-50/30' : 
+                      isApprovedValuation ? 'border-green-200 bg-green-50/30' : 
+                      isPendingProtection ? 'border-purple-200 bg-purple-50/30' :
+                      'border-gray-200'
+                    }`}
+                    onClick={() => handleViewAsset(asset.id)}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-medium text-gray-900 truncate">{asset.asset_name}</p>
+                        {score > 0 && (
+                          <Badge variant="outline" className="text-xs border-yellow-300 text-yellow-700">
+                            <Star className="w-3 h-3 ml-1 fill-yellow-400 text-yellow-400" />
+                            {toPersianNumber(displayScore)}
+                          </Badge>
+                        )}
+                        {getValuationStatusBadge(asset)}
+                        {isPendingProtection && (
+                          <Badge className="bg-purple-500 text-white text-xs">
+                            <Shield className="w-3 h-3 ml-1" />
+                            نیاز به تایید حفاظت
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 flex-wrap text-xs">
+                        <span className="text-gray-400">{asset.asset_uid}</span>
+                        <span className="text-gray-300">•</span>
+                        <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
+                          {getCategoryLabel(asset.category)}
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span className="flex items-center gap-1 text-gray-500">
+                          <User className="w-3 h-3" />
+                          {getUserDisplayName(asset)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap text-xs">
-                      <span className="text-gray-400">{asset.asset_uid}</span>
-                      <span className="text-gray-300">•</span>
-                      <span className="px-2 py-0.5 bg-gray-100 rounded-full text-gray-600">
-                        {getCategoryLabel(asset.category)}
-                      </span>
-                      <span className="text-gray-300">•</span>
-                      <span className="flex items-center gap-1 text-gray-500">
-                        <User className="w-3 h-3" />
-                        {getUserDisplayName(asset)}
-                      </span>
+                    
+                    <div className="flex items-center gap-2 flex-shrink-0 mt-2 md:mt-0">
+                      {isAdmin && isPendingValuation && (
+                        <>
+                          <Button
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleApproveProtection(asset.id);
+                            }}
+                            disabled={approving === asset.id}
+                          >
+                            <CheckCircle className="w-4 h-4 ml-1" />
+                            {approving === asset.id ? '...' : 'تایید'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-red-500 text-red-600 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // رد ارزش‌گذاری
+                            }}
+                          >
+                            <XCircle className="w-4 h-4 ml-1" />
+                            رد
+                          </Button>
+                        </>
+                      )}
+                      {isApprovedValuation && (
+                        <Link href={`/dashboard/intangible/valuation/${asset.id}`} onClick={(e) => e.stopPropagation()}>
+                          <Button size="sm" variant="outline" className="border-blue-200 text-blue-600">
+                            <TrendingUp className="w-4 h-4 ml-1" />
+                            ارزش‌گذاری
+                          </Button>
+                        </Link>
+                      )}
+                      {isPendingProtection && isAdmin && (
+                        <Button
+                          size="sm"
+                          className="bg-purple-600 hover:bg-purple-700 text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveProtection(asset.id);
+                          }}
+                          disabled={approving === asset.id}
+                        >
+                          <Shield className="w-4 h-4 ml-1" />
+                          {approving === asset.id ? '...' : 'تایید حفاظت'}
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" className="text-blue-600">
+                        <Eye className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-xs text-gray-400 hidden sm:block">
-                      {formatDate(asset.created_at)}
-                    </span>
-                    <Button variant="ghost" size="sm" className="text-blue-600">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -477,14 +619,15 @@ export default function DepartmentDetailPage() {
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <span className="flex items-center gap-2 text-gray-600">
                 <BarChart3 className="w-4 h-4 text-blue-600" />
-                نرخ تأیید: 
-                <span className="font-bold text-emerald-600">
-                  {stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0}%
-                </span>
+                کل دارایی‌ها: <span className="font-bold">{toPersianNumber(assets.length)}</span>
               </span>
-              <span className="flex items-center gap-2 text-gray-600">
-                <TrendingUp className="w-4 h-4 text-blue-600" />
-                {stats.total} دارایی • {stats.verified} تأیید • {stats.pending} در انتظار • {stats.rejected} رد
+              <span className="flex items-center gap-2 text-amber-600">
+                <Clock className="w-4 h-4" />
+                نیاز به تایید ارزش‌گذاری: <span className="font-bold">{toPersianNumber(pendingValuationAssets.length)}</span>
+              </span>
+              <span className="flex items-center gap-2 text-purple-600">
+                <Shield className="w-4 h-4" />
+                نیاز به حفاظت: <span className="font-bold">{toPersianNumber(pendingProtectionAssets.length)}</span>
               </span>
             </div>
           </CardContent>
