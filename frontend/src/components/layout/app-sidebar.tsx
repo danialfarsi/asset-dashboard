@@ -32,7 +32,11 @@ import {
   Sparkles,
   Database,
   Activity,
-  ShieldCheck
+  ShieldCheck,
+  FileCheck,
+  Plus,
+  Crown,
+  List,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -48,46 +52,41 @@ import Image from 'next/image'
 
 // ============ منوهای اصلی ============
 const mainNavItems = [
-  { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard, id: 'main-dashboard' },
 ]
 
-// ============ منوهای مرحله ۱ ============
+// ============ منوهای مرحله ۱ (VIAM) - زیرمجموعه‌ها ============
 const stage1Children = [
-  { label: 'برنامه‌ریزی استراتژیک', href: '/dashboard/intangible/stage1/planning', icon: Target },
-  { label: 'شناسایی نیازها', href: '/dashboard/intangible/stage1/needs', icon: Sparkles },
-  { label: 'تدوین چشم‌انداز', href: '/dashboard/intangible/stage1/vision', icon: Eye },
+  { label: 'ثبت درخواست جدید', href: '/viam/establishment/new', icon: Plus, roles: ['super_admin', 'org_admin'], id: 'viam-new-request' },
+  { label: 'لیست درخواست‌ها', href: '/viam/establishment/list', icon: List, id: 'viam-requests' },
 ]
 
 // ============ منوهای مرحله ۲ ============
 const stage2Children = [
-  { label: 'شناسایی هوشمند دارایی‌ها', href: '/dashboard/intangible/discovery-wizard', icon: Target },
-  { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck },
-  { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle },
+  { label: 'شناسایی هوشمند دارایی‌ها', href: '/dashboard/intangible/discovery-wizard', icon: Target, id: 'discovery-wizard' },
+  { label: 'هویت‌سنجی دارایی‌ها', href: '/dashboard/intangible/screening', icon: ClipboardCheck, id: 'screening' },
+  { label: 'دارایی‌های غربالگری شده', href: '/dashboard/intangible/screening/list', icon: CheckCircle, id: 'screening-list' },
 ]
 
 // ============ منوهای مرحله ۳ ============
 const stage3Children = [
-  { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks },
-  { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award },
-  { label: 'ارزش‌گذاری دارایی‌ها', href: '/dashboard/intangible/valuation/valuation', icon: PieChart },
-  {
-    label: "دارایی‌های ارزش‌گذاری شده",
-    href: "/dashboard/intangible/valuation/registered",
-    icon: Database,
-  }
+  { label: 'ارزیابی دارایی‌ها', href: '/dashboard/intangible/valuation/list', icon: ListChecks, id: 'valuation-list' },
+  { label: 'دارایی‌های ارزیابی شده', href: '/dashboard/intangible/valuation/completed', icon: Award, id: 'valuation-completed' },
+  { label: 'ارزش‌گذاری دارایی‌ها', href: '/dashboard/intangible/valuation/valuation', icon: PieChart, id: 'valuation-valuation' },
+  { label: "دارایی‌های ارزش‌گذاری شده", href: "/dashboard/intangible/valuation/registered", icon: Database, id: 'valuation-registered' },
 ]
 
 // ============ منوهای مرحله ۴ ============
 const stage4Children = [
-  { label: 'حفاظت و امنیت دارایی‌ها', href: '/dashboard/intangible/protection', icon: Shield },
-  { label: 'دارایی‌های حفاظت شده', href: '/dashboard/intangible/protected-assets', icon: ShieldCheck },
+  { label: 'حفاظت و امنیت دارایی‌ها', href: '/dashboard/intangible/protection', icon: Shield, id: 'protection' },
+  { label: 'دارایی‌های حفاظت شده', href: '/dashboard/intangible/protected-assets', icon: ShieldCheck, id: 'protected-assets' },
 ]
 
 // ============ منوهای مراحل ۱۰ گانه ============
 const stageNavItems = [
   { 
     label: 'مرحله ۱: برنامه و نقشه راهبردی', 
-    href: '/dashboard/intangible/stage1', 
+    href: '/dashboard/intangible/stage1',
     icon: LayoutDashboard,
     children: stage1Children,
     id: 'stage1'
@@ -113,26 +112,32 @@ const stageNavItems = [
     children: stage4Children,
     id: 'stage4'
   },
-  { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb },
-  { label: 'مرحله ۶: تجاری سازی', href: '/dashboard/intangible/stage6', icon: Share2 },
-  { label: 'مرحله ۷: پایش و حکمرانی', href: '/dashboard/intangible/stage7', icon: ShoppingCart },
-  { label: 'مرحله ۸: هم افزایی و ارتباطات', href: '/dashboard/intangible/stage8', icon: Eye },
-  { label: 'مرحله ۹: مدیریت و بهینه سازی', href: '/dashboard/intangible/stage9', icon: TrendingUp },
-  { label: 'مرحله ۱۰: تحلیل پیش بین', href: '/dashboard/intangible/stage10', icon: FileText },
+  { label: 'مرحله ۵: توسعه و نوآوری', href: '/dashboard/intangible/stage5', icon: Lightbulb, id: 'stage5' },
+  { label: 'مرحله ۶: تجاری سازی', href: '/dashboard/intangible/stage6', icon: Share2, id: 'stage6' },
+  { label: 'مرحله ۷: پایش و حکمرانی', href: '/dashboard/intangible/stage7', icon: ShoppingCart, id: 'stage7' },
+  { label: 'مرحله ۸: هم افزایی و ارتباطات', href: '/dashboard/intangible/stage8', icon: Eye, id: 'stage8' },
+  { label: 'مرحله ۹: مدیریت و بهینه سازی', href: '/dashboard/intangible/stage9', icon: TrendingUp, id: 'stage9' },
+  { label: 'مرحله ۱۰: تحلیل پیش بین', href: '/dashboard/intangible/stage10', icon: FileText, id: 'stage10' },
 ]
 
 // ============ منوهای سیستم ============
 const settingsNavItems = [
-  { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings },
-  { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle },
+  { label: 'تنظیمات', href: '/dashboard/settings', icon: Settings, id: 'settings' },
+  { label: 'راهنما', href: '/dashboard/help', icon: HelpCircle, id: 'help' },
 ]
 
-// ============ منوی تاریخچه API (جداگانه) ============
+// ============ منوی تاریخچه API ============
 const apiHistoryItem = {
   label: 'تاریخچه API',
   href: '/admin/api-dashboard',
   icon: Activity,
+  id: 'api-history',
 }
+
+// ============ منوهای مدیریتی (فقط super_admin) ============
+const adminNavItems = [
+  { label: 'تایید VIAM', href: '/admin/viam-approvals', icon: CheckCircle, id: 'admin-viam-approvals', roles: ['super_admin'] },
+]
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -140,7 +145,7 @@ export function AppSidebar() {
   const [departments, setDepartments] = useState<any[]>([])
   const [companies, setCompanies] = useState<any[]>([])
   const [isStagesOpen, setIsStagesOpen] = useState(true)
-  const [openStage, setOpenStage] = useState<string | null>(null)
+  const [openStage, setOpenStage] = useState<string | null>('stage1')
   const [isDepartmentsOpen, setIsDepartmentsOpen] = useState(false)
   const [isCompaniesOpen, setIsCompaniesOpen] = useState(false)
   
@@ -150,7 +155,8 @@ export function AppSidebar() {
   const isOrgUser = role === 'org_user'
 
   useEffect(() => {
-    if (pathname.includes('/dashboard/intangible/stage1')) {
+    if (pathname.includes('/dashboard/intangible/stage1') ||
+        pathname.includes('/viam/establishment')) {
       setIsStagesOpen(true)
       setOpenStage('stage1')
     } else if (pathname.includes('/dashboard/intangible/stage2') || 
@@ -166,8 +172,6 @@ export function AppSidebar() {
                pathname.includes('/dashboard/intangible/protected-assets')) {
       setIsStagesOpen(true)
       setOpenStage('stage4')
-    } else {
-      setOpenStage(null)
     }
   }, [pathname])
 
@@ -182,7 +186,7 @@ export function AppSidebar() {
       }
     }
     
-    if (user && isOrgAdmin) {
+    if (user && (isOrgAdmin || isSuperAdmin)) {
       fetchDepartments()
     }
     
@@ -208,12 +212,27 @@ export function AppSidebar() {
     }
   }
 
+  const hasPermission = (item: any): boolean => {
+    if (!item.roles) return true
+    return item.roles.includes(role)
+  }
+
   const renderMenuItem = (item: any, isChild: boolean = false) => {
     const Icon = item.icon
     const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
     
+    if (item.isSeparator) {
+      return (
+        <div key={item.id || item.label} className="px-3 py-2 text-xs font-medium text-gray-400 border-t border-gray-200/50 mt-2 first:mt-0 first:border-t-0">
+          {item.label}
+        </div>
+      )
+    }
+    
+    if (!hasPermission(item)) return null
+    
     return (
-      <SidebarMenuItem key={item.href}>
+      <SidebarMenuItem key={item.id || item.href}>
         <SidebarMenuButton asChild isActive={isActive} className={isChild ? 'pr-6' : ''}>
           <Link href={item.href} className="flex items-center gap-3 w-full">
             <Icon className="w-4 h-4 shrink-0 text-gray-500" />
@@ -245,7 +264,7 @@ export function AppSidebar() {
   }
 
   const renderStagesNav = () => {
-    if (!isOrgUser && !isOrgAdmin) return null
+    if (!isOrgUser && !isOrgAdmin && !isSuperAdmin) return null
     
     return (
       <SidebarGroup>
@@ -271,7 +290,7 @@ export function AppSidebar() {
               
               if (item.children) {
                 return (
-                  <div key={item.href} className="space-y-0">
+                  <div key={item.id || item.href} className="space-y-0">
                     <SidebarMenuItem>
                       <button
                         onClick={() => toggleStage(item.id)}
@@ -306,7 +325,7 @@ export function AppSidebar() {
   }
 
   const renderDepartmentsNav = () => {
-    if (!isOrgAdmin) return null
+    if (!isOrgAdmin && !isSuperAdmin) return null
     
     const userDepts = departments.filter(
       (dept: any) => dept.organization?.id === user?.organization_id
@@ -318,6 +337,7 @@ export function AppSidebar() {
       label: dept.name,
       href: `/dashboard/departments/${dept.code}`,
       icon: Building,
+      id: `dept-${dept.id}`,
     }))
     
     return (
@@ -351,6 +371,7 @@ export function AppSidebar() {
       label: org.name,
       href: `/dashboard/companies/${org.code}`,
       icon: Building2,
+      id: `company-${org.id}`,
     }))
     
     if (companyNavItems.length === 0) return null
@@ -391,6 +412,20 @@ export function AppSidebar() {
     )
   }
 
+  // ===== منوی مدیریتی (فقط super_admin) =====
+  const renderAdminNav = () => {
+    if (!isSuperAdmin) return null
+    
+    return (
+      <SidebarGroup>
+        <SidebarGroupLabel className="text-xs font-medium text-gray-600">مدیریت</SidebarGroupLabel>
+        <SidebarMenu>
+          {adminNavItems.map((item) => renderMenuItem(item))}
+        </SidebarMenu>
+      </SidebarGroup>
+    )
+  }
+
   const renderSettingsNav = () => {
     return (
       <SidebarGroup>
@@ -404,7 +439,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar side="right" dir="rtl" className="w-72 border-l border-gray-100">
-      {/* ===== HEADER ===== */}
       <SidebarHeader className="p-5 border-b border-gray-100 bg-gradient-to-br from-dark-green to-medium-green">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="relative">
@@ -424,10 +458,10 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
 
-      {/* ===== CONTENT ===== */}
       <SidebarContent className="px-3 py-4">
         {renderMainNav()}
         {renderStagesNav()}
+        {renderAdminNav()}
         {renderDepartmentsNav()}
         {renderCompaniesNav()}
         {renderApiHistoryNav()}

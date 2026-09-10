@@ -1,4 +1,4 @@
-export type UserRole = "super_admin" | "org_admin" | "org_user";
+export type UserRole = 'super_admin' | 'org_admin' | 'org_user';
 
 export interface User {
   id: number;
@@ -7,11 +7,10 @@ export interface User {
   first_name: string;
   last_name: string;
   role: UserRole;
-  organization_id?: number;
+  organization_id: number | null;
   organization_name?: string;
-  department_id?: number;
+  department_id?: number | null;
   department_name?: string;
-  is_active: boolean;
 }
 
 export interface LoginCredentials {
@@ -19,14 +18,12 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface AuthTokens {
-  access: string;
-  refresh: string;
-}
-
 export interface AuthResponse {
-  user: User;
-  tokens?: AuthTokens;
-  access?: string;
+  access: string;
   refresh?: string;
+  user: User;
+  tokens?: {
+    access: string;
+    refresh: string;
+  };
 }
