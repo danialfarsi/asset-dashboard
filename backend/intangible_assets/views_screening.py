@@ -71,6 +71,10 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         asset_type_id = self.request.data.get('asset_type_id')
         valuation_method = self.request.data.get('valuation_method')
         
+        # ⬇️⬇️ دریافت valuation_type از درخواست ⬇️⬇️
+        valuation_type = self.request.data.get('valuation_type')
+        # ⬆️⬆️ پایان ⬆️⬆️
+        
         # اگر asset_type_id ارسال نشده، از قالب بگیر
         if not asset_type_id and template_id:
             try:
@@ -94,6 +98,11 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
             save_data['asset_type_id'] = asset_type_id
         if valuation_method:
             save_data['valuation_method'] = valuation_method
+        
+        # ⬇️⬇️ ذخیره valuation_type ⬇️⬇️
+        if valuation_type:
+            save_data['valuation_type'] = valuation_type
+        # ⬆️⬆️ پایان ⬆️⬆️
         
         serializer.save(**save_data)
 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -24,6 +25,7 @@ interface ScreeningItem {
 interface AssetEntry {
   id: string;
   name: string;
+  valuationType: 'DCF' | 'NAV' | '';
 }
 
 interface OrganizationType {
@@ -106,7 +108,11 @@ export default function NewScreeningPage() {
       newSet.add(id);
       setAssetEntries({
         ...assetEntries,
-        [id]: [{ id: `asset-${id}-${Date.now()}`, name: '' }]
+        [id]: [{ 
+          id: `asset-${id}-${Date.now()}`, 
+          name: '',
+          valuationType: ''
+        }]
       });
     }
     setSelectedItems(newSet);
@@ -117,7 +123,11 @@ export default function NewScreeningPage() {
       ...assetEntries,
       [templateId]: [
         ...(assetEntries[templateId] || []),
-        { id: `asset-${templateId}-${Date.now()}`, name: '' }
+        { 
+          id: `asset-${templateId}-${Date.now()}`, 
+          name: '',
+          valuationType: ''
+        }
       ]
     });
   };
@@ -140,6 +150,16 @@ export default function NewScreeningPage() {
       ...assetEntries,
       [templateId]: entries.map(e => 
         e.id === entryId ? { ...e, name: value } : e
+      )
+    });
+  };
+
+  const updateValuationType = (templateId: number, entryId: string, value: 'DCF' | 'NAV') => {
+    const entries = assetEntries[templateId] || [];
+    setAssetEntries({
+      ...assetEntries,
+      [templateId]: entries.map(e => 
+        e.id === entryId ? { ...e, valuationType: value } : e
       )
     });
   };
@@ -181,13 +201,18 @@ export default function NewScreeningPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const missingNames = [];
+      const missingNames: string[] = [];
+      const missingTypes: string[] = [];
+      
       for (const [templateId, entries] of Object.entries(assetEntries)) {
+        const item = items.find(i => i.id === Number(templateId));
+        
         for (const entry of entries) {
           if (!entry.name || entry.name.trim() === '') {
-            const item = items.find(i => i.id === Number(templateId));
-            missingNames.push(item?.item_name);
-            break;
+            missingNames.push(item?.item_name || 'بدون نام');
+          }
+          if (!entry.valuationType) {
+            missingTypes.push(`${item?.item_name || 'بدون نام'} - ${entry.name || 'بدون نام'}`);
           }
         }
       }
@@ -198,12 +223,17 @@ export default function NewScreeningPage() {
         return;
       }
       
+      if (missingTypes.length > 0) {
+        alert(`لطفاً نوع ارزش‌گذاری (DCF یا NAV) را برای همه دارایی‌ها انتخاب کنید:\n${missingTypes.join('\n')}`);
+        setSubmitting(false);
+        return;
+      }
+      
       for (const [templateId, entries] of Object.entries(assetEntries)) {
         const item = items.find(i => i.id === Number(templateId));
         if (!item) continue;
         
         for (const entry of entries) {
-          // 🔥 دریافت asset_type_id و valuation_method از item
           const assetTypeId = (item as any).asset_type_id;
           const valuationMethod = (item as any).valuation_method;
           
@@ -212,10 +242,10 @@ export default function NewScreeningPage() {
             category: item.category,
             result: item.default_result,
             description: `غربالگری شده از مورد: ${item.item_name}`,
-            // 🔥 اضافه کردن فیلدهای جدید
             template_id: Number(templateId),
             asset_type_id: assetTypeId,
             valuation_method: valuationMethod,
+            valuation_type: entry.valuationType,
           });
         }
       }
@@ -245,6 +275,10 @@ export default function NewScreeningPage() {
   }, {} as Record<string, ScreeningItem[]>);
 
   const totalAssets = Object.values(assetEntries).reduce((sum, entries) => sum + entries.length, 0);
+  
+  const incompleteCount = Object.values(assetEntries)
+    .flat()
+    .filter(e => !e.name || !e.valuationType).length;
 
   const OrgIcon = orgIcons[orgType as keyof typeof orgIcons] || Building2;
 
@@ -257,7 +291,7 @@ export default function NewScreeningPage() {
           </button>
           <div>
             <h1 className="text-xl font-bold text-gray-900">غربالگری دارایی‌های نامشهود</h1>
-            <p className="text-xs text-gray-500">مواردی که سازمان شما دارد را تیک بزنید و نام دارایی را وارد کنید</p>
+            <p className="text-xs text-gray-500">مواردی که سازمان شما دارد را تیک بزنید، نام دارایی و نوع ارزش‌گذاری را مشخص کنید</p>
           </div>
         </div>
         <div className="text-sm text-gray-500">
@@ -265,7 +299,6 @@ export default function NewScreeningPage() {
         </div>
       </div>
 
-      {/* نمایش نوع سازمان */}
       <Card className="border-blue-200 bg-blue-50/50">
         <CardContent className="p-4">
           <div className="flex items-center gap-4 flex-wrap">
@@ -334,13 +367,26 @@ export default function NewScreeningPage() {
                     {isSelected && (
                       <div className="mt-3 mr-8 space-y-2">
                         {entries.map((entry) => (
-                          <div key={entry.id} className="flex items-center gap-2">
+                          <div key={entry.id} className="flex items-center gap-2 flex-wrap">
                             <Input
                               placeholder="نام دارایی را وارد کنید..."
                               value={entry.name}
                               onChange={(e) => updateAssetName(item.id, entry.id, e.target.value)}
-                              className="text-sm flex-1"
+                              className="text-sm flex-1 min-w-[200px]"
                             />
+                            
+                            <select
+                              value={entry.valuationType}
+                              onChange={(e) => updateValuationType(item.id, entry.id, e.target.value as 'DCF' | 'NAV')}
+                              className={`text-sm border rounded-md px-3 py-2 bg-white min-w-[220px] focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                !entry.valuationType ? 'border-red-300 bg-red-50' : 'border-gray-300'
+                              }`}
+                            >
+                              <option value="" disabled>نوع ارزش‌گذاری...</option>
+                              <option value="DCF">DCF - جریان نقدی تنزیل شده</option>
+                              <option value="NAV">NAV - ارزش خالص دارایی</option>
+                            </select>
+                            
                             <Button
                               type="button"
                               variant="ghost"
@@ -372,26 +418,30 @@ export default function NewScreeningPage() {
         ))
       )}
 
-      {/* ======================================== */}
-      {/* فوتر با دکمه‌های واکنش‌گرا */}
-      {/* ======================================== */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-lg z-50">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-3">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={totalAssets === 0 || submitting}
-            className="w-full sm:flex-1 order-2 sm:order-1"
-          >
-            <Save className="w-4 h-4 ml-2" />
-            {submitting ? 'در حال ثبت...' : `ثبت ${totalAssets} دارایی`}
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => router.back()}
-            className="w-full sm:w-auto order-1 sm:order-2"
-          >
-            انصراف
-          </Button>
+        <div className="max-w-4xl mx-auto">
+          {incompleteCount > 0 && (
+            <p className="text-xs text-red-500 text-center mb-2">
+              ⚠️ {incompleteCount} دارایی هنوز کامل نشده است (نام یا نوع ارزش‌گذاری)
+            </p>
+          )}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button 
+              onClick={handleSubmit} 
+              disabled={totalAssets === 0 || submitting || incompleteCount > 0}
+              className="w-full sm:flex-1 order-2 sm:order-1"
+            >
+              <Save className="w-4 h-4 ml-2" />
+              {submitting ? 'در حال ثبت...' : `ثبت ${totalAssets} دارایی`}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => router.back()}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              انصراف
+            </Button>
+          </div>
         </div>
       </div>
     </div>

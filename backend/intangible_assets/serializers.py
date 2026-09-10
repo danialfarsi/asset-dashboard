@@ -97,6 +97,7 @@ class ScreenedAssetSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='created_by.department.name', read_only=True, default='')
     asset_type_name = serializers.CharField(source='asset_type.name', read_only=True, default='نامشخص')
     approved_by_name = serializers.CharField(source='approved_by.email', read_only=True, default='')
+    valuation_type_label = serializers.CharField(source='get_valuation_type_display', read_only=True)
     valuation_score = serializers.SerializerMethodField()
     valuation_case_id = serializers.SerializerMethodField()
     

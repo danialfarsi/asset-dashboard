@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuthStore } from '@/store/auth-store';
@@ -96,6 +97,9 @@ interface DashboardStats {
   growthRate: number;
   avgApprovalTime: number;
   estimatedValue: number;
+  dcfValue: number;
+  navValue: number;
+  portfolioValue: number;
 }
 
 interface RecentAsset {
@@ -143,6 +147,9 @@ export default function DashboardPage() {
     growthRate: 0,
     avgApprovalTime: 0,
     estimatedValue: 0,
+    dcfValue: 0,
+    navValue: 0,
+    portfolioValue: 0,
   });
   const [recentAssets, setRecentAssets] = useState<RecentAsset[]>([]);
   const [chartData, setChartData] = useState<AssetTypeDistribution[]>([]);
@@ -226,10 +233,38 @@ export default function DashboardPage() {
         : 0;
 
       // 📌 میانگین زمان تأیید (تخمینی)
-      const avgApprovalTime = 4.5; // روز - این رو از دیتابیس محاسبه کن
+      const avgApprovalTime = 4.5; // روز
 
-      // 📌 ارزش تقریبی (تخمینی)
-      const estimatedValue = assets.length * 1500000000; // ریال
+      // ====================================================
+      // 📌 محاسبه ارزش دارایی‌های DCF / NAV / مجموع پرتفوی
+      // از endpoint اختصاصی بک‌اند (بهینه - یک درخواست واحد)
+      // ====================================================
+      let dcfValue = 0;
+      let navValue = 0;
+      let estimatedValue = 0;
+      let portfolioValue = 0;
+
+      try {
+        const { data: portfolioData } = await api.get('/intangible/dashboard/portfolio/');
+        dcfValue = Number(portfolioData.dcf_value) || 0;
+        navValue = Number(portfolioData.nav_value) || 0;
+        estimatedValue = Number(portfolioData.total_value) || 0;
+        portfolioValue = Number(portfolioData.portfolio_value) || 0;
+
+        console.log('💰 Portfolio Data:', {
+          dcf: dcfValue,
+          nav: navValue,
+          total: estimatedValue,
+          portfolio: portfolioValue,
+          records: portfolioData.records_count,
+        });
+      } catch (e) {
+        console.error('Error fetching portfolio values:', e);
+        dcfValue = 0;
+        navValue = 0;
+        estimatedValue = 0;
+        portfolioValue = 0;
+      }
 
       setStats({
         totalAssets: assets.length,
@@ -245,6 +280,9 @@ export default function DashboardPage() {
         growthRate,
         avgApprovalTime,
         estimatedValue,
+        dcfValue,
+        navValue,
+        portfolioValue,
       });
 
       // 📌 وضعیت ارزیابی
@@ -420,7 +458,6 @@ export default function DashboardPage() {
           HEADER
       ============================================ */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-dark-green via-medium-green to-aqua-green p-7 md:p-8 text-white shadow-[0_20px_50px_rgba(1,83,69,0.25)]">
-        {/* decorative layers */}
         <div
           className="absolute inset-0 opacity-[0.07]"
           style={{
@@ -454,7 +491,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* signature: confidence / approval gauge */}
           <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl px-5 py-4">
             <div className="relative w-16 h-16 shrink-0">
               <svg viewBox="0 0 64 64" className="w-16 h-16 -rotate-90">
@@ -523,6 +559,7 @@ export default function DashboardPage() {
           { label: 'کاربران', value: stats.totalUsers, icon: Users, bg: 'bg-blue-50', color: 'text-blue-600' },
           { label: 'واحدها', value: stats.totalDepartments, icon: Building, bg: 'bg-purple-50', color: 'text-purple-600' },
           { label: 'قالب‌ها', value: stats.totalScreeningTemplates, icon: FileCheck, bg: 'bg-amber-50', color: 'text-amber-600' },
+          { label: 'ارزیابی‌ها', value: stats.totalValuations, icon: ClipboardCheck, bg: 'bg-emerald-50', color: 'text-emerald-600' },
         ].map((row) => (
           <Card key={row.label} className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow">
             <CardContent className="p-4 flex items-center gap-3.5">
@@ -534,16 +571,86 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         ))}
-        <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow">
-          <CardContent className="p-4 flex items-center gap-3.5">
-            <div className="bg-emerald-50 p-2.5 rounded-xl"><DollarSign className="w-5 h-5 text-emerald-600" /></div>
-            <div className="min-w-0">
-              <p className="text-[10px] text-gray-400 font-medium">ارزش تقریبی</p>
-              <p className="text-lg font-bold text-dark-green tabular-nums truncate">{toPersianNumberWithComma(stats.estimatedValue)}</p>
-              <p className="text-[9px] text-gray-400">ریال</p>
-            </div>
-          </CardContent>
-        </Card>
+      </div>
+
+      {/* ============================================
+          VALUATION BREAKDOWN - DCF / NAV / Portfolio
+      ============================================ */}
+      <div>
+        <p className="text-xs font-semibold text-gray-400 mb-2.5 px-1">ارزش پرتفوی دارایی‌ها</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* DCF */}
+          <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow border-r-4 border-r-blue-500">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-blue-50 p-2 rounded-xl">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-blue-700">ارزش دارایی‌های DCF</p>
+                    <p className="text-[9px] text-gray-400">جریان نقدی تنزیل شده</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-blue-700 tabular-nums" title={`${stats.dcfValue} ریال`}>
+                {toPersianNumberWithComma(Math.round(stats.dcfValue))}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1">ریال</p>
+              <p className="text-[10px] text-blue-600 mt-2 font-medium">
+                وزن در پرتفوی: ۵۰٪
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* NAV */}
+          <Card className="border border-gray-100 shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:shadow-md transition-shadow border-r-4 border-r-purple-500">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-purple-50 p-2 rounded-xl">
+                    <Package className="w-4 h-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-purple-700">ارزش دارایی‌های NAV</p>
+                    <p className="text-[9px] text-gray-400">ارزش خالص دارایی</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-purple-700 tabular-nums" title={`${stats.navValue} ریال`}>
+                {toPersianNumberWithComma(Math.round(stats.navValue))}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1">ریال</p>
+              <p className="text-[10px] text-purple-600 mt-2 font-medium">
+                وزن در پرتفوی: ۹۵٪
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Portfolio Total */}
+          <Card className="border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-white shadow-[0_4px_12px_rgba(16,185,129,0.15)] hover:shadow-[0_8px_20px_rgba(16,185,129,0.2)] transition-all">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="bg-emerald-100 p-2 rounded-xl">
+                    <DollarSign className="w-4 h-4 text-emerald-700" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-800">مجموع پرتفوی</p>
+                    <p className="text-[9px] text-emerald-600">(۰.۹۵ × NAV) + (۰.۵ × DCF)</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-emerald-700 tabular-nums" title={`${stats.portfolioValue} ریال`}>
+                {toPersianNumberWithComma(Math.round(stats.portfolioValue))}
+              </p>
+              <p className="text-[10px] text-gray-400 mt-1">ریال</p>
+              <p className="text-[10px] text-emerald-600 mt-2 font-medium">
+                ✓ وزن‌دهی‌شده بر اساس نوع ارزش‌گذاری
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* ============================================

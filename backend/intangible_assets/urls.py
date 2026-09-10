@@ -1,3 +1,4 @@
+
 from django.urls import path, include
 from .external_discovery_views import ExternalDiscoveryView
 from .views_claim_assets import ClaimExternalAssetsView
@@ -22,6 +23,9 @@ from .valuation_qc_views import QualityControlViewSet
 from .graph_views import GraphViewSet
 from .views_api_stats import APIStatsView
 from .views_external_users import ExternalUsersView
+
+# ⬇️⬇️⬇️ جدید: Dashboard Portfolio ⬇️⬇️⬇️
+from .views_dashboard import DashboardPortfolioView
 
 # STEP 4 - Protection
 from .protection_views import ProtectionViewSet
@@ -74,6 +78,9 @@ urlpatterns = [
     path('suggest-template/', SuggestTemplateView.as_view(), name='suggest-template'),
     path('api-stats/', APIStatsView.as_view(), name='api-stats'),
     path('external-users/', ExternalUsersView.as_view(), name='external-users'),
+
+    # ⬇️⬇️⬇️ جدید: Dashboard Portfolio ⬇️⬇️⬇️
+    path('dashboard/portfolio/', DashboardPortfolioView.as_view(), name='dashboard-portfolio'),
 ]
 
 

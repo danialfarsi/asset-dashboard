@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -163,7 +162,7 @@ class ScreeningTemplate(models.Model):
         ('operational_knowledge', 'عملیاتی - دانشی'),
         ('operational_cultural', 'عملیاتی - فرهنگی'),
         ('operational_environmental', 'عملیاتی - زیست‌محیطی'),
-        ('support_economic', 'پشتیبان -経済ی'),
+        ('support_economic', 'پشتیبان -اقتصادی'),
         ('support_social', 'پشتیبان - اجتماعی'),
         ('support_knowledge', 'پشتیبان - دانشی'),
         ('support_cultural', 'پشتیبان - فرهنگی'),
@@ -243,6 +242,11 @@ class ScreenedAsset(models.Model):
         ('rejected', 'رد شده'),
     ]
     
+    VALUATION_TYPE_CHOICES = [
+        ('DCF', 'DCF - Discounted Cash Flow (جریان نقدی تنزیل شده)'),
+        ('NAV', 'NAV - Net Asset Value (ارزش خالص دارایی)'),
+    ]
+    
     asset_name = models.CharField(max_length=500, default='دارایی بدون نام')
     asset_uid = models.CharField(max_length=50, unique=True, null=True, blank=True)
     category = models.CharField(max_length=50, default='unknown')
@@ -269,6 +273,17 @@ class ScreenedAsset(models.Model):
         null=True,
         help_text='روش ارزش‌گذاری انتخاب شده برای این دارایی'
     )
+    
+    # ⬇️⬇️⬇️ فیلد جدید اضافه شده ⬇️⬇️⬇️
+    valuation_type = models.CharField(
+        max_length=10,
+        choices=VALUATION_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='نوع ارزش‌گذاری',
+        help_text='نوع ارزش‌گذاری انتخاب شده توسط کاربر (DCF یا NAV)'
+    )
+    # ⬆️⬆️⬆️ پایان فیلد جدید ⬆️⬆️⬆️
     
     # فیلدهای جدید برای کاربران خارجی
     source_type = models.CharField(
