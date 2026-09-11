@@ -23,19 +23,14 @@ class ProtectionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        🔥 فیلتر protection profile ها:
-        ۱. بر اساس asset_id از query params (اگه بفرسته)
-        ۲. بر اساس role کاربر
+        🔥 فیلتر protection profile ها بر اساس role:
+        - super_admin: همه
+        - org_admin: profile های دارایی‌های سازمان خودش
+        - org_user: profile های دارایی‌های خودش
         """
         user = self.request.user
         queryset = ProtectionProfile.objects.all()
         
-        # ۱. فیلتر بر اساس asset_id
-        asset_id = self.request.query_params.get('asset')
-        if asset_id:
-            queryset = queryset.filter(asset_id=asset_id)
-        
-        # ۲. فیلتر بر اساس role
         if user.role == 'super_admin':
             return queryset
         

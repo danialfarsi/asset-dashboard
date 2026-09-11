@@ -169,6 +169,7 @@ interface ProtectionProfile {
   protection_score: number;
   legal_score: number;
   technical_score: number;
+  screening_template_name: string;
   created_at: string;
   updated_at: string;
 }
@@ -267,21 +268,15 @@ export default function AssetDetailPage() {
       // 🔥 دریافت اطلاعات حفاظت (Protection Profile)
       // ===============================================================
       try {
-        // 🔥 جستجوی مستقیم protection profile بر اساس asset_id
-        const protectionRes = await api.get(`/intangible/protection/?asset=${assetId}`);
+        const protectionRes = await api.get(`/intangible/protection/?screening_template=${assetData.asset_type?.id}`);
         const protectionData = protectionRes.data.results || protectionRes.data || [];
-        
         if (protectionData.length > 0) {
           const profile = protectionData[0];
           setProtectionProfile(profile);
           console.log('✅ Protection Profile:', profile);
-        } else {
-          console.log('ℹ️ Protection Profile برای این دارایی وجود ندارد');
-          setProtectionProfile(null);
         }
       } catch (e) {
         console.error('Error fetching protection profile:', e);
-        setProtectionProfile(null);
       }
       // ===============================================================
       

@@ -69,7 +69,7 @@ export default function ProtectionListPage() {
       .filter((asset: ScreenedAsset) => asset.is_approved_for_protection === true)
       .map((asset: ScreenedAsset) => {
         const profile = protectionProfiles?.find(
-          (p: any) => p.asset === asset.id
+          (p: any) => p.screening_template === asset.asset_type?.id
         );
         return { ...asset, protection_profile: profile || null };
       });

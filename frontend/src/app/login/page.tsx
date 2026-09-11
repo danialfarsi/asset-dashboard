@@ -50,7 +50,7 @@ export default function LoginPage() {
             </div>
             <div>
               <p className="text-sm font-bold text-[#0B2C24] leading-tight">پلتفرم مدیریت دارایی‌های نامشهود</p>
-              <p className="text-[10px] text-gray-400 tracking-wide mt-0.5">Intangible Asset Registry</p>
+              <p className="text-[10px] text-gray-400 tracking-wide mt-0.5">دوقلو دیجیتال دارایی‌ها</p>
             </div>
           </div>
 

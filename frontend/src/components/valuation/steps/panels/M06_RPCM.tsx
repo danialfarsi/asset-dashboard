@@ -604,7 +604,7 @@ export function M06_RPCM({
         </div>
 
         <div className="space-y-1">
-          <Label className="text-sm font-medium">منسوخی مرتبط</Label>
+          <Label className="text-sm font-medium">استهلاک مرتبط</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"

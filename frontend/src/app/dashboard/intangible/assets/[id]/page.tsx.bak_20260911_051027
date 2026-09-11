@@ -169,6 +169,7 @@ interface ProtectionProfile {
   protection_score: number;
   legal_score: number;
   technical_score: number;
+  screening_template_name: string;
   created_at: string;
   updated_at: string;
 }
@@ -267,17 +268,30 @@ export default function AssetDetailPage() {
       // 🔥 دریافت اطلاعات حفاظت (Protection Profile)
       // ===============================================================
       try {
-        // 🔥 جستجوی مستقیم protection profile بر اساس asset_id
-        const protectionRes = await api.get(`/intangible/protection/?asset=${assetId}`);
-        const protectionData = protectionRes.data.results || protectionRes.data || [];
-        
-        if (protectionData.length > 0) {
-          const profile = protectionData[0];
-          setProtectionProfile(profile);
-          console.log('✅ Protection Profile:', profile);
-        } else {
-          console.log('ℹ️ Protection Profile برای این دارایی وجود ندارد');
-          setProtectionProfile(null);
+        // ۱. پیدا کردن قالب مربوط به asset_type
+        if (assetData.asset_type?.id) {
+          const templatesRes = await api.get(`/intangible/screening-templates/?asset_type=${assetData.asset_type.id}`);
+          const templates = templatesRes.data.results || templatesRes.data || [];
+          
+          console.log(`🔍 قالب‌های asset_type=${assetData.asset_type.id}:`, templates.length);
+          
+          if (templates.length > 0) {
+            const templateId = templates[0].id;
+            const protectionRes = await api.get(`/intangible/protection/?screening_template=${templateId}`);
+            const protectionData = protectionRes.data.results || protectionRes.data || [];
+            
+            if (protectionData.length > 0) {
+              const profile = protectionData[0];
+              setProtectionProfile(profile);
+              console.log('✅ Protection Profile:', profile);
+            } else {
+              console.log('ℹ️ Protection Profile برای این قالب وجود ندارد');
+              setProtectionProfile(null);
+            }
+          } else {
+            console.log('ℹ️ قالبی برای این asset_type وجود ندارد');
+            setProtectionProfile(null);
+          }
         }
       } catch (e) {
         console.error('Error fetching protection profile:', e);

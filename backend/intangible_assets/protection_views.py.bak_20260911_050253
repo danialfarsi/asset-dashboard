@@ -15,34 +15,13 @@ from .protection_serializers import (
 from .protection_config import PROTECTION_ARCHETYPES
 from .protection_tools import ProtectionTool
 
-
 class ProtectionViewSet(viewsets.ModelViewSet):
     queryset = ProtectionProfile.objects.all()
     serializer_class = ProtectionProfileSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        """
-        🔥 فیلتر protection profile ها:
-        ۱. بر اساس asset_id از query params (اگه بفرسته)
-        ۲. بر اساس role کاربر
-        """
-        user = self.request.user
-        queryset = ProtectionProfile.objects.all()
-        
-        # ۱. فیلتر بر اساس asset_id
-        asset_id = self.request.query_params.get('asset')
-        if asset_id:
-            queryset = queryset.filter(asset_id=asset_id)
-        
-        # ۲. فیلتر بر اساس role
-        if user.role == 'super_admin':
-            return queryset
-        
-        if user.role == 'org_admin':
-            return queryset.filter(asset__created_by__organization=user.organization)
-        
-        return queryset.filter(asset__created_by=user)
+        return ProtectionProfile.objects.all()
     
     @action(detail=True, methods=['get'])
     def full(self, request, pk=None):
@@ -98,8 +77,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
                 'technical_strength': archetype_config.get('technical_strength', ''),
                 'step3_active': archetype_config.get('step3_active', False),
                 'step4_active': archetype_config.get('step4_active', False),
-                'asset_name': profile.asset.asset_name,  # 🔥 تغییر: از asset
-                'asset_uid': profile.asset.asset_uid,
+                'asset_name': profile.screening_template.item_name,
                 'scores': {
                     'overall': round(overall_score, 1),
                     'legal': round(legal_score, 1),
@@ -175,6 +153,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         step.issuing_authority = request.data.get('issuing_authority', '')
         step.notes = request.data.get('notes', '')
         
+        # فیلدهای جدید
         step.jurisdiction = request.data.get('jurisdiction', '')
         step.estimated_cost = request.data.get('estimated_cost', '')
         step.registration_classes = request.data.get('registration_classes', [])
@@ -197,6 +176,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
             'registration_classes': step.registration_classes,
         }
         
+        # 🔥 مهم: وقتی گام ۳ ویرایش میشه، گام ۵ رو پاک کن و وضعیت رو ریست کن
         if hasattr(profile, 'step5'):
             profile.step5.delete()
             profile.step5_result = {}
@@ -232,6 +212,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
             'access_control_enabled': step.access_control_enabled,
         }
         
+        # 🔥 مهم: وقتی گام ۴ ویرایش میشه، گام ۵ رو پاک کن و وضعیت رو ریست کن
         if hasattr(profile, 'step5'):
             profile.step5.delete()
             profile.step5_result = {}
@@ -271,7 +252,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'asset_id الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            from .models import ScreenedAsset
+            from .models import ScreenedAsset, ScreeningTemplate
             from .protection_config import ASSET_TYPE_TO_ARCHETYPE
             
             asset = ScreenedAsset.objects.get(pk=asset_id)
@@ -279,29 +260,24 @@ class ProtectionViewSet(viewsets.ModelViewSet):
             if not asset.asset_type_id:
                 return Response({'error': 'این دارایی AssetType ندارد'}, status=status.HTTP_400_BAD_REQUEST)
             
+            template = ScreeningTemplate.objects.filter(asset_type_id=asset.asset_type_id).first()
+            if not template:
+                return Response({'error': 'قالب دارایی پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+            
             archetype = ASSET_TYPE_TO_ARCHETYPE.get(asset.asset_type_id, 'PA-5')
             
-            # 🔥 تغییر: بر اساس asset، نه screening_template
             profile, created = ProtectionProfile.objects.get_or_create(
-                asset=asset,
-                defaults={
-                    'archetype': archetype,
-                    'status': 'draft',
-                    'created_by': request.user,
-                }
+                screening_template=template,
+                defaults={'archetype': archetype, 'status': 'draft'}
             )
             
             return Response({
                 'profile_id': profile.id,
                 'created': created,
-                'archetype': profile.archetype,
-                'asset_name': asset.asset_name,
-                'asset_uid': asset.asset_uid,
+                'archetype': profile.archetype
             }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
             
         except ScreenedAsset.DoesNotExist:
             return Response({'error': 'دارایی یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

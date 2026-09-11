@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -36,6 +37,19 @@ interface QCSummary {
   blocking_issues: number;
 }
 
+// 🆕 interface برای نتیجه اعتبارسنجی Backend
+interface BackendValidationResult {
+  decision: 'APPROVE' | 'CONDITIONAL' | 'RETURN';
+  can_proceed: boolean;
+  completeness_score: number;
+  passed_count: number;
+  issues_count: number;
+  warnings_count: number;
+  passed: Array<{ field: string; label: string; message: string }>;
+  issues: Array<{ field: string; label: string; message: string; hint: string; severity: string }>;
+  warnings: Array<{ field: string; label: string; message: string; hint: string; severity: string }>;
+}
+
 const toPersianNumber = (num: number | string): string => {
   if (num === undefined || num === null) return '۰';
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -61,7 +75,7 @@ const getRuleNameInPersian = (id: string, name: string): string => {
     'توجیه تفاضل منطقی باشد': 'توجیه تفاضل منطقی باشد',
     'دوره Ramp-up معقول باشد': 'دوره رشد (Ramp-up) معقول باشد',
     'درصد سربار در بازه ۸% تا ۱۵% باشد': 'درصد سربار در بازه ۸% تا ۱۵% باشد',
-    'مجموع منسوخ‌شدگی ≤ ۶۰% باشد': 'مجموع منسوخ‌شدگی ≤ ۶۰% باشد',
+    'مجموع استهلاک ≤ ۶۰% باشد': 'مجموع استهلاک ≤ ۶۰% باشد',
     'تاریخ آخرین بازنگری تأیید شده باشد': 'تاریخ آخرین بازنگری تأیید شده باشد',
     'جایگزینی با معادل مدرن تأیید شده باشد': 'جایگزینی با معادل مدرن تأیید شده باشد',
     'درصد سربار هماهنگی در بازه ۸% تا ۱۵% باشد': 'درصد سربار هماهنگی در بازه ۸% تا ۱۵% باشد',
@@ -113,6 +127,10 @@ export function Step5_QualityControl({
   const [step3Evidences, setStep3Evidences] = useState<any[]>([]);
   const [step2Evidences, setStep2Evidences] = useState<any[]>([]);
   const [step3Inputs, setStep3Inputs] = useState<any>({});
+
+  // 🆕 state برای نتیجه اعتبارسنجی Backend
+  const [backendValidation, setBackendValidation] = useState<BackendValidationResult | null>(null);
+  const [backendValidating, setBackendValidating] = useState(false);
 
   // ============================================
   // 🔥 قوانین QC - با داده‌های واقعی از STEP 2 و STEP 3
@@ -307,6 +325,26 @@ export function Step5_QualityControl({
   };
 
   // ============================================
+  // 🆕 اجرای اعتبارسنجی Backend (endpoint جدید)
+  // ============================================
+  const runBackendValidation = async () => {
+    if (!valuationCaseId) return;
+    
+    setBackendValidating(true);
+    try {
+      const { data } = await api.post('/intangible/valuation-qc/validate/', {
+        valuation_case: valuationCaseId,
+      });
+      setBackendValidation(data);
+      console.log('✅ Backend validation:', data);
+    } catch (e) {
+      console.error('❌ Backend validation error:', e);
+    } finally {
+      setBackendValidating(false);
+    }
+  };
+
+  // ============================================
   // بارگذاری داده‌ها از دیتابیس
   // ============================================
   useEffect(() => {
@@ -467,6 +505,19 @@ export function Step5_QualityControl({
         });
 
         setLoaded(true);
+
+        // 🆕 اجرای خودکار اعتبارسنجی Backend
+        if (valuationCaseId) {
+          try {
+            const { data: bvData } = await api.post('/intangible/valuation-qc/validate/', {
+              valuation_case: valuationCaseId,
+            });
+            setBackendValidation(bvData);
+            console.log('✅ Backend validation result:', bvData);
+          } catch (e) {
+            console.error('❌ Backend validation error:', e);
+          }
+        }
       } catch (error) {
         console.error('Error loading QC data:', error);
       } finally {
@@ -598,6 +649,17 @@ export function Step5_QualityControl({
           errors: errors,
           blocking_issues: errors,
         });
+
+        // 🆕 اجرای مجدد اعتبارسنجی Backend
+        try {
+          const { data: bvData } = await api.post('/intangible/valuation-qc/validate/', {
+            valuation_case: valuationCaseId,
+          });
+          setBackendValidation(bvData);
+          console.log('✅ Backend validation (re-run):', bvData);
+        } catch (e) {
+          console.error('❌ Backend validation error:', e);
+        }
       } catch (error) {
         console.error('Error running QC checks:', error);
       }
@@ -619,6 +681,11 @@ export function Step5_QualityControl({
   };
 
   const handleProceedWithWarnings = () => {
+    // 🆕 چک نهایی از Backend
+    if (backendValidation && !backendValidation.can_proceed) {
+      alert(`❌ ثبت پرونده امکان‌پذیر نیست.\n\n${backendValidation.issues_count} مورد ناقص:\n${backendValidation.issues.map(i => `• ${i.label}: ${i.message}`).join('\n')}`);
+      return;
+    }
     if (summary.errors > 0) {
       alert('خطاهای QC باید قبل از ادامه رفع شوند');
       return;
@@ -673,7 +740,10 @@ export function Step5_QualityControl({
     );
   }
 
-  const canProceed = summary.errors === 0;
+  // 🆕 تصمیم نهایی از Backend (اگه موجود باشه) وگرنه از فرانت
+  const canProceed = backendValidation 
+    ? backendValidation.can_proceed 
+    : summary.errors === 0;
   const hasWarnings = summary.warnings > 0;
 
   return (
@@ -719,6 +789,96 @@ export function Step5_QualityControl({
           </Button>
         </div>
       </div>
+
+      {/* 🆕 کارت چک‌لیست Backend Validation */}
+      {backendValidation && (
+        <Card className={`border-2 ${
+          backendValidation.decision === 'APPROVE' ? 'border-emerald-300 bg-emerald-50/30' :
+          backendValidation.decision === 'CONDITIONAL' ? 'border-amber-300 bg-amber-50/30' :
+          'border-red-300 bg-red-50/30'
+        }`}>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+                📋 چک‌لیست کامل پرونده (کنترل Backend)
+              </h3>
+              <Badge className={`${
+                backendValidation.decision === 'APPROVE' ? 'bg-emerald-500' :
+                backendValidation.decision === 'CONDITIONAL' ? 'bg-amber-500' :
+                'bg-red-500'
+              } text-white font-[family-name:var(--font-vazir)]`}>
+                {backendValidation.decision === 'APPROVE' ? '✅ تأیید' :
+                 backendValidation.decision === 'CONDITIONAL' ? '⚠️ مشروط' : '❌ نیاز به تکمیل'}
+              </Badge>
+            </div>
+
+            {/* نمره کامل بودن */}
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-1 font-[family-name:var(--font-vazir)]">
+                <span className="font-bold">{toPersianNumber(backendValidation.completeness_score)}٪</span>
+              </div>
+              <Progress value={backendValidation.completeness_score} className="h-2" />
+            </div>
+
+            {/* موارد موفق */}
+            {backendValidation.passed?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-emerald-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
+                  ✅ {toPersianNumber(backendValidation.passed.length)} مورد تأیید شده
+                </p>
+                <div className="space-y-1">
+                  {backendValidation.passed.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-gray-600 font-[family-name:var(--font-vazir)]">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                      <span>{p.label}</span>
+                      <span className="text-gray-400">— {p.message}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* موارد ناقص */}
+            {backendValidation.issues?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-red-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
+                  ❌ {toPersianNumber(backendValidation.issues.length)} مورد نیاز به تکمیل
+                </p>
+                <div className="space-y-2">
+                  {backendValidation.issues.map((issue, i) => (
+                    <div key={i} className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs font-[family-name:var(--font-vazir)]">
+                      <div className="flex items-center gap-2 font-semibold text-red-700">
+                        <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        <span>{issue.label}</span>
+                      </div>
+                      <p className="text-red-600 mt-1 mr-5">{issue.message}</p>
+                      {issue.hint && <p className="text-gray-600 mt-1 mr-5">💡 {issue.hint}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* هشدارها */}
+            {backendValidation.warnings?.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs text-amber-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
+                  ⚠️ {toPersianNumber(backendValidation.warnings.length)} هشدار
+                </p>
+                {backendValidation.warnings.map((w, i) => (
+                  <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs mb-1 font-[family-name:var(--font-vazir)]">
+                    <div className="flex items-center gap-2 font-semibold text-amber-700">
+                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{w.label}</span>
+                    </div>
+                    <p className="text-amber-600 mt-1 mr-5">{w.message}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* کارت امتیاز QC */}
       <Card className="border-0 shadow-sm bg-gradient-to-r from-dark-green to-medium-green text-white">
@@ -912,7 +1072,14 @@ export function Step5_QualityControl({
         </div>
       </div>
 
-      {summary.errors === 0 && hasWarnings && (
+      {/* 🆕 پیام عدم امکان ادامه */}
+      {!canProceed && backendValidation?.issues_count > 0 && (
+        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
+          ❌ {toPersianNumber(backendValidation.issues_count)} مورد ناقص باید قبل از ادامه تکمیل شود
+        </p>
+      )}
+
+      {summary.errors === 0 && hasWarnings && canProceed && (
         <div className="flex flex-col items-center gap-2 mt-4">
           <p className="text-sm text-yellow-600 text-center font-[family-name:var(--font-vazir)]">
             ⚠️ {toPersianNumber(summary.warnings)} هشدار وجود دارد. در صورت تایید، می‌توانید ادامه دهید.
@@ -927,12 +1094,7 @@ export function Step5_QualityControl({
         </div>
       )}
 
-      {summary.errors > 0 && (
-        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
-          ❌ {toPersianNumber(summary.errors)} خطای QC باید قبل از ادامه رفع شوند
-        </p>
-      )}
-      {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && (
+      {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && canProceed && (
         <p className="text-sm text-green-500 text-center font-[family-name:var(--font-vazir)]">
           ✅ همه قوانین با موفقیت پاس شده‌اند!
         </p>

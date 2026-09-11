@@ -413,7 +413,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-sm font-medium">منسوخی کارکردی</Label>
+          <Label className="text-sm font-medium">استهلاک کارکردی</Label>
           <div className="flex items-center gap-1">
             <Input
               type="number"
@@ -429,7 +429,7 @@ export function M05_RCM({ formData, onChange, assetId, valuationCaseId, step2Dat
         </div>
         <div className="space-y-1">
           <Label className="text-sm font-medium flex items-center gap-1">
-            منسوخی اقتصادی <span className="text-red-500">*</span>
+            استهلاک اقتصادی <span className="text-red-500">*</span>
           </Label>
           <div className="flex items-center gap-1">
             <Input

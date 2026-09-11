@@ -80,8 +80,8 @@ export function M05_RCM_Engine({
     { step: 2, title: '+ هزینه مواد/زیرساخت', amount: 85000000, cumulative: 320500000, is_final: false, type: 'increase' },
     { step: 3, title: '+ سربار (۲۰٪)', amount: 64100000, cumulative: 384600000, is_final: false, type: 'increase' },
     { step: 4, title: '+ سود توسعه‌دهنده (۱۵٪)', amount: 57690000, cumulative: 442290000, is_final: false, type: 'increase' },
-    { step: 5, title: '- منسوخی کارکردی (۱۰٪)', amount: -44229000, cumulative: 398061000, is_final: false, type: 'decrease' },
-    { step: 6, title: '- منسوخی اقتصادی (۵٪)', amount: -19903050, cumulative: 378157950, is_final: true, type: 'final' },
+    { step: 5, title: '- استهلاک کارکردی (۱۰٪)', amount: -44229000, cumulative: 398061000, is_final: false, type: 'decrease' },
+    { step: 6, title: '- استهلاک اقتصادی (۵٪)', amount: -19903050, cumulative: 378157950, is_final: true, type: 'final' },
   ];
 
   const defaultLaborDetails = [
@@ -364,7 +364,7 @@ export function M05_RCM_Engine({
             <CardContent className="p-4">
               <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
               <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
-                <span className="text-dark-green font-bold">ارزش = [(هزینه نیروی کار + هزینه مواد) × (۱ + سربار) × (۱ + سود)] × (۱ - منسوخی کارکردی) × (۱ - منسوخی اقتصادی)</span>
+                <span className="text-dark-green font-bold">ارزش = [(هزینه نیروی کار + هزینه مواد) × (۱ + سربار) × (۱ + سود)] × (۱ - استهلاک کارکردی) × (۱ - استهلاک اقتصادی)</span>
                 <br />
                 <span className="text-gray-400 text-xs">با استفاده از داده‌های STEP 2 و STEP 3</span>
                 <br />

@@ -83,7 +83,7 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
 
   // 🔥 استفاده از asset_uid از API (که الان درسته)
   const assetId = profile.asset_uid || `IA-${String(id).padStart(6, '0')}`;
-  const assetName = profile.asset_name || 'دارایی بدون نام';
+  const assetName = profile.asset_name || profile.screening_template_name || 'دارایی بدون نام';
 
   const steps = [
     { title: 'تحلیل قابلیت حفاظت', description: 'بررسی ابزارهای قابل اعمال', active: true },

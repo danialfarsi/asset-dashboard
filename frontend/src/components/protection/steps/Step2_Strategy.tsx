@@ -102,10 +102,10 @@ const ORGANIZATION_FOCUS: Record<string, { label: string; description: string }>
 const isLegalPath = (pathId: string) => pathId === 'A' || pathId === 'B';
 
 const PATH_LEGEND = [
-  { id: 'A', label: 'مسیر A: مناسب برای دارایی‌های قابل ثبت (پتنت، برند)', dot: 'bg-indigo-500' },
-  { id: 'B', label: 'مسیر B: مناسب برای دارایی‌های قراردادی', dot: 'bg-indigo-500' },
-  { id: 'C', label: 'مسیر C: مناسب برای اسرار تجاری و دانش فنی', dot: 'bg-teal-500' },
-  { id: 'D', label: 'مسیر D: مناسب برای دارایی‌های دیجیتال و داده', dot: 'bg-teal-500' },
+  { id: 'A', label: 'A مسیر : مناسب برای دارایی‌های قابل ثبت (پتنت، برند)', dot: 'bg-indigo-500' },
+  { id: 'B', label: 'B مسیر : مناسب برای دارایی‌های قراردادی', dot: 'bg-indigo-500' },
+  { id: 'C', label: 'C  مسیر: مناسب برای اسرار تجاری و دانش فنی', dot: 'bg-teal-500' },
+  { id: 'D', label: 'D  مسیر: مناسب برای دارایی‌های دیجیتال و داده', dot: 'bg-teal-500' },
 ];
 
 export default function Step2_Strategy({ id, data, archetype, onComplete }: Step2StrategyProps) {
@@ -173,7 +173,7 @@ export default function Step2_Strategy({ id, data, archetype, onComplete }: Step
           <div>
             <h3 className="text-base font-semibold text-slate-900">گام ۲ · طراحی استراتژی حفاظت</h3>
             <p className="text-sm text-slate-500">
-              مسیر {data?.decision_tree?.path} — {data?.decision_tree?.label}
+             {data?.decision_tree?.path}  مسیر — {data?.decision_tree?.label}
             </p>
           </div>
           <Badge className="gap-1.5 border-0 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700 hover:bg-emerald-50">

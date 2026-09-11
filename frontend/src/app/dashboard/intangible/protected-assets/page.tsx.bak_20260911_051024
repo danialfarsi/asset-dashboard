@@ -31,9 +31,9 @@ export default function ProtectedAssetsPage() {
             completedProfiles.push({
               ...profile,
               step5: fullData.step5,
-              // asset_name و asset_uid از profile مستقیم
-              asset_name: profile.asset_name,
-              asset_uid: profile.asset_uid,
+              // 🔥 استفاده از asset_name و asset_uid از fullData
+              asset_name: fullData.profile?.asset_name || profile.screening_template_name,
+              asset_uid: fullData.profile?.asset_uid || null,
             });
           }
         } catch (e) {
@@ -94,7 +94,7 @@ export default function ProtectedAssetsPage() {
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="text-base">{profile.asset_name || 'دارایی بدون نام'}</CardTitle>
+                    <CardTitle className="text-base">{profile.asset_name || profile.screening_template_name}</CardTitle>
                     {profile.asset_uid && (
                       <p className="text-xs text-muted-foreground">{profile.asset_uid}</p>
                     )}

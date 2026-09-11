@@ -1,3 +1,4 @@
+
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,6 +28,26 @@ class ValuationStep3ViewSet(viewsets.ModelViewSet):
             return queryset.filter(valuation_case__asset__created_by__organization=user.organization)
         else:
             return queryset.filter(valuation_case__created_by=user)
+    
+    # ═══════════════════════════════════════════════════════════
+    # 🔥🔥🔥 create سفارشی: اگر Step3 برای این case وجود داره، آپدیت کن
+    # ═══════════════════════════════════════════════════════════
+    def create(self, request, *args, **kwargs):
+        """
+        اگر Step3 برای این valuation_case وجود دارد، آپدیت کن؛ وگرنه ایجاد کن.
+        این از خطای unique constraint جلوگیری می‌کند.
+        """
+        valuation_case_id = request.data.get('valuation_case')
+        
+        if valuation_case_id:
+            existing = ValuationStep3.objects.filter(valuation_case_id=valuation_case_id).first()
+            if existing:
+                serializer = self.get_serializer(existing, data=request.data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        return super().create(request, *args, **kwargs)
     
     @action(detail=True, methods=['post'])
     def validate_step(self, request, pk=None):

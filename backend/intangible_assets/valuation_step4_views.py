@@ -740,7 +740,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         cumulative -= func_amount
         waterfall.append({
             'step': 5,
-            'title': '- منسوخی کارکردی (' + str(int(functional_obs * 100)) + '%)',
+            'title': '- استهلاک کارکردی (' + str(int(functional_obs * 100)) + '%)',
             'amount': -func_amount,
             'cumulative': cumulative,
             'is_final': False,
@@ -751,7 +751,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         cumulative -= econ_amount
         waterfall.append({
             'step': 6,
-            'title': '- منسوخی اقتصادی (' + str(int(economic_obs * 100)) + '%)',
+            'title': '- استهلاک اقتصادی (' + str(int(economic_obs * 100)) + '%)',
             'amount': -econ_amount,
             'cumulative': cumulative,
             'is_final': True,
@@ -842,7 +842,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
         cumulative -= obs_amount
         waterfall.append({
             'step': 4,
-            'title': '- منسوخی مرتبط (' + str(int(obsolescence * 100)) + '%)',
+            'title': '- استهلاک مرتبط (' + str(int(obsolescence * 100)) + '%)',
             'amount': -obs_amount,
             'cumulative': cumulative,
             'is_final': False,

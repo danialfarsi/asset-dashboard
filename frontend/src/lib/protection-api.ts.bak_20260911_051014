@@ -2,10 +2,8 @@ import api from './api';
 
 export interface ProtectionProfile {
   id: number;
-  asset: number;
-  asset_id: number;
-  asset_name: string;
-  asset_uid: string;
+  screening_template: number;
+  screening_template_name: string;
   archetype: string;
   archetype_display: string;
   status: 'draft' | 'in_progress' | 'completed' | 'approved';
@@ -115,9 +113,4 @@ export const protectionApi = {
     api.post<ProtectionStep4>(`/intangible/protection/${id}/step4/`, data),
   step5: (id: number, data: any) => 
     api.post<ProtectionStep5>(`/intangible/protection/${id}/step5/`, data),
-  createForAsset: (assetId: number) => 
-    api.post<{profile_id: number; created: boolean; archetype: string; asset_name: string; asset_uid: string}>(
-      '/intangible/protection/create_for_asset/',
-      { asset_id: assetId }
-    ),
 };

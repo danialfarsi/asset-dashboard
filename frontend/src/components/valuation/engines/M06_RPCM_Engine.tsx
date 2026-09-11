@@ -72,9 +72,9 @@ export function M06_RPCM_Engine({
     { step: 1, title: 'هزینه مستقیم نیروی کار', amount: 235500000, cumulative: 235500000, is_final: false, type: 'increase' },
     { step: 2, title: '+ هزینه مستقیم بازتولید', amount: 85000000, cumulative: 320500000, is_final: false, type: 'increase' },
     { step: 3, title: '+ سربار هماهنگی (۱۲٪)', amount: 38460000, cumulative: 358960000, is_final: false, type: 'increase' },
-    { step: 4, title: '- منسوخی محتوایی (۱۵٪)', amount: -53844000, cumulative: 305116000, is_final: false, type: 'decrease' },
+    { step: 4, title: '- استهلاک محتوایی (۱۵٪)', amount: -53844000, cumulative: 305116000, is_final: false, type: 'decrease' },
     { step: 5, title: '- عامل سن (۶.۷٪)', amount: -20442772, cumulative: 284673228, is_final: false, type: 'decrease' },
-    { step: 6, title: '- منسوخی فیزیکی (۰٪)', amount: 0, cumulative: 284673228, is_final: true, type: 'final' },
+    { step: 6, title: '- استهلاک فیزیکی (۰٪)', amount: 0, cumulative: 284673228, is_final: true, type: 'final' },
   ];
 
   const defaultLaborDetails = [
@@ -354,7 +354,7 @@ export function M06_RPCM_Engine({
             <CardContent className="p-4">
               <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
               <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
-                <span className="text-dark-green font-bold">ارزش = [(هزینه نیروی کار + هزینه بازتولید) × (۱ + سربار هماهنگی)] × (۱ - منسوخی محتوایی) × (۱ - عامل سن) × (۱ - منسوخی فیزیکی)</span>
+                <span className="text-dark-green font-bold">ارزش = [(هزینه نیروی کار + هزینه بازتولید) × (۱ + سربار هماهنگی)] × (۱ - استهلاک محتوایی) × (۱ - عامل سن) × (۱ - استهلاک فیزیکی)</span>
                 <br />
                 <span className="text-gray-400 text-xs">با استفاده از داده‌های STEP 2 و STEP 3</span>
                 <br />

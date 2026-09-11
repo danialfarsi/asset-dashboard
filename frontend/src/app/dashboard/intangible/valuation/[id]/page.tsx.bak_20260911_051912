@@ -453,7 +453,7 @@ export default function ValuationPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-dark-green">
-              {showViewMode ? 'مشاهده ارزیابی' : 'ارزیابی کیفی دارایی'}
+              {showViewMode ? 'مشاهده ارزیابی' : 'ارزیابی دارایی'}
             </h1>
             <p className="text-sm text-gray-500">
               {asset?.asset_name} - {asset?.asset_uid}
