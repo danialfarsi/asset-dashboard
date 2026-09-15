@@ -42,3 +42,48 @@ class RoleAssignmentSerializer(serializers.ModelSerializer):
         model = RoleAssignment
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at', 'assigned_date']
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 RACI Template Serializer
+# ═══════════════════════════════════════════════════════════
+
+class RACITemplateSerializer(serializers.ModelSerializer):
+    """Serializer برای RACI استاندارد سازمان"""
+    
+    organization_name = serializers.CharField(
+        source='organization.name',
+        read_only=True
+    )
+    business_type_display = serializers.CharField(
+        source='get_business_type_display',
+        read_only=True
+    )
+    
+    class Meta:
+        model = RACITemplate
+        fields = [
+            'id',
+            'organization',
+            'organization_name',
+            'business_type',
+            'business_type_display',
+            'matrix',
+            'role_assignments',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def validate_matrix(self, value):
+        """اعتبارسنجی ماتریس RACI"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("ماتریس باید یک دیکشنری باشد")
+        return value
+    
+    def validate_role_assignments(self, value):
+        """اعتبارسنجی تخصیص نقشها"""
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("تخصیص نقشها باید یک دیکشنری باشد")
+        return value

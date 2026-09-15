@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import api from '@/lib/api';
 
 interface Step12PilotProps {
   onComplete: (data: any) => void;
@@ -9,13 +9,38 @@ interface Step12PilotProps {
 }
 
 export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
-  const router = useRouter();
-  const [scope, setScope] = useState(initialData?.scope || '');
-  const [departments, setDepartments] = useState<string[]>(initialData?.departments || ['']);
-  const [targetAssets, setTargetAssets] = useState<number>(initialData?.targetAssets || 30);
-  const [startDate, setStartDate] = useState(initialData?.startDate || '');
-  const [duration, setDuration] = useState<number>(initialData?.duration || 8);
+  const [scope, setScope] = useState('');
+  const [departments, setDepartments] = useState<string[]>(['']);
+  const [targetAssets, setTargetAssets] = useState<number>(30);
+  const [startDate, setStartDate] = useState('');
+  const [duration, setDuration] = useState<number>(8);
+  const [loading, setLoading] = useState(true);
   const [isCompleting, setIsCompleting] = useState(false);
+
+  // 🎯 بارگذاری از API
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.get('/intangible/viam/pilot/my/');
+        const pilot = res.data.pilot;
+        if (pilot) {
+          setScope(pilot.scope || '');
+          setDepartments(pilot.departments?.length ? pilot.departments : ['']);
+          setTargetAssets(pilot.asset_count_target || 30);
+          setStartDate(pilot.start_date || '');
+          setDuration(pilot.duration_weeks || 8);
+          console.log('📥 Loaded pilot from API');
+        } else {
+          console.log('📥 No pilot in API — using defaults');
+        }
+      } catch (err) {
+        console.error('Load error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const addDepartment = () => {
     setDepartments([...departments, '']);
@@ -33,7 +58,19 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
     setDepartments(updated);
   };
 
-  const handleSubmit = () => {
+  // 🎯 پیشنهاد: گرفتن departmentهای سازمان
+  const loadDepartmentsFromOrg = async () => {
+    try {
+      const res = await api.get('/auth/me/');
+      // یا هر API دیگه‌ای که departmentها رو میده
+      // فعلاً mock
+      setDepartments(['واحد ذوب و پالایش', 'واحد مدیریت']);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSubmit = async () => {
     const filteredDepts = departments.filter(d => d.trim());
     if (!scope.trim()) {
       alert('لطفاً محدوده پایلوت را مشخص کنید');
@@ -47,21 +84,50 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
       alert('لطفاً تاریخ شروع را انتخاب کنید');
       return;
     }
-    
+
     setIsCompleting(true);
-    onComplete({ 
-      scope,
-      departments: filteredDepts,
-      targetAssets,
-      startDate,
-      duration,
-      completed: true,
-      isFinal: true // نشانه تکمیل نهایی
-    });
+    try {
+      console.log('📤 Saving pilot to DB...', {
+        scope,
+        departments: filteredDepts.length,
+        startDate,
+        duration,
+      });
+
+      const res = await api.post('/intangible/viam/pilot/save/', {
+        name: `پایلوت ${duration} هفته‌ای IAM`,
+        scope,
+        departments: filteredDepts,
+        asset_count_target: targetAssets,
+        start_date: startDate,
+        duration_weeks: duration,
+      });
+
+      console.log('✅ Pilot saved:', res.data);
+
+      onComplete({
+        scope,
+        departments: filteredDepts,
+        targetAssets,
+        startDate,
+        duration,
+        pilotId: res.data.pilot.id,
+        completed: true,
+        isFinal: true,
+      });
+    } catch (err: any) {
+      console.error('❌ Save error:', err);
+      alert(err.response?.data?.error || 'خطا در ذخیره پایلوت');
+      setIsCompleting(false);
+    }
   };
 
+  if (loading) {
+    return <div className="text-center py-6 text-gray-500">در حال بارگذاری...</div>;
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir="rtl">
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
         <p className="text-sm text-green-700">
           🎉 <strong>گام آخر!</strong> با تکمیل این گام، واحد IAM شما به صورت رسمی تأسیس می‌شود.
@@ -88,9 +154,18 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          واحدهای مشمول <span className="text-red-500">*</span>
-        </label>
+        <div className="flex justify-between items-center mb-1">
+          <label className="block text-sm font-medium text-gray-700">
+            واحدهای مشمول <span className="text-red-500">*</span>
+          </label>
+          <button
+            type="button"
+            onClick={loadDepartmentsFromOrg}
+            className="text-xs text-green-600 hover:text-green-800"
+          >
+            ⚡ بارگذاری از سازمان
+          </button>
+        </div>
         {departments.map((dept, index) => (
           <div key={index} className="flex gap-2 mb-2">
             <input
@@ -157,6 +232,13 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
           onChange={(e) => setStartDate(e.target.value)}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
         />
+        {startDate && duration && (
+          <p className="text-xs text-gray-500 mt-1">
+            📅 تاریخ پایان:{' '}
+            {new Date(new Date(startDate).getTime() + duration * 7 * 24 * 60 * 60 * 1000)
+              .toLocaleDateString('fa-IR')}
+          </p>
+        )}
       </div>
 
       <button
@@ -166,7 +248,7 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
       >
         {isCompleting ? 'در حال تکمیل...' : '🎉 تأیید و تکمیل تأسیس واحد IAM'}
       </button>
-      
+
       <div className="text-xs text-gray-400 text-center">
         با کلیک روی این دکمه، واحد IAM شما به صورت رسمی تأسیس می‌شود و به مرحله بعدی هدایت می‌شوید.
       </div>

@@ -208,3 +208,42 @@ router.register(r'dashboards', DashboardViewSet, basename='dashboards')
 router.register(r'kpis', KPIViewSet, basename='kpis')
 
 urlpatterns += router.urls
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Operational Model (گام ۱۰ VIAM-01)
+# ═══════════════════════════════════════════════════════════
+from .operational_model_api import OperationalModelViewSet
+from rest_framework.routers import DefaultRouter as DR
+
+op_router = DR()
+op_router.register(r'operational-model', OperationalModelViewSet, basename='operational-model')
+urlpatterns += [
+    path('viam/', include(op_router.urls)),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Tenant Config (گام ۱۱ VIAM-01)
+# ═══════════════════════════════════════════════════════════
+from .tenant_config_api import TenantConfigViewSet
+from rest_framework.routers import DefaultRouter as DR2
+
+tc_router = DR2()
+tc_router.register(r'tenant-config', TenantConfigViewSet, basename='tenant-config')
+urlpatterns += [
+    path('viam/', include(tc_router.urls)),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 VIAM Pilot (گام ۱۲ VIAM-01)
+# ═══════════════════════════════════════════════════════════
+from .pilot_api import VIAMPilotViewSet
+from rest_framework.routers import DefaultRouter as DR3
+
+pilot_router = DR3()
+pilot_router.register(r'pilot', VIAMPilotViewSet, basename='viam-pilot')
+urlpatterns += [
+    path('viam/', include(pilot_router.urls)),
+]

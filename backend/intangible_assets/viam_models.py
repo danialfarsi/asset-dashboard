@@ -167,3 +167,59 @@ class VIAMStepHistory(models.Model):
     
     class Meta:
         ordering = ['governance', 'step_number']
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Tenant Configuration (گام ۱۱ VIAM-01)
+# ═══════════════════════════════════════════════════════════
+
+class TenantConfig(models.Model):
+    """پیکربندی واحد IAM در پلتفرم متا (گام ۱۱)"""
+    
+    organization = models.OneToOneField(
+        'accounts.Organization',
+        on_delete=models.CASCADE,
+        related_name='tenant_config',
+        verbose_name="سازمان"
+    )
+    
+    tenant_name = models.CharField(
+        max_length=255,
+        verbose_name="نام Tenant",
+        help_text="مثال: شرکت فولاد - IAM"
+    )
+    
+    # ماژول‌های فعال: ['VIAM-01', 'VIAM-02', ...]
+    enabled_modules = models.JSONField(
+        default=list,
+        verbose_name="ماژول‌های فعال",
+        help_text="لیست کدهای VIAM که فعال هستند"
+    )
+    
+    notes = models.TextField(
+        blank=True,
+        verbose_name="یادداشت‌های پیکربندی"
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="پنل IAM فعال"
+    )
+    
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='tenant_configs',
+        verbose_name="ایجادکننده"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "پیکربندی Tenant"
+        verbose_name_plural = "پیکربندی‌های Tenant"
+    
+    def __str__(self):
+        return f"Tenant - {self.tenant_name}"

@@ -270,3 +270,61 @@ class RoleAssignment(models.Model):
     
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.get_role_type_display()}"
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 RACI استاندارد سازمان (طبق اکسل RACI_IAM_Matrix)
+# ═══════════════════════════════════════════════════════════
+
+class RACITemplate(models.Model):
+    """
+    RACI استاندارد سازمان — یکبار تنظیم میشه، برای همه داراییها استفاده میشه.
+    طبق اکسل RACI_IAM_Matrix: ۲۰ فعالیت × ۱۴ نقش (بسته به نوع کسبوکار)
+    """
+    
+    class BusinessType(models.TextChoices):
+        MANUFACTURING = 'manufacturing', 'تولیدی'
+        SERVICE = 'service', 'خدماتی'
+        RTO = 'rto', 'پژوهش و فناوری'
+        HOLDING = 'holding', 'هلدینگ اقتصادی'
+    
+    organization = models.OneToOneField(
+        'accounts.Organization',
+        on_delete=models.CASCADE,
+        related_name='raci_template',
+        verbose_name="سازمان"
+    )
+    
+    business_type = models.CharField(
+        max_length=20,
+        choices=BusinessType.choices,
+        default=BusinessType.MANUFACTURING,
+        verbose_name="نوع کسبوکار"
+    )
+    
+    # ماتریس RACI: {activity_code: {role_code: 'R/A/C/I'}}
+    # مثال: {'t1a': {'sc': 'A', 'iam': 'R', 'aud': 'I'}, ...}
+    matrix = models.JSONField(
+        default=dict,
+        verbose_name="ماتریس RACI",
+        help_text="ماتریس ۲۰ فعالیت × ۱۴ نقش"
+    )
+    
+    # تخصیص کاربران: {role_code: user_id}
+    # مثال: {'sc': 11, 'iam': 12, ...}
+    role_assignments = models.JSONField(
+        default=dict,
+        verbose_name="تخصیص کاربران به نقشها",
+        help_text="نقشها به کاربران"
+    )
+    
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "RACI استاندارد سازمان"
+        verbose_name_plural = "RACIهای استاندارد سازمان"
+    
+    def __str__(self):
+        return f"RACI - {self.organization.name} ({self.get_business_type_display()})"

@@ -115,3 +115,106 @@ class RoleAssignmentViewSet(viewsets.ModelViewSet):
             assignment.save()
             return Response({'is_active': False, 'expiry_date': assignment.expiry_date})
         return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 RACI Template ViewSet
+# ═══════════════════════════════════════════════════════════
+
+class RACITemplateViewSet(viewsets.ModelViewSet):
+    """
+    RACI استاندارد سازمان — یکبار تنظیم میشه.
+    GET    /api/intangible/viam/ownership/raci-template/       → لیست
+    POST   /api/intangible/viam/ownership/raci-template/       → ساخت
+    GET    /api/intangible/viam/ownership/raci-template/{id}/  → جزئیات
+    PUT    /api/intangible/viam/ownership/raci-template/{id}/  → آپدیت
+    PATCH  /api/intangible/viam/ownership/raci-template/{id}/  → آپدیت جزئی
+    DELETE /api/intangible/viam/ownership/raci-template/{id}/  → حذف
+    
+    Action اختصاصی:
+    GET    /api/intangible/viam/ownership/raci-template/my/    → RACI سازمان کاربر
+    """
+    queryset = RACITemplate.objects.all()
+    serializer_class = RACITemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'super_admin':
+            return RACITemplate.objects.all()
+        if user.organization:
+            return RACITemplate.objects.filter(organization=user.organization)
+        return RACITemplate.objects.none()
+    
+    def perform_create(self, serializer):
+        """هنگام ساخت، سازمان کاربر رو به صورت خودکار ست کن"""
+        user = self.request.user
+        if user.role != 'super_admin' and user.organization:
+            serializer.save(organization=user.organization)
+        else:
+            serializer.save()
+    
+    @action(detail=False, methods=['get'])
+    def my(self, request):
+        """RACI سازمان کاربر جاری (یا ساخت خودکار اگه وجود نداره)"""
+        user = request.user
+        
+        if not user.organization:
+            return Response(
+                {'error': 'کاربر به سازمانی متصل نیست'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # بگیر یا بساز
+        template, created = RACITemplate.objects.get_or_create(
+            organization=user.organization,
+            defaults={
+                'business_type': getattr(user, 'organization_type', 'manufacturing') or 'manufacturing',
+                'matrix': {},
+                'role_assignments': {},
+            }
+        )
+        
+        serializer = self.get_serializer(template)
+        return Response({
+            'template': serializer.data,
+            'created': created,
+        })
+    
+    @action(detail=True, methods=['post'])
+    def update_matrix(self, request, pk=None):
+        """
+        آپدیت ماتریس RACI
+        Body: {
+            "matrix": {"t1a": {"sc": "A", ...}, ...},
+            "role_assignments": {"sc": 11, "iam": 12, ...}
+        }
+        """
+        template = self.get_object()
+        
+        matrix = request.data.get('matrix')
+        role_assignments = request.data.get('role_assignments')
+        
+        if matrix is not None:
+            if not isinstance(matrix, dict):
+                return Response(
+                    {'error': 'matrix باید dict باشد'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            template.matrix = matrix
+        
+        if role_assignments is not None:
+            if not isinstance(role_assignments, dict):
+                return Response(
+                    {'error': 'role_assignments باید dict باشد'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            template.role_assignments = role_assignments
+        
+        if request.data.get('business_type'):
+            template.business_type = request.data['business_type']
+        
+        template.save()
+        
+        serializer = self.get_serializer(template)
+        return Response(serializer.data)

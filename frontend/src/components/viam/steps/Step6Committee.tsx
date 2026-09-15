@@ -31,6 +31,28 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
     fetchUsers();
   }, []);
 
+  // 🎯 تابع label هوشمند بر اساس role و department
+  const getRoleLabel = (u: any) => {
+    if (u.role === 'super_admin') return 'مدیر ارشد پلتفرم';
+
+    if (u.role === 'org_admin') {
+      // اگه department داره، مدیر واحد — وگرنه رییس سازمان
+      if (u.department_id && u.department_name) {
+        return `مدیر ${u.department_name}`;
+      }
+      return 'مدیرعامل / رییس سازمان';
+    }
+
+    if (u.role === 'org_user') {
+      if (u.department_id && u.department_name) {
+        return `رییس واحد ${u.department_name}`;
+      }
+      return 'کارشناس';
+    }
+
+    return u.role_display || u.role;
+  };
+
   const toggleMember = (userId: number) => {
     setMembers(prev =>
       prev.includes(userId)
@@ -68,7 +90,9 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">نام کمیته <span className="text-red-500">*</span></label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          نام کمیته <span className="text-red-500">*</span>
+        </label>
         <input
           type="text"
           value={committeeName}
@@ -80,7 +104,9 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">رئیس کمیته <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            رئیس کمیته <span className="text-red-500">*</span>
+          </label>
           <select
             value={chair}
             onChange={(e) => setChair(e.target.value)}
@@ -89,13 +115,15 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
             <option value="">انتخاب رئیس...</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.first_name || u.username} {u.last_name} ({u.role === 'super_admin' ? 'ادمین کل' : 'مدیر شرکت'})
+                {u.first_name || u.username} {u.last_name} — {getRoleLabel(u)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">دبیر کمیته <span className="text-red-500">*</span></label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            دبیر کمیته <span className="text-red-500">*</span>
+          </label>
           <select
             value={secretary}
             onChange={(e) => setSecretary(e.target.value)}
@@ -104,7 +132,7 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
             <option value="">انتخاب دبیر...</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.first_name || u.username} {u.last_name} ({u.role === 'super_admin' ? 'ادمین کل' : 'مدیر شرکت'})
+                {u.first_name || u.username} {u.last_name} — {getRoleLabel(u)}
               </option>
             ))}
           </select>
@@ -132,6 +160,7 @@ export function Step6Committee({ onComplete, initialData }: Step6CommitteeProps)
                   className="w-4 h-4 text-blue-600"
                 />
                 <span>{u.first_name || u.username} {u.last_name}</span>
+                <span className="text-xs text-gray-500">({getRoleLabel(u)})</span>
               </div>
             </div>
           ))}
