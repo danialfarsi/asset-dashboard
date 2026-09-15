@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import { Eye, EyeOff, Check, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
@@ -14,6 +15,42 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteError, setInviteError] = useState('');
+
+  const handleInviteSubmit = () => {
+    setInviteError('');
+    const link = inviteLink.trim();
+    
+    if (!link) {
+      setInviteError('لطفاً لینک دعوت را وارد کنید');
+      return;
+    }
+
+    // استخراج token از لینک
+    // فرمت‌ها:
+    // - http://localhost:3000/invite/abc123
+    // - https://platform.com/invite/abc123
+    // - abc123 (فقط token)
+    
+    let token = '';
+    
+    if (link.includes('/invite/')) {
+      token = link.split('/invite/')[1].split('?')[0].split('#')[0];
+    } else {
+      token = link;
+    }
+
+    if (!token || token.length < 10) {
+      setInviteError('لینک دعوت معتبر نیست');
+      return;
+    }
+
+    // redirect به صفحه invite
+    router.push(`/invite/${token}`);
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +60,14 @@ export default function LoginPage() {
 
     try {
       await login({ email: form.email, password: form.password });
-      const next = searchParams.get('next') || '/dashboard';
-      router.push(next);
+      
+      // 🎯 همه به /dashboard میرن (خودش بر اساس نقش تصمیم می‌گیره)
+      const next = searchParams.get('next');
+      if (next) {
+        router.push(next);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err: any) {
       console.error('❌ Login error:', err);
     }
@@ -139,12 +182,38 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-7 text-center">
-            <p className="text-xs text-gray-500">
-              حساب کاربری ندارید؟{' '}
-              <button type="button" className="text-dark-green hover:text-medium-green font-semibold">
-                ثبت نام کنید
+          {/* 🎯 سه گزینه */}
+          <div className="mt-7">
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-[#F5F3EC] px-3 text-gray-400">یا</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Link
+                href="/register-org"
+                className="flex items-center justify-center gap-2 w-full bg-[#0B3D30] hover:bg-[#0F4A3A] text-white font-medium text-sm py-3 rounded-xl transition-all duration-200 shadow-md"
+              >
+                <span>🏢</span>
+                <span>ثبت‌نام سازمان جدید</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center justify-center gap-2 w-full bg-[#8ECFAF] hover:bg-[#7BC09E] text-[#04241D] font-medium text-sm py-3 rounded-xl transition-all duration-200 shadow-md"
+              >
+                <span>🔗</span>
+                <span>ورود با لینک دعوت</span>
               </button>
+            </div>
+
+            <p className="text-center text-xs text-gray-400 mt-3 leading-5">
+              اگر از طرف سازمانی دعوت شده‌اید، از گزینه دوم استفاده کنید
             </p>
           </div>
 
@@ -153,6 +222,98 @@ export default function LoginPage() {
             اطلاعات شما با رمزنگاری استاندارد محافظت می‌شود
           </div>
         </div>
+
+        {/* 🎯 Modal ورود با لینک دعوت */}
+        {showInviteModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInviteModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200"
+              onClick={(e) => e.stopPropagation()}
+              dir="rtl"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start mb-5">
+                <div>
+                  <h3 className="text-lg font-bold text-[#0B2C24] flex items-center gap-2">
+                    <span>🔗</span>
+                    ورود با لینک دعوت
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    لینک دعوت ارسال‌شده از سازمان را وارد کنید
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setInviteLink('');
+                    setInviteError('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Input */}
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-2">
+                  لینک دعوت
+                </label>
+                <input
+                  type="text"
+                  value={inviteLink}
+                  onChange={(e) => {
+                    setInviteLink(e.target.value);
+                    setInviteError('');
+                  }}
+                  placeholder="https://platform.com/invite/abc123..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-mono text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                  dir="ltr"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleInviteSubmit();
+                  }}
+                />
+                {inviteError && (
+                  <p className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                    <span>⚠️</span>
+                    {inviteError}
+                  </p>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-5">
+                <p className="text-xs text-blue-700 leading-5">
+                  💡 می‌توانید فقط <strong>کد توکن</strong> را هم وارد کنید (مثلاً <code className="bg-white px-1 rounded">abc123def</code>)
+                </p>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setInviteLink('');
+                    setInviteError('');
+                  }}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm py-3 rounded-xl transition"
+                >
+                  انصراف
+                </button>
+                <button
+                  onClick={handleInviteSubmit}
+                  className="flex-1 bg-[#04241D] hover:bg-[#062E24] text-white font-medium text-sm py-3 rounded-xl transition shadow-lg"
+                >
+                  ادامه →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ============================================

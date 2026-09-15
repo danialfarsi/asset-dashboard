@@ -247,3 +247,12 @@ pilot_router.register(r'pilot', VIAMPilotViewSet, basename='viam-pilot')
 urlpatterns += [
     path('viam/', include(pilot_router.urls)),
 ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Organization Dashboard Stats
+# ═══════════════════════════════════════════════════════════
+from .views_org_dashboard import OrgDashboardStatsView
+urlpatterns += [
+    path('dashboard/org-stats/', OrgDashboardStatsView.as_view(), name='org-dashboard-stats'),
+]

@@ -315,7 +315,7 @@ export default function EstablishmentRequestDetail() {
 
         alert('🎉 واحد IAM با موفقیت تأسیس شد!');
 
-        router.push('/strategic-plan');
+        router.push('/dashboard');
 
         return;
       }

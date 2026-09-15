@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from .filters_mixin import OrganizationDepartmentFilterMixin
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -46,23 +47,20 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
         return queryset.none()
 
 
-class ScreenedAssetViewSet(viewsets.ModelViewSet):
+class ScreenedAssetViewSet(OrganizationDepartmentFilterMixin, viewsets.ModelViewSet):
     queryset = ScreenedAsset.objects.all().order_by('-created_at')
     serializer_class = ScreenedAssetSerializer
     permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        queryset = ScreenedAsset.objects.all().order_by('-created_at')
-        
-        if user.role == 'super_admin':
-            return queryset
-        elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
-        else:
-            return queryset.filter(created_by=user)
+    
+    # 🎯 فیلتر از Mixin میاد
+    # super_admin: همه
+    # org_admin: سازمان خودش
+    # org_user: واحد خودش + خودش
 
     def perform_create(self, serializer):
+        from accounts.models import Department, Organization
+        
+        user = self.request.user
         category = self.request.data.get('category', 'operational_knowledge')
         asset_name = self.request.data.get('asset_name', '')
         
@@ -74,6 +72,9 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         # ⬇️⬇️ دریافت valuation_type از درخواست ⬇️⬇️
         valuation_type = self.request.data.get('valuation_type')
         # ⬆️⬆️ پایان ⬆️⬆️
+        
+        # 🎯 دریافت department_id از request
+        department_id = self.request.data.get('department_id')
         
         # اگر asset_type_id ارسال نشده، از قالب بگیر
         if not asset_type_id and template_id:
@@ -88,10 +89,37 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
         
         asset_uid = generate_asset_uid(category, asset_name)
         
+        # 🎯 تعیین organization و department
+        organization = None
+        department = None
+        
+        if user.role == 'super_admin':
+            # اگه super_admin داره می‌سازه، از request
+            if department_id:
+                department = Department.objects.filter(id=department_id).first()
+                if department:
+                    organization = department.organization
+        
+        elif user.role == 'org_admin':
+            # org_admin: organization خودکار + department از request
+            organization = user.organization
+            if department_id:
+                department = Department.objects.filter(
+                    id=department_id,
+                    organization=user.organization
+                ).first()
+        
+        elif user.role == 'org_user':
+            # org_user: organization + department خودکار
+            organization = user.organization
+            department = user.department
+        
         # ایجاد دارایی با داده‌های اضافی
         save_data = {
-            'created_by': self.request.user,
+            'created_by': user,
             'asset_uid': asset_uid,
+            'organization': organization,
+            'department': department,
         }
         
         if asset_type_id:

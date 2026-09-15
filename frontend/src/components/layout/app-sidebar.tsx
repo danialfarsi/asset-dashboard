@@ -21,7 +21,6 @@ import {
   ChevronLeft,
   ClipboardCheck,
   CheckCircle,
-  Building2,
   Users,
   Building,
   BarChart3,
@@ -37,6 +36,7 @@ import {
   Plus,
   Crown,
   List,
+  Building2,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -51,8 +51,13 @@ import {
 import Image from 'next/image'
 
 // ============ منوهای اصلی ============
-const mainNavItems = [
-  { label: 'داشبورد', href: '/dashboard', icon: LayoutDashboard, id: 'main-dashboard' },
+const getMainNavItems = (user: any) => [
+  {
+    label: 'داشبورد',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    id: 'main-dashboard'
+  },
 ]
 
 // ============ منوهای مرحله ۱ (VIAM) - زیرمجموعه‌ها ============
@@ -136,6 +141,7 @@ const apiHistoryItem = {
 
 // ============ منوهای مدیریتی (فقط super_admin) ============
 const adminNavItems = [
+  { label: 'تأیید سازمان‌ها', href: '/admin/organization-approvals', icon: Building2, id: 'admin-org-approvals', roles: ['super_admin'] },
   { label: 'تایید VIAM', href: '/admin/viam-approvals', icon: CheckCircle, id: 'admin-viam-approvals', roles: ['super_admin'] },
 ]
 
@@ -153,6 +159,35 @@ export function AppSidebar() {
   const isSuperAdmin = role === 'super_admin'
   const isOrgAdmin = role === 'org_admin'
   const isOrgUser = role === 'org_user'
+  
+  // 🎯 بررسی وضعیت سازمان
+  const orgStatus = (user as any)?.organization_status || 'active'
+  const isPendingOrgAdmin = isOrgAdmin && orgStatus === 'pending'
+  const isActiveOrgAdmin = isOrgAdmin && orgStatus === 'active'
+
+  // 🎯 بررسی وضعیت درخواست VIAM
+  const [hasApprovedEstablishment, setHasApprovedEstablishment] = useState(false)
+
+  useEffect(() => {
+    const checkEstablishment = async () => {
+      if (isOrgAdmin) {
+        try {
+          const res = await api.get('/intangible/viam/establishment-requests/')
+          const requests = res.data.results || []
+          const hasApproved = requests.some((r: any) => 
+            r.status === 'approved'
+          )
+          setHasApprovedEstablishment(hasApproved)
+        } catch (err) {
+          console.error('Establishment check error:', err)
+        }
+      }
+    }
+    checkEstablishment()
+  }, [isOrgAdmin])
+
+  const showFullAdminMenu = isSuperAdmin || (isOrgAdmin && hasApprovedEstablishment)
+  const showLimitedAdminMenu = isOrgAdmin && !hasApprovedEstablishment
 
   useEffect(() => {
     if (pathname.includes('/dashboard/intangible/stage1') ||
@@ -257,7 +292,7 @@ export function AppSidebar() {
     return (
       <SidebarGroup>
         <SidebarMenu>
-          {mainNavItems.map(item => renderMenuItem(item))}
+          {getMainNavItems(user).map((item: any) => renderMenuItem(item))}
         </SidebarMenu>
       </SidebarGroup>
     )
@@ -283,7 +318,7 @@ export function AppSidebar() {
         </SidebarGroupLabel>
         {isStagesOpen && (
           <SidebarMenu>
-            {stageNavItems.map((item) => {
+            {(showLimitedAdminMenu ? stageNavItems.filter(item => item.id === 'stage1') : stageNavItems).map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
               const isOpen = openStage === item.id
@@ -325,6 +360,7 @@ export function AppSidebar() {
   }
 
   const renderDepartmentsNav = () => {
+    if (showLimitedAdminMenu) return null
     if (!isOrgAdmin && !isSuperAdmin) return null
     
     const userDepts = departments.filter(
@@ -365,6 +401,7 @@ export function AppSidebar() {
   }
 
   const renderCompaniesNav = () => {
+    if (showLimitedAdminMenu) return null
     if (!isSuperAdmin) return null
     
     const companyNavItems = companies.map((org: any) => ({
@@ -401,6 +438,7 @@ export function AppSidebar() {
   }
 
   const renderApiHistoryNav = () => {
+    if (showLimitedAdminMenu) return null
     if (!isSuperAdmin) return null
     
     return (
@@ -414,6 +452,7 @@ export function AppSidebar() {
 
   // ===== منوی مدیریتی (فقط super_admin) =====
   const renderAdminNav = () => {
+    if (showLimitedAdminMenu) return null
     if (!isSuperAdmin) return null
     
     return (

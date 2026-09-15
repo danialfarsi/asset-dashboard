@@ -11,10 +11,22 @@ class OrganizationSerializer(serializers.ModelSerializer):
 class DepartmentSerializer(serializers.ModelSerializer):
     organization = OrganizationSerializer(read_only=True)
     organization_id = serializers.IntegerField(source='organization.id', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
         model = Department
-        fields = ['id', 'name', 'code', 'organization', 'organization_id', 'created_at']
+        fields = [
+            'id', 'name', 'code',
+            'organization', 'organization_id',
+            'status', 'status_display',
+            'invite_token', 'invite_used', 'invite_created_at',
+            'created_at',
+        ]
+        read_only_fields = [
+            'id', 'organization', 'status',
+            'invite_token', 'invite_used', 'invite_created_at',
+            'created_at',
+        ]
 
 
 class UserSerializer(serializers.ModelSerializer):

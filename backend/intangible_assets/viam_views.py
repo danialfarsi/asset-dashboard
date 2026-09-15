@@ -123,7 +123,7 @@ class EstablishmentRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='complete')
     def complete(self, request, pk=None):
-        """تکمیل نهایی تأسیس واحد IAM"""
+        """تکمیل نهایی مراحل VIAM - ارسال به super_admin"""
         try:
             governance = self.get_object()
             
@@ -133,11 +133,11 @@ class EstablishmentRequestViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN
                 )
             
-            governance.status = 'active'
+            governance.status = 'submitted'
             governance.save()
             
             return Response({
-                'message': 'واحد IAM با موفقیت تأسیس شد',
+                'message': 'درخواست شما برای تأیید به مدیر پلتفرم ارسال شد',
                 'status': governance.status,
                 'id': governance.id
             })

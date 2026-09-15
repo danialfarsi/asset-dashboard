@@ -33,6 +33,31 @@ class LoginView(TokenObtainPairView):
         if response.status_code == 200:
             access = response.data.get('access')
             refresh = response.data.get('refresh')
+            
+            # 🎯 اضافه کردن user به response
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(email=request.data.get('email'))
+                
+                response.data['user'] = {
+                    'id': user.id,
+                    'email': user.email,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'role': user.role,
+                    'organization_id': user.organization_id,
+                    'organization_name': user.organization.name if user.organization else None,
+                    'organization_code': user.organization.code if user.organization else None,
+                    'organization_status': user.organization.status if user.organization else None,
+                    'department_id': user.department_id,
+                    'department_name': user.department.name if user.department else None,
+                    'organization_type': user.organization_type,
+                }
+            except Exception as e:
+                print(f"Error adding user to response: {e}")
+            
             response.set_cookie(
                 'access_token',
                 access,
@@ -90,6 +115,8 @@ class MeView(APIView):
             "role": user.role,
             "organization_id": user.organization_id if hasattr(user, 'organization_id') else None,
             "organization_name": user.organization.name if user.organization else None,
+            "organization_code": user.organization.code if user.organization else None,
+            "organization_status": user.organization.status if user.organization else None,
             "department_id": user.department_id if hasattr(user, 'department_id') else None,
             "department_name": user.department.name if user.department else None,
             "organization_type": user.organization_type if hasattr(user, 'organization_type') else None,
