@@ -256,3 +256,21 @@ from .views_org_dashboard import OrgDashboardStatsView
 urlpatterns += [
     path('dashboard/org-stats/', OrgDashboardStatsView.as_view(), name='org-dashboard-stats'),
 ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Unit Dashboard Stats (برای org_user)
+# ═══════════════════════════════════════════════════════════
+from .views_unit_dashboard import UnitDashboardStatsView
+urlpatterns += [
+    path('dashboard/unit-stats/', UnitDashboardStatsView.as_view(), name='unit-dashboard-stats'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Super Admin Dashboard
+# ═══════════════════════════════════════════════════════════
+from .views_super_dashboard import SuperAdminDashboardView
+urlpatterns += [
+    path('dashboard/super-stats/', SuperAdminDashboardView.as_view(), name='super-dashboard-stats'),
+]

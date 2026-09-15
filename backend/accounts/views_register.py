@@ -47,10 +47,13 @@ class RegisterOrganizationView(APIView):
 
         organization = Organization.objects.create(name=org_name, code=org_code, status="pending")
 
+        org_type = data.get("organization_type", "manufacturing").strip() or "manufacturing"
+
         user = User.objects.create_user(
             email=email, username=username, password=password,
             first_name=first_name, last_name=last_name,
             role="org_admin", organization=organization,
+            organization_type=org_type,
         )
 
         refresh = RefreshToken.for_user(user)

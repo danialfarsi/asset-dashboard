@@ -1,23 +1,20 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import SuperAdminDashboard from '@/components/dashboard/SuperAdminDashboard';
 import VIAMDashboard from '@/components/dashboard/VIAMDashboard';
 import MotorsDashboard from '@/components/dashboard/MotorsDashboard';
 
 export default function DashboardPage() {
   const { user, fetchMe, isLoading } = useAuthStore();
-  const router = useRouter();
 
-  // بارگذاری user اگه خالیه
   useEffect(() => {
     if (!user && !isLoading) {
       fetchMe();
     }
   }, [user, isLoading, fetchMe]);
 
-  // Loading
   if (!user || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -29,11 +26,14 @@ export default function DashboardPage() {
     );
   }
 
-  // 🎯 بر اساس نقش، داشبورد مناسب
-  if (user.role === 'org_admin' || user.role === 'super_admin') {
+  // 🎯 بر اساس نقش
+  if (user.role === 'super_admin') {
+    return <SuperAdminDashboard />;
+  }
+
+  if (user.role === 'org_admin') {
     return <VIAMDashboard />;
   }
 
-  // org_user یا بقیه → داشبورد موتورها
   return <MotorsDashboard />;
 }

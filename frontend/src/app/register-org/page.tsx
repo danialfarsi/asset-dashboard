@@ -18,6 +18,7 @@ export default function RegisterOrgPage() {
     password_confirm: '',
     organization_name: '',
     organization_code: '',
+    organization_type: 'manufacturing',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -31,7 +32,6 @@ export default function RegisterOrgPage() {
     e.preventDefault();
     setError(null);
 
-    // اعتبارسنجی
     if (!form.first_name || !form.last_name) {
       setError('نام و نام خانوادگی الزامی است');
       return;
@@ -67,12 +67,13 @@ export default function RegisterOrgPage() {
         password: form.password,
         organization_name: form.organization_name,
         organization_code: form.organization_code || undefined,
+        organization_type: form.organization_type,
       });
 
       setSuccessEmail(res.data.user.email);
       setSuccessOrg(res.data.user.organization_name);
       setSuccess(true);
-      
+
       setTimeout(() => {
         router.push('/login');
       }, 5000);
@@ -85,13 +86,14 @@ export default function RegisterOrgPage() {
     }
   };
 
+  // صفحه موفقیت
   if (success) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F3EC] p-6" dir="rtl">
         <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-100 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 opacity-60" />
-          
+
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-100 to-green-100 flex items-center justify-center mx-auto mb-5 shadow-lg">
               <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -99,9 +101,7 @@ export default function RegisterOrgPage() {
               </svg>
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              ✅ درخواست شما ثبت شد!
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">✅ درخواست شما ثبت شد!</h1>
             <div className="w-12 h-1 bg-gradient-to-r from-yellow-400 to-green-500 rounded-full mx-auto mb-4" />
             <p className="text-gray-600 text-sm leading-6 mb-6">
               درخواست تأسیس سازمان شما با موفقیت ثبت شد.
@@ -115,7 +115,7 @@ export default function RegisterOrgPage() {
                 <span>سازمان:</span>
               </div>
               <p className="text-sm text-gray-800 font-medium mb-3">{successOrg}</p>
-              
+
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
                 <span>📧</span>
                 <span>ایمیل ثبت‌نام:</span>
@@ -159,10 +159,6 @@ export default function RegisterOrgPage() {
                 رفتن به صفحه ورود →
               </button>
             </div>
-
-            <p className="text-xs text-gray-400 mt-5 leading-5">
-              📩 نتیجه بررسی به ایمیل <strong>{successEmail}</strong> ارسال خواهد شد
-            </p>
           </div>
         </div>
       </div>
@@ -171,14 +167,13 @@ export default function RegisterOrgPage() {
 
   return (
     <div className="min-h-screen flex bg-[#F5F3EC]" dir="rtl">
-      {/* ============ RIGHT PANEL — FORM ============ */}
+      {/* RIGHT PANEL */}
       <div className="w-full lg:w-[46%] flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto">
         <div className="pointer-events-none absolute -bottom-16 -left-16 w-72 h-72 opacity-[0.04] rotate-12">
           <Image src="/logo.png" alt="" width={288} height={288} className="object-contain" />
         </div>
 
         <div className="w-full max-w-[440px] relative">
-          {/* lockup */}
           <div className="flex items-center gap-3 mb-10">
             <div className="w-11 h-11 relative shrink-0 bg-white rounded-xl shadow-[0_2px_10px_rgba(4,36,29,0.08)] border border-gray-100 flex items-center justify-center">
               <Image src="/logo.png" alt="متا پلتفرم" width={26} height={26} className="object-contain" />
@@ -205,7 +200,6 @@ export default function RegisterOrgPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* نام و نام خانوادگی */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">نام</label>
@@ -231,7 +225,6 @@ export default function RegisterOrgPage() {
               </div>
             </div>
 
-            {/* ایمیل */}
             <div>
               <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
                 <Mail size={12} className="inline ml-1" /> ایمیل
@@ -246,7 +239,6 @@ export default function RegisterOrgPage() {
               />
             </div>
 
-            {/* نام کاربری */}
             <div>
               <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
                 <User size={12} className="inline ml-1" /> نام کاربری
@@ -261,7 +253,6 @@ export default function RegisterOrgPage() {
               />
             </div>
 
-            {/* رمز عبور */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">رمز عبور</label>
@@ -285,7 +276,7 @@ export default function RegisterOrgPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">تکرار رمز عبور</label>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">تکرار رمز</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={form.password_confirm}
@@ -297,7 +288,6 @@ export default function RegisterOrgPage() {
               </div>
             </div>
 
-            {/* نام سازمان */}
             <div className="pt-3 mt-3 border-t border-gray-200">
               <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
                 <Building2 size={12} className="inline ml-1" /> نام سازمان
@@ -312,7 +302,6 @@ export default function RegisterOrgPage() {
               />
             </div>
 
-            {/* کد سازمان (اختیاری) */}
             <div>
               <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
                 <Key size={12} className="inline ml-1" /> کد سازمان (اختیاری)
@@ -327,7 +316,26 @@ export default function RegisterOrgPage() {
               <p className="text-[10px] text-gray-400 mt-1">اگر خالی بگذارید، کد خودکار ساخته می‌شود</p>
             </div>
 
-            {/* شرایط */}
+            {/* نوع سازمان */}
+            <div>
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <Building2 size={12} className="inline ml-1" /> نوع سازمان
+              </label>
+              <select
+                value={form.organization_type}
+                onChange={(e) => setForm({ ...form, organization_type: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+              >
+                <option value="manufacturing">تولیدی</option>
+                <option value="service">خدماتی</option>
+                <option value="rto">پژوهش و فناوری (RTO)</option>
+                <option value="holding">هلدینگ اقتصادی</option>
+              </select>
+              <p className="text-[10px] text-gray-400 mt-1">
+                این انتخاب بر RACI و مدل حکمرانی سازمان تأثیر می‌گذارد
+              </p>
+            </div>
+
             <label className="flex items-start gap-2 cursor-pointer select-none pt-2">
               <div className="relative mt-0.5">
                 <input
@@ -371,7 +379,7 @@ export default function RegisterOrgPage() {
         </div>
       </div>
 
-      {/* ============ LEFT PANEL — BRANDING ============ */}
+      {/* LEFT PANEL */}
       <div className="hidden lg:flex lg:w-[54%] relative overflow-hidden bg-[#04241D]">
         <svg className="absolute inset-0 w-full h-full opacity-[0.15]" preserveAspectRatio="xMidYMid slice">
           <defs>
@@ -403,7 +411,7 @@ export default function RegisterOrgPage() {
                 </text>
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-golden-amber/40 flex items-center justify-center shadow-[0_0_0_1px_rgba(212,165,71,0.15),0_10px_30px_rgba(0,0,0,0.35)]">
+                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-golden-amber/40 flex items-center justify-center">
                   <Image src="/logo.png" alt="متا پلتفرم" width={30} height={30} className="object-contain brightness-0 invert" />
                 </div>
               </div>
@@ -418,22 +426,19 @@ export default function RegisterOrgPage() {
             </p>
 
             <div className="mt-8 space-y-3">
-              <div className="flex items-center gap-3 text-sm text-white/70">
-                <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">۱</div>
-                <span>ثبت سازمان و تعریف واحدها</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-white/70">
-                <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">۲</div>
-                <span>تأیید توسط مدیر پلتفرم</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-white/70">
-                <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">۳</div>
-                <span>دعوت مدیران واحدها</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-white/70">
-                <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">۴</div>
-                <span>شروع مدیریت دارایی‌ها</span>
-              </div>
+              {[
+                'ثبت سازمان و تعریف واحدها',
+                'تأیید توسط مدیر پلتفرم',
+                'دعوت مدیران واحدها',
+                'شروع مدیریت دارایی‌ها',
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">
+                    {['۱', '۲', '۳', '۴'][i]}
+                  </div>
+                  <span>{text}</span>
+                </div>
+              ))}
             </div>
           </div>
 

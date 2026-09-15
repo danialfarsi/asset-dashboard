@@ -21,90 +21,77 @@ interface OrgUser {
   last_name?: string;
   username: string;
   role: string;
-  role_display?: string;
   department_id?: number | null;
   department_name?: string | null;
 }
 
-// 🎯 نقش‌های چندکاربری (واحد-محور) — چک‌باکس
+interface Department {
+  id: number;
+  name: string;
+  code: string;
+  manager?: {
+    id: number;
+    name: string;
+    email: string;
+  } | null;
+}
+
+// 🎯 نقش‌های چندکاربری (واحد-محور)
 const MULTI_USER_ROLES = ['own', 'cus'];
 
-// 🎯 حداقل تعداد activity که «کامل» حساب میشه
 const MIN_COMPLETE_MATRIX = 10;
 
 export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
   const [businessType, setBusinessType] = useState<string>('manufacturing');
   const [roles, setRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<OrgUser[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
 
-  // 🎯 state اولیه: اولویت با initialData (localStorage)، بعد DEFAULT
   const [matrix, setMatrix] = useState<Record<string, Record<string, string>>>(() => {
     if (initialData?.matrix && Object.keys(initialData.matrix).length > 5) {
-      console.log('📥 useState: Using matrix from initialData:', Object.keys(initialData.matrix).length);
       return initialData.matrix;
     }
-    console.log('📥 useState: Using DEFAULT matrix (20 activities)');
     return DEFAULT_MATRIX_MANUFACTURING;
   });
 
-  const [roleAssignments, setRoleAssignments] = useState<Record<string, any>>(() => {
-    if (initialData?.roleAssignments && Object.keys(initialData.roleAssignments).length > 0) {
-      return initialData.roleAssignments;
-    }
-    return {};
-  });
+  // 🎯 roleAssignments: 
+  // - نقش‌های تک‌کاربری: { sc: 11, iam: 12 }
+  // - نقش‌های واحدی: { own: { 1: 11, 2: 12 }, cus: { 1: 11, 2: 12 } }
+  const [roleAssignments, setRoleAssignments] = useState<Record<string, any>>(
+    initialData?.roleAssignments || {}
+  );
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // ═══════════════════════════════════════════════════════
-  // 🎯 وقتی initialData از localStorage لود شد، state رو آپدیت کن
-  // ═══════════════════════════════════════════════════════
-  useEffect(() => {
-    if (initialData?.matrix && Object.keys(initialData.matrix).length > 5) {
-      console.log('📥 useEffect[initialData]: Updating matrix:', Object.keys(initialData.matrix).length);
-      setMatrix(initialData.matrix);
-    }
-    if (initialData?.roleAssignments && Object.keys(initialData.roleAssignments).length > 0) {
-      console.log('📥 useEffect[initialData]: Updating assignments');
-      setRoleAssignments(initialData.roleAssignments);
-    }
-  }, [initialData]);
-
-  // ═══════════════════════════════════════════════════════
-  // بارگذاری: API + کاربران
+  // بارگذاری
   // ═══════════════════════════════════════════════════════
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 1. RACI template (فقط برای business_type و assignments)
+        // 1. RACI template
         const tmplRes = await api.get('/intangible/viam/ownership/raci-template/my/');
         const tmpl = tmplRes.data.template;
-
         if (tmpl) {
           setBusinessType(tmpl.business_type || 'manufacturing');
-
-          // 🎯 ماتریس API رو فقط اگه کامل بود استفاده کن
           const apiMatrixCount = tmpl.matrix ? Object.keys(tmpl.matrix).length : 0;
           if (apiMatrixCount >= MIN_COMPLETE_MATRIX) {
-            console.log('📥 API: Using complete matrix from API:', apiMatrixCount);
             setMatrix(tmpl.matrix);
-          } else {
-            console.log('📥 API: matrix ناقص (' + apiMatrixCount + ' فعالیت). از state فعلی استفاده می‌کنم.');
           }
-
-          // 🎯 role_assignments
           const apiRoleCount = tmpl.role_assignments ? Object.keys(tmpl.role_assignments).length : 0;
-          if (apiRoleCount > 0 && (!initialData?.roleAssignments || Object.keys(initialData.roleAssignments).length === 0)) {
-            console.log('📥 API: Using assignments from API');
+          if (apiRoleCount > 0) {
             setRoleAssignments(tmpl.role_assignments);
           }
         }
 
-        // 2. کاربران سازمان
+        // 2. کاربران
         const usersRes = await api.get('/auth/users/');
-        const allUsers = usersRes.data.results || usersRes.data || [];
-        setUsers(allUsers);
+        setUsers(usersRes.data.results || usersRes.data || []);
+
+        // 3. واحدها (از API جدید)
+        const deptsRes = await api.get('/auth/departments/my/');
+        setDepartments(deptsRes.data.departments || []);
       } catch (err) {
         console.error('Error loading RACI data:', err);
       } finally {
@@ -114,10 +101,34 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
     loadData();
   }, []);
 
-  // نقش‌ها بر اساس نوع کسب‌وکار
   useEffect(() => {
     setRoles(getRolesByBusinessType(businessType));
   }, [businessType]);
+
+  // 🎯 پر کردن خودکار OWN و CUS از مدیران واحدها
+  useEffect(() => {
+    if (departments.length === 0) return;
+
+    setRoleAssignments((prev) => {
+      const next = { ...prev };
+
+      MULTI_USER_ROLES.forEach((roleCode) => {
+        const current = (typeof next[roleCode] === 'object' && next[roleCode] !== null)
+          ? { ...next[roleCode] }
+          : {};
+
+        departments.forEach((dept) => {
+          if (!current[dept.id] && dept.manager?.id) {
+            current[dept.id] = dept.manager.id;
+          }
+        });
+
+        next[roleCode] = current;
+      });
+
+      return next;
+    });
+  }, [departments]);
 
   // ═══════════════════════════════════════════════════════
   // آپدیت ماتریس
@@ -135,7 +146,7 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
   // ═══════════════════════════════════════════════════════
   // آپدیت تخصیص — تک‌کاربری
   // ═══════════════════════════════════════════════════════
-  const updateAssignment = (role: string, userId: number | '') => {
+  const updateSingleAssignment = (role: string, userId: number | '') => {
     setRoleAssignments((prev) => {
       const next = { ...prev };
       if (userId === '') {
@@ -148,31 +159,33 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
   };
 
   // ═══════════════════════════════════════════════════════
-  // آپدیت تخصیص — چندکاربری
+  // آپدیت تخصیص — چندکاربری (واحدی)
   // ═══════════════════════════════════════════════════════
-  const toggleMultiUser = (role: string, userId: number) => {
+  const updateMultiAssignment = (role: string, deptId: number, userId: number | '') => {
     setRoleAssignments((prev) => {
-      const current = Array.isArray(prev[role]) ? prev[role] : [];
-      const next = current.includes(userId)
-        ? current.filter((id: number) => id !== userId)
-        : [...current, userId];
-      return { ...prev, [role]: next };
+      const next = { ...prev };
+      const current = (typeof next[role] === 'object' && next[role] !== null) ? { ...next[role] } : {};
+      if (userId === '') {
+        delete current[deptId];
+      } else {
+        current[deptId] = userId as number;
+      }
+      next[role] = current;
+      return next;
     });
   };
 
   // ═══════════════════════════════════════════════════════
-  // ذخیره
+  // اعتبارسنجی + ذخیره
   // ═══════════════════════════════════════════════════════
   const handleSubmit = async () => {
-    // 🎯 DEBUG
-    console.log('📊 State before save:', {
-      matrixKeys: Object.keys(matrix).length,
-      matrixSample: matrix['t1a'],
-      roleKeys: Object.keys(roleAssignments).length,
-      assignments: roleAssignments,
-    });
+    // اعتبارسنجی ماتریس
+    if (Object.keys(matrix).length < MIN_COMPLETE_MATRIX) {
+      alert(`⚠️ ماتریس RACI ناقص است (${Object.keys(matrix).length} فعالیت)`);
+      return;
+    }
 
-    // اعتبارسنجی: نقش‌های تک‌کاربری
+    // اعتبارسنجی نقش‌های تک‌کاربری
     const singleRoles = roles.filter((r) => !MULTI_USER_ROLES.includes(r.code));
     const missingSingle = singleRoles.filter((r) => !roleAssignments[r.code]);
     if (missingSingle.length > 0) {
@@ -180,20 +193,16 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
       if (!confirm(`این نقش‌ها کاربر ندارند:\n${names}\n\nادامه بدهم؟`)) return;
     }
 
-    // اعتبارسنجی: نقش‌های چندکاربری
+    // اعتبارسنجی نقش‌های واحدی
     const multiRoles = roles.filter((r) => MULTI_USER_ROLES.includes(r.code));
-    const missingMulti = multiRoles.filter(
-      (r) => !Array.isArray(roleAssignments[r.code]) || roleAssignments[r.code].length === 0
-    );
+    const missingMulti = multiRoles.filter((r) => {
+      const assignments = roleAssignments[r.code];
+      if (!assignments || typeof assignments !== 'object') return true;
+      return departments.some(d => !assignments[d.id]);
+    });
     if (missingMulti.length > 0) {
       const names = missingMulti.map((r) => r.name).join('، ');
-      if (!confirm(`این نقش‌ها حداقل یک کاربر ندارند:\n${names}\n\nادامه بدهم؟`)) return;
-    }
-
-    // 🎯 اعتبارسنجی ماتریس
-    if (Object.keys(matrix).length < MIN_COMPLETE_MATRIX) {
-      alert(`⚠️ ماتریس RACI ناقص است (${Object.keys(matrix).length} فعالیت). لطفاً صفحه را refresh کنید.`);
-      return;
+      if (!confirm(`این نقش‌ها برای بعضی واحدها کاربر ندارند:\n${names}\n\nادامه بدهم؟`)) return;
     }
 
     setSaving(true);
@@ -201,15 +210,16 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
       const tmplRes = await api.get('/intangible/viam/ownership/raci-template/my/');
       const tmplId = tmplRes.data.template.id;
 
-      console.log('📤 Sending matrix:', Object.keys(matrix).length, 'activities');
+      console.log('📤 Saving RACI:', {
+        matrix: Object.keys(matrix).length,
+        assignments: roleAssignments,
+      });
 
       await api.post(`/intangible/viam/ownership/raci-template/${tmplId}/update_matrix/`, {
         matrix,
         role_assignments: roleAssignments,
         business_type: businessType,
       });
-
-      console.log('✅ Save successful');
 
       onComplete({
         businessType,
@@ -218,7 +228,7 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
         completed: true,
       });
     } catch (err: any) {
-      console.error('❌ Save error:', err);
+      console.error('Save error:', err);
       alert(err.response?.data?.error || 'خطا در ذخیره RACI');
     } finally {
       setSaving(false);
@@ -227,11 +237,10 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
 
   const getUserLabel = (u: OrgUser) => {
     const name = `${u.first_name || u.username} ${u.last_name || ''}`.trim();
-    let role = '';
-    if (u.role === 'org_admin') role = ' — مدیرعامل';
-    else if (u.role === 'org_user' && u.department_name) role = ` — ${u.department_name}`;
-    else if (u.role === 'org_user') role = ' — کارشناس';
-    return name + role;
+    if (u.role === 'org_admin') return `${name} — مدیرعامل`;
+    if (u.role === 'org_user' && u.department_name) return `${name} — ${u.department_name}`;
+    if (u.role === 'org_user') return `${name} — کارشناس`;
+    return name;
   };
 
   if (loading) {
@@ -252,9 +261,6 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
         </p>
         <p className="text-xs text-gray-500 mt-1">
           ماتریس فعلی: <strong>{matrixCount}</strong> از {ACTIVITIES.length} فعالیت
-          {matrixCount < MIN_COMPLETE_MATRIX && (
-            <span className="text-red-600 mr-2">⚠️ ناقص — لطفاً refresh کنید</span>
-          )}
         </p>
       </div>
 
@@ -264,7 +270,7 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
         <select
           value={businessType}
           onChange={(e) => setBusinessType(e.target.value)}
-          className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+          className="w-full max-w-xs px-4 py-2 border border-gray-300 rounded-lg"
         >
           <option value="manufacturing">تولیدی</option>
           <option value="service">خدماتی</option>
@@ -274,7 +280,7 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
       </div>
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* بخش ۱: نقش‌های سازمانی */}
+      {/* بخش ۱: نقش‌های سازمانی (تک‌کاربری) */}
       {/* ═══════════════════════════════════════════════════ */}
       <div className="bg-white rounded-lg border border-gray-200">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-lg">
@@ -296,9 +302,9 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
                 <select
                   value={roleAssignments[role.code] || ''}
                   onChange={(e) =>
-                    updateAssignment(role.code, e.target.value ? Number(e.target.value) : '')
+                    updateSingleAssignment(role.code, e.target.value ? Number(e.target.value) : '')
                   }
-                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
                 >
                   <option value="">— انتخاب کاربر —</option>
                   {users.map((u) => (
@@ -314,52 +320,85 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
       </div>
 
       {/* ═══════════════════════════════════════════════════ */}
-      {/* بخش ۲: نقش‌های واحدی */}
+      {/* بخش ۲: نقش‌های واحدی (خودکار از واحدها) */}
       {/* ═══════════════════════════════════════════════════ */}
       <div className="bg-white rounded-lg border border-gray-200">
-        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 rounded-t-lg">
-          <h3 className="font-semibold text-gray-800">۲. نقش‌های واحدی (چند نفر)</h3>
+        <div className="bg-gradient-to-l from-purple-50 to-blue-50 px-4 py-3 border-b border-gray-200 rounded-t-lg">
+          <h3 className="font-semibold text-gray-800">۲. نقش‌های واحدی</h3>
           <p className="text-xs text-gray-500 mt-1">
-            این نقش‌ها می‌توانند <strong>چند نفر</strong> از واحدهای مختلف باشند.
+            برای هر واحد، یک نفر را انتخاب کنید. این نقش‌ها <strong>واحد-محور</strong> هستند.
           </p>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-6">
           {multiRoles.map((role) => {
-            const current = Array.isArray(roleAssignments[role.code])
+            const assignments = (typeof roleAssignments[role.code] === 'object' && roleAssignments[role.code] !== null)
               ? roleAssignments[role.code]
-              : [];
+              : {};
+
             return (
               <div key={role.code}>
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-3">
                   <span className="inline-block px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-bold">
                     {role.abbr}
                   </span>
                   <span className="text-sm font-medium text-gray-700">{role.name}</span>
-                  <span className="text-xs text-gray-500">({current.length} نفر انتخاب شده)</span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mr-8">
-                  {users.map((u) => {
-                    const checked = current.includes(u.id);
-                    return (
-                      <label
-                        key={u.id}
-                        className={`flex items-center gap-2 p-2 border-2 rounded-lg cursor-pointer transition text-sm ${
-                          checked
-                            ? 'border-purple-500 bg-purple-50'
-                            : 'border-gray-200 hover:border-gray-300'
+
+                {departments.length === 0 ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs text-yellow-700">
+                    ⚠️ هنوز واحدی تعریف نشده. ابتدا در گام ۸ واحدها را تعریف کنید.
+                  </div>
+                ) : (
+                  <div className="space-y-2 mr-6">
+                    {departments.map((dept) => (
+                      <div
+                        key={dept.id}
+                        className={`flex items-center gap-3 p-2 border rounded-lg transition ${
+                          dept.manager?.id && assignments[dept.id] === dept.manager.id
+                            ? 'border-green-200 bg-green-50/30'
+                            : 'border-gray-200 hover:border-purple-300'
                         }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleMultiUser(role.code, u.id)}
-                          className="w-4 h-4 text-purple-600"
-                        />
-                        <span className="text-xs">{getUserLabel(u)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-medium text-gray-800 text-sm">{dept.name}</span>
+                            <span className="text-[10px] font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">
+                              {dept.code}
+                            </span>
+                            {dept.manager?.id && assignments[dept.id] === dept.manager.id && (
+                              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">
+                                ✅ خودکار از مدیر واحد
+                              </span>
+                            )}
+                          </div>
+                          {dept.manager && (
+                            <p className="text-[11px] text-gray-500 mt-0.5">
+                              مدیر واحد: {dept.manager.name}
+                            </p>
+                          )}
+                        </div>
+                        <select
+                          value={assignments[dept.id] || ''}
+                          onChange={(e) =>
+                            updateMultiAssignment(
+                              role.code,
+                              dept.id,
+                              e.target.value ? Number(e.target.value) : ''
+                            )
+                          }
+                          className="w-52 px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+                        >
+                          <option value="">— انتخاب کاربر —</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {getUserLabel(u)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -456,12 +495,12 @@ export function Step9RACI({ onComplete, initialData }: Step9RACIProps) {
       <button
         onClick={handleSubmit}
         disabled={saving || matrixCount < MIN_COMPLETE_MATRIX}
-        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition"
+        className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg transition"
       >
         {saving
           ? 'در حال ذخیره...'
           : matrixCount < MIN_COMPLETE_MATRIX
-          ? `⚠️ ماتریس ناقص است (${matrixCount}/${ACTIVITIES.length})`
+          ? `⚠️ ماتریس ناقص (${matrixCount}/${ACTIVITIES.length})`
           : '💾 ذخیره RACI سازمانی و ادامه'}
       </button>
     </div>
