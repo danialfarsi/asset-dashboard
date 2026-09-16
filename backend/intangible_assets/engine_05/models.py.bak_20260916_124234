@@ -619,29 +619,8 @@ class AllocatedBudget(models.Model):
         return f"بودجه: {self.project.title} - {self.total_amount}"
     
     def save(self, *args, **kwargs):
-        """محاسبه خودکار total_amount + چک max_contingency_ratio"""
+        """محاسبه خودکار total_amount"""
         self.total_amount = self.capex + self.opex + self.contingency_reserve
-
-        # چک max_contingency_ratio از InvestmentThresholds.csv
-        try:
-            from .services.thresholds import get_threshold
-            business_type = None
-            if self.project and self.project.organization:
-                business_type = getattr(self.project.organization, 'type', None)
-
-            max_ratio = get_threshold(business_type, 'max_contingency_ratio', default=0.20)
-
-            if self.total_amount > 0:
-                actual_ratio = float(self.contingency_reserve / self.total_amount)
-                if actual_ratio > max_ratio:
-                    from django.core.exceptions import ValidationError
-                    raise ValidationError(
-                        f'نسبت ذخیره احتمالی ({actual_ratio:.2%}) از حداکثر مجاز ({max_ratio:.2%}) بیشتر است'
-                    )
-        except ImportError:
-            # اگه سرویس نبود، از چک رد شو
-            pass
-
         super().save(*args, **kwargs)
 
 
@@ -727,50 +706,6 @@ class ProgressReport(models.Model):
 # گام ۵: تکمیل، انتقال و یکپارچه‌سازی
 # ═══════════════════════════════════════════════════════════
 
-    def save(self, *args, **kwargs):
-        """اعتبارسنجی SPI/CPI + محاسبه خودکار gate_decision"""
-        from django.core.exceptions import ValidationError
-        from .services.stage_gate import auto_gate_decision
-
-        # SPI و CPI باید بین 0.1 و 3 باشن
-        if self.spi is not None:
-            if self.spi < 0.1 or self.spi > 3:
-                raise ValidationError(f'SPI باید بین 0.1 و 3 باشد (فعلی: {self.spi})')
-
-        if self.cpi is not None:
-            if self.cpi < 0.1 or self.cpi > 3:
-                raise ValidationError(f'CPI باید بین 0.1 و 3 باشد (فعلی: {self.cpi})')
-
-        # پیشرفت فیزیکی 0-100
-        if self.physical_progress_pct < 0 or self.physical_progress_pct > 100:
-            raise ValidationError('پیشرفت فیزیکی باید بین 0 و 100 باشد')
-
-        # مصرف بودجه 0-100
-        if self.budget_consumed_pct < 0 or self.budget_consumed_pct > 100:
-            raise ValidationError('مصرف بودجه باید بین 0 و 100 باشد')
-
-        # ═══════════════════════════════════════════════════════
-        # محاسبه خودکار gate_decision
-        # اگه gate_decision دستی تنظیم نشده (خالی یا 'na')، auto محاسبه کن
-        # ═══════════════════════════════════════════════════════
-        if not self.gate_decision or self.gate_decision == 'na':
-            try:
-                result = auto_gate_decision(
-                    spi=float(self.spi or 1.0),
-                    cpi=float(self.cpi or 1.0),
-                    physical_progress=float(self.physical_progress_pct or 0),
-                    budget_consumed=float(self.budget_consumed_pct or 0),
-                )
-                self.gate_decision = result['decision']
-                # اگه gate_notes خالی بود، توضیح خودکار بذار
-                if not self.gate_notes:
-                    self.gate_notes = result['reason']
-            except Exception:
-                # اگه خطا داد، از چک رد شو
-                pass
-
-        super().save(*args, **kwargs)
-
 class DevelopedOrNewAsset(models.Model):
     """
     دارایی توسعه‌یافته یا جدید (گام ۵ موتور ۴)
@@ -785,15 +720,7 @@ class DevelopedOrNewAsset(models.Model):
         related_name='developed_assets',
         verbose_name='پروژه'
     )
-
-    # 🆕 نام دارایی جدید (مستقل از اسم پروژه)
-    asset_name = models.CharField(
-        max_length=500,
-        blank=True,
-        verbose_name='نام دارایی جدید',
-        help_text='مثلاً «سیستم حل اختلافات با تأمین‌کنندگان»',
-    )
-
+    
     # آیا جدید است یا توسعه‌یافته؟
     is_new = models.BooleanField(default=False, verbose_name='دارایی جدید؟')
     
@@ -850,8 +777,7 @@ class DevelopedOrNewAsset(models.Model):
     
     def __str__(self):
         type_str = 'جدید' if self.is_new else 'توسعه‌یافته'
-        name = self.asset_name or self.project.title
-        return f"{type_str}: {name} v{self.version}"
+        return f"{type_str}: {self.project.title} v{self.version}"
 
 
 class ProjectClosureReport(models.Model):

@@ -1,0 +1,31 @@
+mapping_id,asset_type_id,project_type,risk_level,uncertainty_level,recommended_methodology,gate_count,description
+1,1,DEV,low,low,linear,1,برند - توسعه خطی
+2,1,INNO,high,high,stage_gate,3,برند - خلق مرحله‌ای
+3,2,DEV,low,low,linear,1,قرارداد - توسعه خطی
+4,2,INNO,high,high,stage_gate,3,قرارداد - خلق مرحله‌ای
+5,3,DEV,low,low,linear,1,مدل کسب‌وکار - توسعه خطی
+6,3,INNO,high,high,stage_gate,3,مدل کسب‌وکار - خلق مرحله‌ای
+7,4,DEV,medium,medium,stage_gate,2,فرمول - توسعه مرحله‌ای
+8,4,INNO,high,high,stage_gate,3,فرمول - خلق مرحله‌ای
+9,5,DEV,low,low,linear,1,شهرت - توسعه خطی
+10,5,INNO,medium,high,stage_gate,2,شهرت - خلق مرحله‌ای
+11,6,DEV,low,low,linear,1,مشتریان - توسعه خطی
+12,6,INNO,medium,medium,stage_gate,2,مشتریان - خلق مرحله‌ای
+13,7,DEV,low,low,linear,1,شراکت - توسعه خطی
+14,7,INNO,high,high,stage_gate,3,شراکت - خلق مرحله‌ای
+15,8,DEV,medium,medium,stage_gate,2,پروتکل - توسعه مرحله‌ای
+16,8,INNO,high,high,stage_gate,3,پروتکل - خلق مرحله‌ای
+17,9,DEV,medium,medium,stage_gate,2,پتنت - توسعه مرحله‌ای
+18,9,INNO,high,high,stage_gate,3,پتنت - خلق مرحله‌ای
+19,10,DEV,high,high,stage_gate,3,اسرار تجاری - توسعه مرحله‌ای
+20,10,INNO,high,high,stage_gate,3,اسرار تجاری - خلق مرحله‌ای
+21,11,DEV,medium,medium,stage_gate,2,پایگاه داده - توسعه مرحله‌ای
+22,11,INNO,high,high,stage_gate,3,پایگاه داده - خلق مرحله‌ای
+23,12,DEV,low,low,linear,1,SOP - توسعه خطی
+24,12,INNO,medium,medium,stage_gate,2,SOP - خلق مرحله‌ای
+25,13,DEV,medium,medium,stage_gate,2,نرم‌افزار - توسعه مرحله‌ای
+26,13,INNO,high,high,stage_gate,3,نرم‌افزار - خلق مرحله‌ای
+27,14,DEV,low,low,linear,1,لایسنس - توسعه خطی
+28,14,INNO,medium,medium,stage_gate,2,لایسنس - خلق مرحله‌ای
+29,15,DEV,medium,medium,stage_gate,2,فرهنگ - توسعه مرحله‌ای
+30,15,INNO,high,high,stage_gate,3,فرهنگ - خلق مرحله‌ای

@@ -62,6 +62,22 @@ export const engine05Api = {
   
   getProjects: (params?: any) =>
     api.get(`${BASE}/projects/`, { params }),
+
+  // آمار تجمیعی تکمیل (دارایی‌ها + گزارش‌های اختتام)
+  getProjectsStatsCompletion: () =>
+    api.get(`${BASE}/projects/stats-completion/`),
+
+  // پیشنهاد methodology از CSV
+  suggestMethodology: (projectId: number) =>
+    api.get(`${BASE}/projects/${projectId}/suggest-methodology/`),
+
+  // هشدارهای همه پروژه‌ها
+  getAllAlerts: (params?: { approval_status?: string }) =>
+    api.get(`${BASE}/projects/alerts/`, { params }),
+
+  // هشدارهای یه پروژه
+  getProjectAlerts: (projectId: number) =>
+    api.get(`${BASE}/projects/${projectId}/alerts/`),
   
   getProject: (id: number) =>
     api.get(`${BASE}/projects/${id}/`),
@@ -129,6 +145,10 @@ export const engine05Api = {
   
   updateBudget: (id: number, data: any) =>
     api.put(`${BASE}/budgets/${id}/`, data),
+
+  // KPIهای پیشنهادی (بر اساس asset_type_id یا project_id)
+  suggestedKpis: (params: { asset_type_id?: number; project_id?: number; output_type?: string }) =>
+    api.get(`${BASE}/projects/suggested-kpis/`, { params }),
   
   // ═══════════════════════════════════════════════════════
   // گام ۴: اجرا، پایش و Stage-Gate
@@ -136,6 +156,14 @@ export const engine05Api = {
   
   getProgressReports: (params?: any) =>
     api.get(`${BASE}/progress/`, { params }),
+
+  // Stage-Gate — محاسبه مجدد تصمیم
+  recalculateGate: (reportId: number) =>
+    api.post(`${BASE}/progress/${reportId}/recalculate_gate/`),
+
+  // هشدارهای SPI/CPI
+  getProgressAlerts: (reportId: number) =>
+    api.get(`${BASE}/progress/${reportId}/alerts/`),
   
   getProgressReport: (id: number) =>
     api.get(`${BASE}/progress/${id}/`),

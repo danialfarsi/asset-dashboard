@@ -14,11 +14,25 @@ interface Project {
   title: string;
   project_type: string;
   project_type_display: string;
+  approval_status?: string;
+  assets_count?: number;
+  closures_count?: number;
+}
+
+interface ProjectStat {
+  id: number;
+  title: string;
+  project_type: string;
+  project_type_display: string;
+  approval_status: string;
+  assets_count: number;
+  closures_count: number;
 }
 
 interface DevelopedAsset {
   id: number;
   project: number;
+  asset_name: string;
   is_new: boolean;
   source_asset: number | null;
   new_asset: number | null;
@@ -54,11 +68,15 @@ export function CompletionPanel() {
   const [saving, setSaving] = useState(false);
 
   const [assetForm, setAssetForm] = useState({
+    asset_name: '',
     is_new: true,
     version: '1.0.0',
     tech_docs_url: '',
     source_code_or_design: '',
+    attachments: [] as Array<{ name: string; url: string; type: string }>,
   });
+
+  const [newAttachment, setNewAttachment] = useState({ name: '', url: '', type: 'pdf' });
 
   const [closureForm, setClosureForm] = useState({
     final_kpi_score: 0,
@@ -74,10 +92,15 @@ export function CompletionPanel() {
   const loadProjects = async () => {
     setLoading(true);
     try {
-      const res = await engine05Api.getProjects();
-      setProjects(res.data.results || []);
+      const res = await engine05Api.getProjectsStatsCompletion();
+      setProjects(res.data.projects || []);
     } catch (err) {
       console.error('Load error:', err);
+      // fallback: بدون آمار
+      try {
+        const res = await engine05Api.getProjects();
+        setProjects(res.data.results || []);
+      } catch {}
     } finally {
       setLoading(false);
     }
@@ -97,6 +120,25 @@ export function CompletionPanel() {
     }
   };
 
+  const addAttachment = () => {
+    if (!newAttachment.name || !newAttachment.url) {
+      showToast('نام و لینک پیوست الزامی است', 'error');
+      return;
+    }
+    setAssetForm({
+      ...assetForm,
+      attachments: [...assetForm.attachments, newAttachment],
+    });
+    setNewAttachment({ name: '', url: '', type: 'pdf' });
+  };
+
+  const removeAttachment = (idx: number) => {
+    setAssetForm({
+      ...assetForm,
+      attachments: assetForm.attachments.filter((_, i) => i !== idx),
+    });
+  };
+
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeProject) return;
@@ -108,7 +150,15 @@ export function CompletionPanel() {
       });
       showToast('دارایی توسعه‌یافته ثبت شد');
       setShowAssetForm(false);
-      setAssetForm({ is_new: true, version: '1.0.0', tech_docs_url: '', source_code_or_design: '' });
+      setAssetForm({
+        asset_name: '',
+        is_new: true,
+        version: '1.0.0',
+        tech_docs_url: '',
+        source_code_or_design: '',
+        attachments: [],
+      });
+      setNewAttachment({ name: '', url: '', type: 'pdf' });
       loadDetails(activeProject);
     } catch (err: any) {
       showToast('خطا در ثبت', 'error');
@@ -187,18 +237,42 @@ export function CompletionPanel() {
         <div className="lg:col-span-1">
           <h4 className="text-xs font-bold text-gray-500 mb-2">پروژه‌ها:</h4>
           <div className="space-y-2 max-h-[500px] overflow-y-auto">
-            {projects.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => loadDetails(p)}
-                className={`w-full text-right p-3 rounded-lg border-2 transition ${
-                  activeProject?.id === p.id ? 'border-[#04241D] bg-[#04241D]/5' : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="font-medium text-sm text-gray-800 truncate mb-1">{p.title}</div>
-                <div className="text-[10px] text-gray-500">{p.project_type_display}</div>
-              </button>
-            ))}
+            {projects.map((p) => {
+              const assetsCount = (p as any).assets_count ?? 0;
+              const closuresCount = (p as any).closures_count ?? 0;
+              const hasAny = assetsCount > 0 || closuresCount > 0;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => loadDetails(p)}
+                  className={`w-full text-right p-3 rounded-lg border-2 transition ${
+                    activeProject?.id === p.id ? 'border-[#04241D] bg-[#04241D]/5' : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="font-medium text-sm text-gray-800 truncate flex-1">{p.title}</div>
+                    <div className="flex gap-1 shrink-0">
+                      {assetsCount > 0 && (
+                        <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-bold whitespace-nowrap">
+                          📦 {assetsCount}
+                        </span>
+                      )}
+                      {closuresCount > 0 && (
+                        <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-bold whitespace-nowrap">
+                          ✅ {closuresCount}
+                        </span>
+                      )}
+                      {!hasAny && (
+                        <span className="text-[9px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded">
+                          —
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-gray-500">{p.project_type_display}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -228,6 +302,16 @@ export function CompletionPanel() {
 
                   {showAssetForm && (
                     <form onSubmit={handleCreateAsset} className="bg-gray-50 rounded-lg p-3 mb-3 space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          نام دارایی جدید <span className="text-red-500">*</span>
+                        </label>
+                        <input value={assetForm.asset_name}
+                          onChange={(e) => setAssetForm({ ...assetForm, asset_name: e.target.value })}
+                          placeholder="مثلاً «سیستم حل اختلافات با تأمین‌کنندگان»"
+                          required
+                          className="w-full px-3 py-2 border rounded-lg text-sm" />
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -260,6 +344,70 @@ export function CompletionPanel() {
                           placeholder="https://..."
                           className="w-full px-3 py-2 border rounded-lg text-sm" />
                       </div>
+                      {/* 📎 پیوست‌ها */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-medium text-gray-700">
+                            📎 فایل‌های پیوست ({assetForm.attachments.length})
+                          </label>
+                        </div>
+
+                        {/* لیست پیوست‌ها */}
+                        {assetForm.attachments.length > 0 && (
+                          <div className="space-y-1 mb-2">
+                            {assetForm.attachments.map((att, i) => (
+                              <div key={i} className="flex items-center gap-2 bg-white border rounded p-2 text-xs">
+                                <span className="text-gray-400">
+                                  {att.type === 'pdf' ? '📄' :
+                                   att.type === 'image' ? '🖼️' :
+                                   att.type === 'code' ? '💻' : '📎'}
+                                </span>
+                                <span className="flex-1 font-medium text-gray-800 truncate">{att.name}</span>
+                                <a href={att.url} target="_blank" rel="noopener noreferrer"
+                                  className="text-blue-500 hover:underline text-[10px]">
+                                  مشاهده
+                                </a>
+                                <button type="button" onClick={() => removeAttachment(i)}
+                                  className="text-red-500 text-xs px-1">✕</button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* فرم افزودن پیوست */}
+                        <div className="bg-white border rounded p-2 space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <input
+                              value={newAttachment.name}
+                              onChange={(e) => setNewAttachment({ ...newAttachment, name: e.target.value })}
+                              placeholder="نام فایل"
+                              className="px-2 py-1.5 text-xs border rounded" />
+                            <select
+                              value={newAttachment.type}
+                              onChange={(e) => setNewAttachment({ ...newAttachment, type: e.target.value })}
+                              className="px-2 py-1.5 text-xs border rounded">
+                              <option value="pdf">📄 PDF</option>
+                              <option value="image">🖼️ تصویر</option>
+                              <option value="code">💻 کد</option>
+                              <option value="doc">📝 سند</option>
+                              <option value="other">📎 سایر</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={addAttachment}
+                              className="text-xs bg-gray-100 hover:bg-gray-200 rounded px-2 py-1.5">
+                              + افزودن
+                            </button>
+                          </div>
+                          <input
+                            value={newAttachment.url}
+                            onChange={(e) => setNewAttachment({ ...newAttachment, url: e.target.value })}
+                            placeholder="لینک فایل (https://...)"
+                            type="url"
+                            className="w-full px-2 py-1.5 text-xs border rounded" />
+                        </div>
+                      </div>
+
                       <div className="flex gap-2">
                         <Button type="button" variant="outline" className="flex-1 text-xs" onClick={() => setShowAssetForm(false)}>انصراف</Button>
                         <Button type="submit" disabled={saving} className="flex-1 bg-[#04241D] text-xs">
@@ -281,6 +429,9 @@ export function CompletionPanel() {
                                 asset.is_new ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
                               }`}>
                                 {asset.is_new ? 'جدید' : 'توسعه‌یافته'}
+                              </span>
+                              <span className="font-medium text-sm text-gray-800">
+                                {asset.asset_name || `(بدون نام — ${asset.id})`}
                               </span>
                               <span className="font-mono text-xs text-gray-500">v{asset.version}</span>
                             </div>

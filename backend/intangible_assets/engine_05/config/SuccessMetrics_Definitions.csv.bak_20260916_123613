@@ -1,0 +1,44 @@
+metric_id,asset_type_id,output_type,metric_name,metric_description,unit,target_default,period,formula
+1,1,BRAND,brand_equity_growth,رشد ارزش برند,percent,20,annual,(final_value - initial_value) / initial_value * 100
+2,1,BRAND,brand_awareness,آگاهی از برند,percent,70,quarterly,survey_score
+3,1,BRAND,market_share,سهم بازار,percent,15,quarterly,company_sales / total_market * 100
+4,1,BRAND,premium_pricing,قیمت پرمیوم,percent,10,annual,(premium_price - market_price) / market_price * 100
+5,2,CONTRACT,contract_renewal_rate,نرخ تمدید قرارداد,percent,85,annual,renewed_contracts / total_contracts * 100
+6,2,CONTRACT,npv_growth,رشد NPV,percent,15,annual,(npv_new - npv_old) / npv_old * 100
+7,2,CONTRACT,exclusivity_value,ارزش انحصار,IRR,1000000000,one_time,sum(exclusive_revenue)
+8,3,BMC,revenue_diversification,تنوع درآمد,count,3,annual,count(revenue_streams)
+9,3,BMC,mrr_growth,رشد MRR,percent,25,annual,(mrr_new - mrr_old) / mrr_old * 100
+10,3,BMC,ltv_cac_ratio,نسبت LTV به CAC,ratio,3,quarterly,ltv / cac
+11,4,FORMULA,gross_margin_improvement,بهبود حاشیه سود,percent,12,annual,margin_new - margin_old
+12,4,FORMULA,algorithm_accuracy,دقت الگوریتم,percent,95,quarterly,correct_predictions / total * 100
+13,4,FORMULA,processing_speed,سرعت پردازش,seconds,-1,quarterly,avg_processing_time
+14,5,GOODWILL,pb_ratio,نسبت P/B,ratio,2.5,annual,market_cap / book_value
+15,5,GOODWILL,credit_rating,رتبه اعتباری,rating,AA,annual,rating_agency_score
+16,6,CUSTOMER,churn_rate,نرخ ریزش مشتری,percent,2,monthly,churned / total * 100
+17,6,CUSTOMER,retention_rate,نرخ نگهداشت,percent,98,quarterly,retained / total * 100
+18,6,CUSTOMER,customer_lifetime_value,ارزش طول عمر مشتری,IRR,500000000,annual,sum(customer_revenue)
+19,7,PARTNERSHIP,jv_revenue,درآمد JV,IRR,10000000000,annual,sum(jv_revenue)
+20,7,PARTNERSHIP,partner_satisfaction,رضایت شرکا,percent,90,annual,survey_score
+21,8,PROTOCOL,ip_shared_value,ارزش IP مشترک,IRR,5000000000,annual,shared_ip_value
+22,8,PROTOCOL,joint_products,محصولات مشترک,count,2,annual,count(joint_products)
+23,9,PATENT,patent_grant_rate,نرخ ثبت پتنت,percent,80,annual,granted / applied * 100
+24,9,PATENT,royalty_income,درآمد رویالتی,IRR,2000000000,annual,sum(royalty)
+25,9,PATENT,freedom_to_operate,FTO,boolean,true,annual,fto_status
+26,10,TRADE_SECRET,confidentiality_index,شاخص محرمانگی,percent,95,annual,confidential_items / total * 100
+27,10,TRADE_SECRET,breach_incidents,حوادث نقض,count,0,annual,count(breaches)
+28,10,TRADE_SECRET,documentation_completeness,کامل بودن مستندات,percent,100,one_time,documented / total * 100
+29,11,DATABASE,data_quality_score,کیفیت داده,percent,95,quarterly,quality_checks_passed / total * 100
+30,11,DATABASE,prediction_accuracy,دقت پیش‌بینی,percent,88,quarterly,correct / total * 100
+31,11,DATABASE,query_performance,عملکرد کوئری,ms,-1,quarterly,avg_query_time
+32,12,SOP,process_cycle_time,زمان چرخه فرآیند,days,-1,quarterly,avg_cycle_time
+33,12,SOP,error_rate,نرخ خطا,percent,2,monthly,errors / total * 100
+34,12,SOP,iso_certification,گواهی ISO,boolean,true,annual,iso_status
+35,13,SOFTWARE,code_coverage,پوشش کد,percent,80,quarterly,covered_lines / total_lines * 100
+36,13,SOFTWARE,uptime,زمان آپ‌تایم,percent,99.9,monthly,up_time / total_time * 100
+37,13,SOFTWARE,security_vulnerabilities,آسیب‌پذیری امنیتی,count,0,quarterly,count(critical_vulns)
+38,14,LICENSE,license_validity,اعتبار مجوز,boolean,true,annual,validity_status
+39,14,LICENSE,compliance_score,امتیاز انطباق,percent,100,annual,compliant_items / total * 100
+40,14,LICENSE,renewal_timeliness,به‌موقع بودن تمدید,percent,95,annual,on_time_renewals / total * 100
+41,15,CULTURE,knowledge_retention,نگهداشت دانش,percent,85,annual,retained_knowledge / total * 100
+42,15,CULTURE,employee_engagement,مشارکت کارکنان,percent,80,quarterly,survey_score
+43,15,CULTURE,successor_readiness,آمادگی جانشین,percent,75,annual,ready_successors / key_positions * 100

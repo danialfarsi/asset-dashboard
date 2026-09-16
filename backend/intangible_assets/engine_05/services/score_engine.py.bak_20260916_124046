@@ -12,7 +12,6 @@ from typing import Dict, List, Optional
 
 from django.db import transaction
 from django.utils import timezone
-from .thresholds import get_threshold
 
 from ..models import (
     DevelopmentOpportunity,
@@ -164,125 +163,7 @@ class ScoreEngineService:
     # ساخت PrioritizedProject از Opportunity
     # ═══════════════════════════════════════════════════════
     
-    @property
-    def budget_ratios(self):
-        """خواندن نسبت بودجه به ارزش از BudgetRatios.csv"""
-        import csv
-        import os
-        path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            'config',
-            'BudgetRatios.csv',
-        )
-        ratios = {}
-        if os.path.exists(path):
-            with open(path, encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for r in reader:
-                    ratios[int(r['asset_type_id'])] = float(r['budget_ratio'])
-        return ratios
-
-    def calculate_estimated_budget(self, opportunity, priority_score=None):
-        """
-        محاسبه بودجه تخمینی — فرمول ترکیبی
-
-        فرمول:
-            base = annual_budget × 0.05
-            complexity = BudgetRatios[asset_type_id]
-            score_factor = priority_score / 5
-            estimated = base × complexity × score_factor
-            cap = potential_value × 0.6
-        """
-        # ۱. بودجه سالانه سازمان
-        business_type = None
-        if opportunity.organization:
-            business_type = getattr(opportunity.organization, 'type', None)
-
-        annual = get_threshold(business_type, 'annual_budget', default=None)
-        if annual and isinstance(annual, dict):
-            annual_max = annual.get('max', 0) or 5e11
-        else:
-            annual_max = 5e11
-
-        base = annual_max * 0.05
-
-        # ۲. پیچیدگی دارایی
-        asset_type_id = None
-        if opportunity.asset and hasattr(opportunity.asset, 'asset_type'):
-            asset_type = opportunity.asset.asset_type
-            if asset_type:
-                asset_type_id = asset_type.id
-
-        complexity = self.budget_ratios.get(asset_type_id, 0.25) if asset_type_id else 0.25
-
-        # ۳. نسبت امتیاز
-        if priority_score is None:
-            priority_score = 3.0
-        score_factor = max(0.5, min(2.0, priority_score / 5))
-
-        # ۴. محاسبه
-        estimated = base * complexity * score_factor
-
-        # ۵. سقف
-        potential = float(opportunity.potential_value or 0)
-        if potential > 0:
-            estimated = min(estimated, potential * 0.6)
-
-        return estimated
-
-    def calculate_estimated_budget_for_idea(self, idea, priority_score=None):
-        """
-        محاسبه بودجه تخمینی برای ایده نوآوری (INNO)
-
-        فرمول:
-            base = annual_budget × 0.08  (8% بودجه سالانه — بیشتر از DEV چون R&D)
-            domain_factor بر اساس tech_domain
-            score_factor = priority_score / 5
-            estimated = base × domain_factor × score_factor
-        """
-        # ۱. بودجه سالانه سازمان
-        business_type = None
-        if idea.organization:
-            business_type = getattr(idea.organization, 'type', None)
-
-        annual = get_threshold(business_type, 'annual_budget', default=None)
-        if annual and isinstance(annual, dict):
-            annual_max = annual.get('max', 0) or 5e11
-        else:
-            annual_max = 5e11
-
-        base = annual_max * 0.08
-
-        # ۲. ضریب حوزه فناوری (بر اساس TechDomain choices واقعی)
-        TECH_DOMAIN_FACTORS = {
-            'software': 0.45,        # نرم‌افزار
-            'hardware': 0.55,        # سخت‌افزار
-            'chemical': 0.60,        # شیمیایی
-            'mechanical': 0.50,      # مکانیکی
-            'biotech': 0.70,         # بیوتک
-            'process': 0.25,         # فرآیند
-            'business_model': 0.20,  # مدل کسب‌وکار
-            'other': 0.30,
-        }
-
-        tech_domain = getattr(idea, 'tech_domain', None) or 'other'
-        domain_factor = TECH_DOMAIN_FACTORS.get(tech_domain, 0.30)
-
-        # ۳. نسبت امتیاز
-        if priority_score is None:
-            priority_score = 3.0
-        score_factor = max(0.5, min(2.0, priority_score / 5))
-
-        # ۴. محاسبه
-        estimated = base * domain_factor * score_factor
-
-        # ۵. هم‌راستایی استراتژیک
-        alignment = float(getattr(idea, 'strategic_alignment', 0) or 0)
-        if alignment >= 4:
-            estimated *= 1.2
-
-        return estimated
-
+    @transaction.atomic
     def create_project_from_opportunity(
         self,
         opportunity: DevelopmentOpportunity,
@@ -300,11 +181,8 @@ class ScoreEngineService:
         # محاسبه امتیاز
         scores = self.calculate_opportunity_score(opportunity, business_type)
         
-        # تعیین بودجه تخمینی (فرمول ترکیبی)
-        estimated_budget = self.calculate_estimated_budget(
-            opportunity,
-            priority_score=scores['priority_score'],
-        )
+        # تعیین بودجه تخمینی
+        estimated_budget = opportunity.potential_value
         
         if existing:
             # آپدیت
@@ -360,10 +238,6 @@ class ScoreEngineService:
             existing.c4_goal_alignment = scores['c4']
             existing.c5_urgency = scores['c5']
             existing.priority_score = scores['priority_score']
-            existing.estimated_budget = self.calculate_estimated_budget_for_idea(
-                idea,
-                priority_score=scores['priority_score'],
-            )
             existing.save()
             return existing
         
@@ -377,10 +251,7 @@ class ScoreEngineService:
             c4_goal_alignment=scores['c4'],
             c5_urgency=scores['c5'],
             priority_score=scores['priority_score'],
-            estimated_budget=self.calculate_estimated_budget_for_idea(
-                idea,
-                priority_score=scores['priority_score'],
-            ),
+            estimated_budget=0,
             approval_status='pending',
             organization=idea.organization,
             created_by=user,
@@ -475,52 +346,20 @@ class ScoreEngineService:
     @transaction.atomic
     def recalculate_ranks(self, organization=None) -> int:
         """
-        رتبه‌بندی همه پروژه‌ها + recalculate بودجه
-
-        کارها:
-        ۱. رتبه‌بندی بر اساس priority_score
-        ۲. محاسبه مجدد estimated_budget (چون ممکنه potential_value عوض شده باشه)
-        ۳. اگه پروژه approved بود، approved_budget هم sync بشه
+        رتبه‌بندی همه پروژه‌ها بر اساس priority_score
         """
         queryset = PrioritizedProject.objects.all()
         if organization:
             queryset = queryset.filter(organization=organization)
-
+        
         queryset = queryset.order_by('-priority_score')
-
+        
         count = 0
         for idx, project in enumerate(queryset, 1):
             project.rank = idx
-
-            # recalculate بودجه
-            new_budget = None
-            if project.opportunity:
-                new_budget = self.calculate_estimated_budget(
-                    project.opportunity,
-                    priority_score=project.priority_score,
-                )
-            elif project.innovation_idea:
-                new_budget = self.calculate_estimated_budget_for_idea(
-                    project.innovation_idea,
-                    priority_score=project.priority_score,
-                )
-
-            update_fields = ['rank']
-
-            if new_budget is not None:
-                old_budget = float(project.estimated_budget or 0)
-                if abs(old_budget - float(new_budget)) > 1:
-                    project.estimated_budget = new_budget
-                    update_fields.append('estimated_budget')
-
-                    # اگه approved هست، approved_budget هم sync بشه
-                    if project.approval_status == 'approved':
-                        project.approved_budget = new_budget
-                        update_fields.append('approved_budget')
-
-            project.save(update_fields=update_fields)
+            project.save(update_fields=['rank'])
             count += 1
-
+        
         return count
 
 

@@ -8,6 +8,8 @@ import {
   Clock, CheckCircle, XCircle, Pause, RotateCcw, Target,
 } from 'lucide-react';
 import { engine05Api } from '@/services/engine05/api';
+import { AlertsBanner } from './AlertsBanner';
+import { useAlerts } from '@/hooks/useAlerts';
 
 interface Project {
   id: number;
@@ -48,6 +50,7 @@ export function ExecutionPanel() {
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [reports, setReports] = useState<ProgressReport[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const { alertsByProject } = useAlerts(60000);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -60,10 +63,83 @@ export function ExecutionPanel() {
     gate_notes: '',
     notes: '',
   });
+  const [autoPreview, setAutoPreview] = useState<any>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // محاسبه auto decision (هم‌راستا با Backend)
+  const computeAutoDecision = (spi: number, cpi: number, progress: number) => {
+    const alerts: string[] = [];
+
+    // KILL
+    if (spi < 0.70 || cpi < 0.65) {
+      const reasons = [];
+      if (spi < 0.70) reasons.push(`SPI=${spi.toFixed(2)}`);
+      if (cpi < 0.65) reasons.push(`CPI=${cpi.toFixed(2)}`);
+      if (spi < 0.70) alerts.push(`SPI بحرانی: ${spi.toFixed(2)}`);
+      if (cpi < 0.65) alerts.push(`CPI بحرانی: ${cpi.toFixed(2)}`);
+      return {
+        decision: 'kill',
+        reason: '🚨 توقف فوری: ' + reasons.join(' و '),
+        confidence: 0.95,
+        alerts,
+      };
+    }
+
+    // RECYCLE
+    if (spi < 0.85 || cpi < 0.80) {
+      const reasons = [];
+      if (spi < 0.85) {
+        reasons.push(`SPI=${spi.toFixed(2)}`);
+        alerts.push(`SPI پایین: ${spi.toFixed(2)}`);
+      }
+      if (cpi < 0.80) {
+        reasons.push(`CPI=${cpi.toFixed(2)}`);
+        alerts.push(`CPI پایین: ${cpi.toFixed(2)}`);
+      }
+      return {
+        decision: 'recycle',
+        reason: '⚠️ بازنگری لازم: ' + reasons.join(' و '),
+        confidence: 0.85,
+        alerts,
+      };
+    }
+
+    // GO
+    if (spi >= 0.95 && cpi >= 0.90) {
+      if (progress < 5) {
+        return {
+          decision: 'hold',
+          reason: '⏸ پیشرفت خیلی کم',
+          confidence: 0.70,
+          alerts: ['پیشرفت فیزیکی کمتر از ۵٪'],
+        };
+      }
+      return {
+        decision: 'go',
+        reason: `✅ عملکرد مطلوب (SPI=${spi.toFixed(2)}, CPI=${cpi.toFixed(2)})`,
+        confidence: 0.95,
+        alerts: [],
+      };
+    }
+
+    // HOLD
+    return {
+      decision: 'hold',
+      reason: `⏸ نگه‌داری (SPI=${spi.toFixed(2)}, CPI=${cpi.toFixed(2)})`,
+      confidence: 0.60,
+      alerts: [],
+    };
+  };
+
+  // به‌روزرسانی auto preview
+  const updateAutoPreview = (spi: number, cpi: number, progress: number) => {
+    const result = computeAutoDecision(spi, cpi, progress);
+    setAutoPreview(result);
   };
 
   const loadProjects = async () => {
@@ -151,6 +227,9 @@ export function ExecutionPanel() {
         </div>
       )}
 
+      {/* 🎯 نوار هشدارها */}
+      <AlertsBanner />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* لیست پروژه‌ها */}
         <div className="lg:col-span-1">
@@ -162,18 +241,34 @@ export function ExecutionPanel() {
                 <p className="text-xs text-gray-500">پروژه‌ای در حال اجرا نیست</p>
               </div>
             ) : (
-              projects.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => loadReports(p)}
-                  className={`w-full text-right p-3 rounded-lg border-2 transition ${
-                    activeProject?.id === p.id ? 'border-[#04241D] bg-[#04241D]/5' : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="font-medium text-sm text-gray-800 truncate mb-1">{p.title}</div>
-                  <div className="text-[10px] text-gray-500">{p.project_type_display}</div>
-                </button>
-              ))
+              projects.map((p) => {
+                const alerts = alertsByProject[p.id];
+                const hasCritical = alerts?.has_critical;
+                const alertCount = alerts?.count || 0;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => loadReports(p)}
+                    className={`w-full text-right p-3 rounded-lg border-2 transition ${
+                      activeProject?.id === p.id ? 'border-[#04241D] bg-[#04241D]/5' : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="font-medium text-sm text-gray-800 truncate flex-1">{p.title}</div>
+                      {alertCount > 0 && (
+                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap shrink-0 ${
+                          hasCritical
+                            ? 'bg-red-600 text-white'
+                            : 'bg-amber-500 text-white'
+                        }`}>
+                          {hasCritical ? '🚨' : '⚠️'} {alertCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-500">{p.project_type_display}</div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -222,26 +317,90 @@ export function ExecutionPanel() {
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             SPI (شاخص زمان)
                           </label>
-                          <input type="number" step="0.01"
+                          <input type="number" step="0.01" min="0.1" max="3"
                             value={form.spi}
-                            onChange={(e) => setForm({ ...form, spi: Number(e.target.value) })}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              if (v >= 0.1 && v <= 3) {
+                                setForm({ ...form, spi: v });
+                                updateAutoPreview(v, form.cpi, form.physical_progress_pct);
+                              }
+                            }}
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#04241D] outline-none" />
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             CPI (شاخص هزینه)
                           </label>
-                          <input type="number" step="0.01"
+                          <input type="number" step="0.01" min="0.1" max="3"
                             value={form.cpi}
-                            onChange={(e) => setForm({ ...form, cpi: Number(e.target.value) })}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              if (v >= 0.1 && v <= 3) {
+                                setForm({ ...form, cpi: v });
+                                updateAutoPreview(form.spi, v, form.physical_progress_pct);
+                              }
+                            }}
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#04241D] outline-none" />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-2">
-                          تصمیم گیت (Stage-Gate)
-                        </label>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-xs font-medium text-gray-700">
+                            تصمیم گیت (Stage-Gate)
+                          </label>
+                          {autoPreview && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm({ ...form, gate_decision: autoPreview.decision });
+                                showToast('تصمیم خودکار اعمال شد');
+                              }}
+                              className="text-[10px] bg-[#04241D] text-white px-2 py-1 rounded hover:opacity-90"
+                            >
+                              ⚡ اعمال خودکار
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Auto Preview */}
+                        {autoPreview && (
+                          <div className={`mb-3 border-2 rounded-lg p-3 ${
+                            autoPreview.decision === 'go' ? 'bg-green-50 border-green-300' :
+                            autoPreview.decision === 'kill' ? 'bg-red-50 border-red-300' :
+                            autoPreview.decision === 'recycle' ? 'bg-amber-50 border-amber-300' :
+                            'bg-gray-50 border-gray-300'
+                          }`}>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xs font-bold">
+                                🤖 پیشنهاد خودکار:
+                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded font-bold ${
+                                autoPreview.decision === 'go' ? 'bg-green-200 text-green-800' :
+                                autoPreview.decision === 'kill' ? 'bg-red-200 text-red-800' :
+                                autoPreview.decision === 'recycle' ? 'bg-amber-200 text-amber-800' :
+                                'bg-gray-200 text-gray-800'
+                              }`}>
+                                {autoPreview.decision.toUpperCase()}
+                              </span>
+                              <span className="text-[10px] text-gray-500">
+                                (اطمینان: {(autoPreview.confidence * 100).toFixed(0)}%)
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-700">{autoPreview.reason}</p>
+                            {autoPreview.alerts && autoPreview.alerts.length > 0 && (
+                              <div className="mt-2 space-y-0.5">
+                                {autoPreview.alerts.map((a: string, i: number) => (
+                                  <div key={i} className="text-[10px] text-amber-700">
+                                    ⚠️ {a}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           {GATE_OPTIONS.map((opt) => {
                             const Icon = opt.icon;
@@ -346,7 +505,7 @@ export function ExecutionPanel() {
 
                           {report.gate_notes && (
                             <div className="bg-amber-50 border border-amber-200 rounded p-2 text-xs text-amber-800 mb-2">
-                              <span className="font-medium">تصمیم گیت: </span>
+                              <span className="font-medium">یادداشت تصمیم: </span>
                               {report.gate_notes}
                             </div>
                           )}

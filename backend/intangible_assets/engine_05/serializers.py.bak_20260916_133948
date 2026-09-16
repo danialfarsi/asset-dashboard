@@ -245,7 +245,6 @@ class DevelopedOrNewAssetSerializer(serializers.ModelSerializer):
         model = DevelopedOrNewAsset
         fields = [
             'id', 'project', 'project_title',
-            'asset_name',
             'is_new',
             'source_asset', 'source_asset_name',
             'new_asset', 'new_asset_name',

@@ -375,159 +375,33 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
             'metrics': metrics,
         })
 
-
-    @action(detail=False, methods=['get'], url_path='stats-completion')
-    def stats_completion(self, request):
-        """
-        آمار تجمیعی تکمیل — تعداد دارایی و گزارش اختتام هر پروژه
-
-        استفاده:
-            GET /api/intangible/engine/asset-development/projects/stats-completion/
-
-        Response:
-            {
-                "projects": [
-                    {"id": 1, "title": "...", "assets_count": 1, "closures_count": 0},
-                    ...
-                ],
-                "totals": {"projects": 10, "assets": 1, "closures": 0}
-            }
-        """
-        queryset = self.get_queryset()
-
-        # جمع‌آوری بهینه — یه query برای دارایی‌ها، یه query برای گزارش‌ها
-        project_ids = list(queryset.values_list('id', flat=True))
-
-        assets_by_project = {}
-        for row in DevelopedOrNewAsset.objects.filter(
-            project_id__in=project_ids
-        ).values('project_id').annotate(count=models.Count('id')):
-            assets_by_project[row['project_id']] = row['count']
-
-        closures_by_project = {}
-        for row in ProjectClosureReport.objects.filter(
-            project_id__in=project_ids
-        ).values('project_id').annotate(count=models.Count('id')):
-            closures_by_project[row['project_id']] = row['count']
-
-        # ساختار خروجی
-        projects_data = []
-        for p in queryset:
-            projects_data.append({
-                'id': p.id,
-                'title': p.title,
-                'project_type': p.project_type,
-                'project_type_display': p.get_project_type_display(),
-                'approval_status': p.approval_status,
-                'assets_count': assets_by_project.get(p.id, 0),
-                'closures_count': closures_by_project.get(p.id, 0),
-            })
-
-        return Response({
-            'projects': projects_data,
-            'totals': {
-                'projects': len(projects_data),
-                'assets': sum(p['assets_count'] for p in projects_data),
-                'closures': sum(p['closures_count'] for p in projects_data),
-            },
-        })
-
-    @action(detail=True, methods=['get'], url_path='suggest-methodology')
-    def suggest_methodology(self, request, pk=None):
-        """
-        پیشنهاد methodology بر اساس asset_type و project_type
-        از ProjectApproach_Mapping.csv
-
-        استفاده:
-            GET /api/.../projects/1/suggest-methodology/
-        """
-        from .services.project_approach import suggest_for_project
-
-        project = self.get_object()
-        result = suggest_for_project(project)
-
-        return Response({
-            'project_id': project.id,
-            'project_type': project.project_type,
-            **result,
-        })
-
-
-    @action(detail=False, methods=['get'], url_path='alerts')
-    def all_alerts(self, request):
-        """
-        هشدارهای همه پروژه‌ها
-
-        استفاده:
-            GET /api/.../projects/alerts/
-            GET /api/.../projects/alerts/?approval_status=approved
-        """
-        from .services.alerts import get_all_alerts
-
-        queryset = self.get_queryset()
-
-        # فیلتر
-        approval_status = request.query_params.get('approval_status')
-        if approval_status:
-            queryset = queryset.filter(approval_status=approval_status)
-
-        result = get_all_alerts(queryset)
-        return Response(result)
-
-    @action(detail=True, methods=['get'], url_path='project-alerts')
-    def project_alerts(self, request, pk=None):
-        """
-        هشدارهای یه پروژه خاص
-        """
-        from .services.alerts import get_project_alerts
-
-        project = self.get_object()
-        result = get_project_alerts(project)
-        return Response(result)
-
-
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        """تأیید پروژه با چک min_approval_score از InvestmentThresholds.csv"""
-        from .services.thresholds import get_threshold
-
+        """تأیید پروژه توسط کمیته"""
         project = self.get_object()
-        user = request.user
-
-        # چک min_approval_score
-        business_type = None
-        if project.organization and hasattr(project.organization, 'type'):
-            business_type = project.organization.type
-
-        min_score = get_threshold(business_type, 'min_approval_score', default=3.5)
-
-        if project.priority_score < min_score:
+        
+        if request.user.role not in ['super_admin', 'org_admin']:
             return Response(
-                {
-                    'error': f'امتیاز اولویت پروژه ({project.priority_score:.2f}) کمتر از حداقل مورد نیاز ({min_score}) است',
-                    'min_required': min_score,
-                    'current': project.priority_score,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+                {'error': 'دسترسی ندارید'},
+                status=status.HTTP_403_FORBIDDEN
             )
-
-        # بودجه مصوب
-        approved_budget = request.data.get('approved_budget', project.estimated_budget)
+        
+        approved_budget = request.data.get('approved_budget')
         comment = request.data.get('comment', '')
-
+        
         project.approval_status = 'approved'
-        project.approved_budget = approved_budget
-        project.approved_by = user
+        project.approved_by = request.user
         project.approved_at = timezone.now()
         project.committee_comment = comment
+        
+        if approved_budget:
+            project.approved_budget = approved_budget
+        
         project.save()
-
-        return Response({
-            'success': True,
-            'project_id': project.id,
-            'approved_budget': str(project.approved_budget),
-            'priority_score': project.priority_score,
-        })
+        
+        serializer = self.get_serializer(project)
+        return Response(serializer.data)
+    
     @action(detail=True, methods=['post'])
     def reject(self, request, pk=None):
         """رد پروژه"""
@@ -712,57 +586,6 @@ class ProgressReportViewSet(viewsets.ModelViewSet):
 # ═══════════════════════════════════════════════════════════
 # گام ۵: DevelopedOrNewAsset
 # ═══════════════════════════════════════════════════════════
-
-
-    @action(detail=True, methods=['post'], url_path='recalculate_gate')
-    def recalculate_gate(self, request, pk=None):
-        """
-        محاسبه مجدد gate_decision بر اساس SPI/CPI
-
-        استفاده:
-            POST /api/.../progress/1/recalculate_gate/
-        """
-        from .services.stage_gate import auto_gate_decision
-
-        report = self.get_object()
-        result = auto_gate_decision(
-            spi=float(report.spi or 1.0),
-            cpi=float(report.cpi or 1.0),
-            physical_progress=float(report.physical_progress_pct or 0),
-            budget_consumed=float(report.budget_consumed_pct or 0),
-        )
-
-        # آپدیت
-        report.gate_decision = result['decision']
-        if not report.gate_notes:
-            report.gate_notes = result['reason']
-        report.save(update_fields=['gate_decision', 'gate_notes'])
-
-        return Response({
-            'report_id': report.id,
-            'decision': result['decision'],
-            'reason': result['reason'],
-            'confidence': result['confidence'],
-            'alerts': result['alerts'],
-        })
-
-    @action(detail=True, methods=['get'], url_path='alerts')
-    def alerts(self, request, pk=None):
-        """
-        چک هشدارهای SPI/CPI
-        """
-        from .services.stage_gate import should_alert
-
-        report = self.get_object()
-        result = should_alert(
-            spi=float(report.spi or 1.0),
-            cpi=float(report.cpi or 1.0),
-        )
-
-        return Response({
-            'report_id': report.id,
-            **result,
-        })
 
 class DevelopedOrNewAssetViewSet(viewsets.ModelViewSet):
     queryset = DevelopedOrNewAsset.objects.all()

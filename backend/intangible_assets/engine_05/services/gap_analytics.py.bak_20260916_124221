@@ -21,7 +21,6 @@ from django.db.models import Q
 from ..models import DevelopmentOpportunity, InnovationIdea
 from ...models import ScreenedAsset
 from ...valuation_models import AssetValuation
-from .thresholds import get_threshold
 
 
 # مسیر فایل‌های پیکربندی
@@ -140,12 +139,7 @@ class GapAnalyticsService:
         total_gap = sum(weights[k] * gaps[k] for k in gaps)
         
         # آیا بحرانی هست؟
-        # آستانه بحرانی: اول از benchmark (per-asset)، بعد از InvestmentThresholds (per-business) به‌عنوان fallback
-        gap_threshold = benchmark.get('gap_threshold_critical')
-        if not gap_threshold:
-            business_type = getattr(asset.organization, 'type', None) if asset.organization else None
-            gap_threshold = get_threshold(business_type, 'critical_gap_threshold', default=1.5)
-        is_critical = total_gap >= float(gap_threshold)
+        is_critical = total_gap >= benchmark['gap_threshold_critical']
         
         # تعیین نوع شکاف غالب
         gap_types_map = {
@@ -305,69 +299,20 @@ class GapAnalyticsService:
     
     def _estimate_potential_value(self, asset: ScreenedAsset, analysis: Dict) -> Decimal:
         """
-        تخمین ارزش بالقوه بر اساس ارزش واقعی دارایی + شکاف
-
-        فرمول:
-            base_value = آخرین ارزش‌گذاری دارایی (از موتور ۲)
-                         اگه نبود → base_value پیش‌فرض بر اساس نوع دارایی
-            potential_value = base_value × (1 + gap_score) [× 1.5 اگه critical]
+        تخمین ارزش بالقوه بر اساس شکاف
         """
-        # ۱. ارزش پایه — از آخرین AssetValuation completed
-        base_value = self._get_asset_base_value(asset)
-
-        # ۲. ضریب شکاف
+        # TODO: می‌تونیم از ارزش‌گذاری فعلی استفاده کنیم
+        # فعلاً یه تخمین ساده
+        base_value = Decimal('1000000000')  # ۱ میلیارد
+        
+        # ضریب شکاف
         gap_multiplier = Decimal(str(1 + analysis['total_gap']))
-
-        # ۳. اگه بحرانی، ضریب بیشتر
+        
+        # اگه بحرانی، ضریب بیشتر
         if analysis['is_critical']:
             gap_multiplier *= Decimal('1.5')
-
+        
         return base_value * gap_multiplier
-
-    def _get_asset_base_value(self, asset) -> Decimal:
-        """
-        استخراج ارزش پایه دارایی:
-        ۱. اگه valuation completed داره → final_value
-        ۲. وگرنه → base_value پیش‌فرض بر اساس asset_type_id
-        """
-        # تلاش برای گرفتن آخرین valuation
-        try:
-            from ..models import AssetValuation
-            latest = AssetValuation.objects.filter(
-                asset=asset,
-                status='completed',
-            ).order_by('-completed_at').first()
-
-            if latest and latest.final_value and latest.final_value > 0:
-                return Decimal(str(latest.final_value))
-        except Exception:
-            pass
-
-        # fallback: base_value بر اساس asset_type_id
-        DEFAULT_BASE_VALUES = {
-            3: 50_000_000_000,    # برند — 50 میلیارد
-            4: 10_000_000_000,    # قرارداد — 10 میلیارد
-            5: 20_000_000_000,    # BMC — 20 میلیارد
-            6: 30_000_000_000,    # فرمول — 30 میلیارد
-            7: 15_000_000_000,    # مشتری — 15 میلیارد
-            8: 10_000_000_000,    # شراکت — 10 میلیارد
-            11: 5_000_000_000,    # پروتکل — 5 میلیارد
-            14: 40_000_000_000,   # پتنت — 40 میلیارد
-            15: 25_000_000_000,   # نرم‌افزار — 25 میلیارد
-            18: 35_000_000_000,   # دانش فنی — 35 میلیارد
-            19: 20_000_000_000,   # پایگاه داده — 20 میلیارد
-            32: 10_000_000_000,   # SOP — 10 میلیارد
-            70: 5_000_000_000,    # لایسنس — 5 میلیارد
-            85: 15_000_000_000,   # فرهنگ — 15 میلیارد
-            98: 100_000_000_000,  # Goodwill — 100 میلیارد
-        }
-
-        asset_type_id = None
-        if asset.asset_type:
-            asset_type_id = asset.asset_type.id
-
-        default = Decimal(str(DEFAULT_BASE_VALUES.get(asset_type_id, 5_000_000_000)))
-        return default
     
     def _build_description(self, asset: ScreenedAsset, analysis: Dict) -> str:
         """ساخت توضیحات"""

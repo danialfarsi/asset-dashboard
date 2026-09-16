@@ -475,52 +475,20 @@ class ScoreEngineService:
     @transaction.atomic
     def recalculate_ranks(self, organization=None) -> int:
         """
-        رتبه‌بندی همه پروژه‌ها + recalculate بودجه
-
-        کارها:
-        ۱. رتبه‌بندی بر اساس priority_score
-        ۲. محاسبه مجدد estimated_budget (چون ممکنه potential_value عوض شده باشه)
-        ۳. اگه پروژه approved بود، approved_budget هم sync بشه
+        رتبه‌بندی همه پروژه‌ها بر اساس priority_score
         """
         queryset = PrioritizedProject.objects.all()
         if organization:
             queryset = queryset.filter(organization=organization)
-
+        
         queryset = queryset.order_by('-priority_score')
-
+        
         count = 0
         for idx, project in enumerate(queryset, 1):
             project.rank = idx
-
-            # recalculate بودجه
-            new_budget = None
-            if project.opportunity:
-                new_budget = self.calculate_estimated_budget(
-                    project.opportunity,
-                    priority_score=project.priority_score,
-                )
-            elif project.innovation_idea:
-                new_budget = self.calculate_estimated_budget_for_idea(
-                    project.innovation_idea,
-                    priority_score=project.priority_score,
-                )
-
-            update_fields = ['rank']
-
-            if new_budget is not None:
-                old_budget = float(project.estimated_budget or 0)
-                if abs(old_budget - float(new_budget)) > 1:
-                    project.estimated_budget = new_budget
-                    update_fields.append('estimated_budget')
-
-                    # اگه approved هست، approved_budget هم sync بشه
-                    if project.approval_status == 'approved':
-                        project.approved_budget = new_budget
-                        update_fields.append('approved_budget')
-
-            project.save(update_fields=update_fields)
+            project.save(update_fields=['rank'])
             count += 1
-
+        
         return count
 
 

@@ -137,7 +137,7 @@ export function PlanningPanel() {
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-gray-500">
                   <span>{project.project_type_display}</span>
-                  <span>💰 {formatMoney(project.approved_budget || project.estimated_budget)}</span>
+                  <span>💰 {formatMoney(parseFloat(project.approved_budget) > 0 ? project.approved_budget : project.estimated_budget)}</span>
                 </div>
               </button>
             ))}
@@ -211,6 +211,9 @@ function CharterTab({ project, charter, onReload }: any) {
     risks: charter?.risks || [],
   });
   const [saving, setSaving] = useState(false);
+  const [loadingSuggest, setLoadingSuggest] = useState(false);
+  const [loadingMethodology, setLoadingMethodology] = useState(false);
+  const [methodologySuggestion, setMethodologySuggestion] = useState<any>(null);
   const [newKPI, setNewKPI] = useState({ name: '', target: '', unit: '' });
   const [newRisk, setNewRisk] = useState({ risk: '', impact: '', mitigation: '' });
 
@@ -230,13 +233,10 @@ function CharterTab({ project, charter, onReload }: any) {
     setSaving(true);
     try {
       if (charter && charter.id) {
-        // آپدیت
         await engine05Api.updateCharter(charter.id, { ...form, project: project.id });
       } else {
-        // چک کن قبلاً وجود داره یا نه
         const res = await engine05Api.getCharters({ project: project.id });
         const existing = res.data.results?.[0];
-        
         if (existing) {
           await engine05Api.updateCharter(existing.id, { ...form, project: project.id });
         } else {
@@ -252,6 +252,63 @@ function CharterTab({ project, charter, onReload }: any) {
     }
   };
 
+  // 🆕 پیشنهاد methodology از CSV
+  const suggestMethodology = async () => {
+    setLoadingMethodology(true);
+    try {
+      const res = await engine05Api.suggestMethodology(project.id);
+      const data = res.data;
+      setMethodologySuggestion(data);
+      // اگه کاربر قبلاً methodology انتخاب نکرده بود، خودکار ست کن
+      if (data.methodology && (!form.methodology || form.methodology === 'linear')) {
+        setForm({ ...form, methodology: data.methodology });
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('خطا در دریافت پیشنهاد متدولوژی');
+    } finally {
+      setLoadingMethodology(false);
+    }
+  };
+
+  // 🆕 پیشنهاد KPI از CSV
+  const suggestKPIs = async () => {
+    setLoadingSuggest(true);
+    try {
+      const res = await engine05Api.suggestedKpis({ project_id: project.id });
+      const metrics = res.data?.metrics || [];
+      if (metrics.length === 0) {
+        alert('KPI پیشنهادی برای این دارایی یافت نشد');
+        return;
+      }
+
+      // جلوگیری از تکراری‌ها (بر اساس name)
+      const existingNames = new Set(form.target_kpis.map((k: any) => k.name));
+      const newOnes = metrics
+        .filter((m: any) => !existingNames.has(m.name))
+        .map((m: any) => ({
+          name: m.name,
+          target: m.target,
+          unit: m.unit,
+          _suggested: true,
+          _description: m.description,
+          _period: m.period,
+        }));
+
+      if (newOnes.length === 0) {
+        alert('همه KPIهای پیشنهادی قبلاً اضافه شده‌اند');
+        return;
+      }
+
+      setForm({ ...form, target_kpis: [...form.target_kpis, ...newOnes] });
+    } catch (err) {
+      console.error(err);
+      alert('خطا در دریافت KPIهای پیشنهادی');
+    } finally {
+      setLoadingSuggest(false);
+    }
+  };
+
   const addKPI = () => {
     if (!newKPI.name) return;
     setForm({ ...form, target_kpis: [...form.target_kpis, newKPI] });
@@ -262,6 +319,16 @@ function CharterTab({ project, charter, onReload }: any) {
     if (!newRisk.risk) return;
     setForm({ ...form, risks: [...form.risks, newRisk] });
     setNewRisk({ risk: '', impact: '', mitigation: '' });
+  };
+
+  const updateKPI = (i: number, field: string, value: any) => {
+    const arr = [...form.target_kpis];
+    arr[i] = { ...arr[i], [field]: value };
+    setForm({ ...form, target_kpis: arr });
+  };
+
+  const removeKPI = (i: number) => {
+    setForm({ ...form, target_kpis: form.target_kpis.filter((_: any, j: number) => j !== i) });
   };
 
   return (
@@ -290,7 +357,23 @@ function CharterTab({ project, charter, onReload }: any) {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">متدولوژی</label>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-xs font-medium text-gray-700">متدولوژی</label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={suggestMethodology}
+              disabled={loadingMethodology}
+              className="text-xs h-7"
+            >
+              {loadingMethodology ? (
+                <RefreshCw className="w-3 h-3 animate-spin ml-1" />
+              ) : (
+                <Layers className="w-3 h-3 ml-1" />
+              )}
+              پیشنهاد متدولوژی
+            </Button>
+          </div>
           <select
             value={form.methodology}
             onChange={(e) => setForm({ ...form, methodology: e.target.value })}
@@ -299,28 +382,111 @@ function CharterTab({ project, charter, onReload }: any) {
             <option value="linear">آبشاری / خطی</option>
             <option value="stage_gate">مرحله‌ای (Stage-Gate)</option>
           </select>
+          {methodologySuggestion && (
+            <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-2 text-[11px] text-blue-800 space-y-0.5">
+              <div>
+                <span className="font-medium">پیشنهاد: </span>
+                {methodologySuggestion.methodology === 'stage_gate' ? 'مرحله‌ای (Stage-Gate)' : 'خطی'}
+              </div>
+              <div>
+                <span className="font-medium">تعداد گیت: </span>
+                {methodologySuggestion.gate_count}
+              </div>
+              <div>
+                <span className="font-medium">سطح ریسک: </span>
+                {methodologySuggestion.risk_level} | 
+                <span className="font-medium"> عدم قطعیت: </span>
+                {methodologySuggestion.uncertainty_level}
+              </div>
+              {methodologySuggestion.description && (
+                <div className="text-[10px] text-blue-600 italic">
+                  💡 {methodologySuggestion.description}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* KPIها */}
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-2">KPIهای هدف</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-xs font-medium text-gray-700">KPIهای هدف</label>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={suggestKPIs}
+              disabled={loadingSuggest}
+              className="text-xs h-7"
+            >
+              {loadingSuggest ? (
+                <RefreshCw className="w-3 h-3 animate-spin ml-1" />
+              ) : (
+                <Target className="w-3 h-3 ml-1" />
+              )}
+              KPI پیشنهادی
+            </Button>
+          </div>
           <div className="space-y-2">
             {form.target_kpis.map((kpi: any, i: number) => (
-              <div key={i} className="flex items-center gap-2 bg-gray-50 rounded p-2">
-                <span className="flex-1 text-sm">{kpi.name}</span>
-                <span className="text-xs text-gray-500">هدف: {kpi.target} {kpi.unit}</span>
-                <button onClick={() => setForm({ ...form, target_kpis: form.target_kpis.filter((_: any, j: number) => j !== i) })}
-                  className="text-red-500 text-xs">✕</button>
+              <div
+                key={i}
+                className={`rounded p-2 ${
+                  kpi._suggested
+                    ? 'bg-blue-50 border border-blue-200'
+                    : 'bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    value={kpi.name}
+                    onChange={(e) => updateKPI(i, 'name', e.target.value)}
+                    className="flex-1 bg-transparent text-sm font-medium border-0 outline-none"
+                  />
+                  <input
+                    value={kpi.target}
+                    onChange={(e) => updateKPI(i, 'target', e.target.value)}
+                    className="w-20 bg-transparent text-xs border-0 outline-none text-center"
+                  />
+                  <input
+                    value={kpi.unit}
+                    onChange={(e) => updateKPI(i, 'unit', e.target.value)}
+                    className="w-16 bg-transparent text-xs border-0 outline-none text-center"
+                  />
+                  <button
+                    onClick={() => removeKPI(i)}
+                    className="text-red-500 text-xs px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {kpi._suggested && kpi._description && (
+                  <div className="text-[10px] text-blue-600 mt-1">
+                    💡 {kpi._description}
+                    {kpi._period && <span className="mr-2">· {kpi._period}</span>}
+                  </div>
+                )}
               </div>
             ))}
             <div className="grid grid-cols-3 gap-2">
-              <input value={newKPI.name} onChange={(e) => setNewKPI({ ...newKPI, name: e.target.value })}
-                placeholder="نام KPI" className="px-2 py-1.5 text-xs border rounded" />
-              <input value={newKPI.target} onChange={(e) => setNewKPI({ ...newKPI, target: e.target.value })}
-                placeholder="هدف" className="px-2 py-1.5 text-xs border rounded" />
+              <input
+                value={newKPI.name}
+                onChange={(e) => setNewKPI({ ...newKPI, name: e.target.value })}
+                placeholder="نام KPI"
+                className="px-2 py-1.5 text-xs border rounded"
+              />
+              <input
+                value={newKPI.target}
+                onChange={(e) => setNewKPI({ ...newKPI, target: e.target.value })}
+                placeholder="هدف"
+                className="px-2 py-1.5 text-xs border rounded"
+              />
               <div className="flex gap-1">
-                <input value={newKPI.unit} onChange={(e) => setNewKPI({ ...newKPI, unit: e.target.value })}
-                  placeholder="واحد" className="flex-1 px-2 py-1.5 text-xs border rounded" />
+                <input
+                  value={newKPI.unit}
+                  onChange={(e) => setNewKPI({ ...newKPI, unit: e.target.value })}
+                  placeholder="واحد"
+                  className="flex-1 px-2 py-1.5 text-xs border rounded"
+                />
                 <Button size="sm" variant="outline" onClick={addKPI} className="text-xs">
                   <Plus className="w-3 h-3" />
                 </Button>
