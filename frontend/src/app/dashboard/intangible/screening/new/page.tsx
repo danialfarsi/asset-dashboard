@@ -63,8 +63,8 @@ export default function NewScreeningPage() {
 
   useEffect(() => {
     if (orgType) {
-      fetchOrgType();
-      fetchItems();
+      // 🎯 موازی به جای waterfall
+      Promise.all([fetchOrgType(), fetchItems()]);
     }
   }, [orgType]);
 
@@ -229,31 +229,46 @@ export default function NewScreeningPage() {
         return;
       }
       
+      // 🎯 ساخت لیست assets
+      const assetsToCreate: any[] = [];
+      
       for (const [templateId, entries] of Object.entries(assetEntries)) {
         const item = items.find(i => i.id === Number(templateId));
         if (!item) continue;
         
         for (const entry of entries) {
-          const assetTypeId = (item as any).asset_type_id;
-          const valuationMethod = (item as any).valuation_method;
-          
-          await api.post('/intangible/screened-assets/', {
+          assetsToCreate.push({
             asset_name: entry.name,
             category: item.category,
             result: item.default_result,
             description: `غربالگری شده از مورد: ${item.item_name}`,
             template_id: Number(templateId),
-            asset_type_id: assetTypeId,
-            valuation_method: valuationMethod,
+            asset_type_id: (item as any).asset_type_id,
+            valuation_method: (item as any).valuation_method,
             valuation_type: entry.valuationType,
           });
         }
       }
       
+      console.log(`📤 ارسال ${assetsToCreate.length} دارایی به bulk-create...`);
+      
+      // 🎯 فقط یه API call
+      const response = await api.post('/intangible/screening/bulk-create/', {
+        assets: assetsToCreate,
+      });
+      
+      const data = response.data;
+      console.log(`✅ ${data.created_count} دارایی ساخته شد`);
+      
+      if (data.error_count > 0) {
+        console.warn('خطاها:', data.errors);
+        alert(`⚠️ ${data.created_count} دارایی ساخته شد، ولی ${data.error_count} خطا داشت.`);
+      }
+      
       router.push('/dashboard/intangible/screening/list');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert('خطا در ثبت دارایی‌ها');
+      alert(error.response?.data?.error || 'خطا در ثبت دارایی‌ها');
     } finally {
       setSubmitting(false);
     }

@@ -98,148 +98,51 @@ export default function ValuationPage() {
       setLoading(true);
       setError(null);
 
-      console.log('📥 1. دریافت اطلاعات دارایی...');
-      console.log(`   assetId: ${assetId}`);
-      console.log(`   isNewValuation: ${isNewValuation}`);
+      console.log('📥 دریافت اطلاعات صفحه valuation...');
       
-      const { data: assetData } = await api.get(`/intangible/screened-assets/${assetId}/`);
-      setAsset(assetData);
-      console.log('✅ Asset Data:', assetData);
-
-      let assetTypeId: number | null = null;
-      let assetTypeCode: string | null = null;
-
-      if (assetData.asset_type?.id) {
-        assetTypeId = assetData.asset_type.id;
-        assetTypeCode = assetData.asset_type.code;
-        setAssetTypeName(assetData.asset_type.code);
-        console.log(`✅ AssetType از دارایی: ${assetTypeId} (${assetTypeCode})`);
-      }
-
-      if (!assetTypeId && assetData.asset_uid) {
-        try {
-          const { data: detection } = await api.get(
-            `/intangible/detect-asset-type/${assetData.asset_uid}/`
-          );
-          console.log('✅ تشخیص AssetType:', detection);
-          assetTypeId = detection.asset_type_id;
-          assetTypeCode = detection.asset_type_code;
-          setAssetTypeName(detection.asset_type_code);
-        } catch (detectError) {
-          console.error('❌ خطا در تشخیص AssetType:', detectError);
+      // 🎯 فقط یه API call بهینه
+      const { data } = await api.get(`/intangible/valuation/${assetId}/detail/`);
+      
+      // ۱. دارایی
+      if (data.asset) {
+        setAsset(data.asset);
+        if (data.asset.asset_type) {
+          setAssetTypeName(data.asset.asset_type.code);
         }
+        console.log('✅ Asset:', data.asset.asset_name);
       }
-
-      if (!assetTypeId) {
-        assetTypeId = 1;
-        assetTypeCode = 'BRAND';
-        setAssetTypeName('BRAND');
-        console.log('⚠️ استفاده از پیش‌فرض BRAND');
-      }
-
-      console.log(`📥 2. دریافت سوالات با asset_type: ${assetTypeId}`);
-      const { data: questionsData } = await api.get(`/intangible/valuation-questions/?asset_type=${assetTypeId}`);
-      const items = questionsData.results || questionsData || [];
-      setQuestions(items);
-      console.log(`✅ ${items.length} سوال دریافت شد`);
-
-      if (items.length === 0) {
-        setError(`هیچ سوالی برای نوع دارایی "${assetTypeCode}" یافت نشد.`);
+      
+      // ۲. سوالات
+      setQuestions(data.questions || []);
+      console.log(`✅ ${data.questions?.length || 0} سوال`);
+      
+      // اگه سوالی نبود
+      if (!data.questions || data.questions.length === 0) {
+        setError(`هیچ سوالی برای این دارایی یافت نشد.`);
         setLoading(false);
         return;
       }
-
-      console.log('📥 3. پیدا کردن ارزیابی...');
       
-      const allValuations = await fetchAllValuations();
-      console.log(`📋 کل ارزیابی‌ها: ${allValuations.length}`);
-      
-      const assetValuations = allValuations.filter((v: ValuationItem) => v.asset === parseInt(assetId));
-      console.log(`📋 ${assetValuations.length} ارزیابی برای این دارایی پیدا شد`);
-
-      let valId: number | null = null;
-
-      // 🔥 اگر new=true بود، یک ارزیابی جدید ایجاد کن
-      if (isNewValuation) {
-        console.log('📥 ایجاد ارزیابی جدید (درخواست جدید)...');
-        try {
-          const response = await api.post('/intangible/asset-valuations/', {
-            asset: parseInt(assetId),
-            asset_type: assetTypeId,
-            status: 'draft'
-          });
-          
-          if (response.data && response.data.id) {
-            valId = response.data.id;
-            console.log('✅ ارزیابی جدید ایجاد شد:', valId);
-            setValuationId(valId);
-          }
-        } catch (err: any) {
-          console.error('❌ خطا در ایجاد ارزیابی:', err);
-          setError(err.response?.data?.detail || 'خطا در ایجاد ارزیابی');
-          setLoading(false);
-          return;
-        }
-      } else if (assetValuations.length > 0) {
-        // 🔥 اگر new نبود، ارزیابی completed رو پیدا کن
-        const completedValuation = assetValuations.find((v: ValuationItem) => v.status === 'completed');
+      // ۳. ارزیابی
+      if (data.valuation) {
+        setValuationId(data.valuation.id);
+        console.log('✅ Valuation ID:', data.valuation.id);
         
-        if (completedValuation) {
-          valId = completedValuation.id;
-          console.log(`✅ ارزیابی completed پیدا شد: ${valId}`);
-        } else {
-          const sortedValuations = [...assetValuations].sort((a, b) => b.id - a.id);
-          valId = sortedValuations[0]?.id || null;
-          console.log(`📝 جدیدترین ارزیابی: ${valId}`);
-        }
-      } else {
-        // اگر هیچ ارزیابی وجود نداشت، یکی ایجاد کن
-        console.log('📥 4. ایجاد ارزیابی جدید...');
-        try {
-          const response = await api.post('/intangible/asset-valuations/', {
-            asset: parseInt(assetId),
-            asset_type: assetTypeId,
-            status: 'draft'
-          });
-          
-          if (response.data && response.data.id) {
-            valId = response.data.id;
-            console.log('✅ ارزیابی جدید ایجاد شد:', valId);
-            setValuationId(valId);
-          }
-        } catch (err: any) {
-          console.error('❌ خطا در ایجاد ارزیابی:', err);
-          setError(err.response?.data?.detail || 'خطا در ایجاد ارزیابی');
-          setLoading(false);
-          return;
-        }
-      }
-
-      if (valId) {
-        setValuationId(valId);
-        console.log(`✅ valuationId ست شد: ${valId}`);
-        
-        // دریافت پاسخ‌ها
-        const { data: valData } = await api.get(`/intangible/asset-valuations/${valId}/`);
-        const answers = valData.answers || [];
-        const status = valData.status;
-        const score = valData.final_score || 0;
-        
-        console.log(`   - پاسخ‌ها: ${answers.length}, وضعیت: ${status}`);
-        
+        // ۴. پاسخ‌ها
         const scores: Record<number, number> = {};
-        answers.forEach((answer: any) => {
-          if (answer.score !== null && answer.score !== undefined) {
-            scores[answer.question] = answer.score;
+        (data.answers || []).forEach((a: any) => {
+          if (a.score !== null && a.score !== undefined) {
+            scores[a.question_id] = a.score;
           }
         });
         setSelectedScores(scores);
         
-        if (status === 'completed') {
+        // حالت‌ها
+        if (data.valuation.status === 'completed') {
           setIsViewMode(true);
           setIsComplete(true);
-          setFinalScore(score);
-          console.log(`✅ ارزیابی تکمیل شده`);
+          setFinalScore(data.valuation.final_score);
+          console.log('✅ ارزیابی تکمیل شده');
         } else if (Object.keys(scores).length > 0) {
           setIsViewMode(false);
           setIsComplete(false);
@@ -247,19 +150,33 @@ export default function ValuationPage() {
         } else {
           setIsViewMode(false);
           setIsComplete(false);
-          console.log('📝 ارزیابی جدید - بدون پاسخ');
+          console.log('📝 ارزیابی جدید');
         }
       } else {
-        console.error('❌ valId هنوز null است!');
-        setError('خطا در ایجاد یا پیدا کردن ارزیابی. لطفاً صفحه را مجدداً بارگذاری کنید.');
-        setLoading(false);
-        return;
+        // اگه valuation نبود، یه جدید بساز
+        console.log('📥 ایجاد ارزیابی جدید...');
+        try {
+          const response = await api.post('/intangible/asset-valuations/', {
+            asset: parseInt(assetId),
+            asset_type: data.asset_type_id,
+            status: 'draft'
+          });
+          if (response.data?.id) {
+            setValuationId(response.data.id);
+            console.log('✅ ارزیابی جدید:', response.data.id);
+          }
+        } catch (err: any) {
+          console.error('❌ خطا در ایجاد:', err);
+          setError('خطا در ایجاد ارزیابی');
+          setLoading(false);
+          return;
+        }
       }
-
+      
       setLoading(false);
     } catch (error: any) {
       console.error('❌ Error:', error);
-      setError(error.message || 'خطا در دریافت اطلاعات');
+      setError(error.response?.data?.error || error.message || 'خطا در دریافت اطلاعات');
       setLoading(false);
     }
   };

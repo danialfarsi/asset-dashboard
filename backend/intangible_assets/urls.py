@@ -337,3 +337,21 @@ from .views_screened_list import ScreenedAssetsListView
 urlpatterns += [
     path('screening/screened-assets/', ScreenedAssetsListView.as_view(), name='screened-assets-list'),
 ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Bulk Create Screened Assets
+# ═══════════════════════════════════════════════════════════
+from .views_bulk_create import BulkCreateScreenedAssetsView
+urlpatterns += [
+    path('screening/bulk-create/', BulkCreateScreenedAssetsView.as_view(), name='bulk-create-assets'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Valuation Detail (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_valuation_detail import ValuationDetailView
+urlpatterns += [
+    path('valuation/<int:asset_id>/detail/', ValuationDetailView.as_view(), name='valuation-detail'),
+]
