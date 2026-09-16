@@ -429,3 +429,11 @@ ScreeningTemplate.add_to_class('discovery_scores', models.JSONField(blank=True, 
 
 # ============ مدل‌های مدیریت API ============
 from .api_management_models import APIKey, ExternalUser, APIRequestLog
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Engine 05: توسعه و نوآوری (Asset Development & Innovation)
+# ═══════════════════════════════════════════════════════════
+from .engine_05.models import (
+    DevelopmentOpportunity,
+    InnovationIdea,
+)

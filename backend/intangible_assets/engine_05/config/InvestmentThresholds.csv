@@ -1,0 +1,21 @@
+threshold_id,threshold_type,business_type,min_value,max_value,currency,action,description
+1,annual_budget,manufacturing,0,500000000000,IRR,allow,سقف بودجه سالانه تولیدی
+2,annual_budget,service,0,300000000000,IRR,allow,سقف بودجه سالانه خدماتی
+3,annual_budget,rto,0,200000000000,IRR,allow,سقف بودجه سالانه پژوهش
+4,annual_budget,holding,0,1000000000000,IRR,allow,سقف بودجه سالانه هلدینگ
+5,min_approval_score,manufacturing,3.5,5.0,score,approve,حداقل امتیاز تأیید
+6,min_approval_score,service,3.5,5.0,score,approve,حداقل امتیاز تأیید
+7,min_approval_score,rto,3.8,5.0,score,approve,حداقل امتیاز تأیید
+8,min_approval_score,holding,4.0,5.0,score,approve,حداقل امتیاز تأیید
+9,max_contingency_ratio,manufacturing,0,0.20,ratio,allow,حداکثر ذخیره احتمالی
+10,max_contingency_ratio,service,0,0.15,ratio,allow,حداکثر ذخیره احتمالی
+11,max_contingency_ratio,rto,0,0.25,ratio,allow,حداکثر ذخیره احتمالی
+12,max_contingency_ratio,holding,0,0.10,ratio,allow,حداکثر ذخیره احتمالی
+13,variance_tolerance,manufacturing,-0.10,0.10,ratio,warning,تلورانس انحراف بودجه
+14,variance_tolerance,service,-0.10,0.10,ratio,warning,تلورانس انحراف بودجه
+15,variance_tolerance,rto,-0.15,0.15,ratio,warning,تلورانس انحراف بودجه
+16,variance_tolerance,holding,-0.05,0.05,ratio,warning,تلورانس انحراف بودجه
+17,critical_gap_threshold,manufacturing,1.5,5.0,score,escalate,آستانه شکاف بحرانی
+18,critical_gap_threshold,service,1.2,5.0,score,escalate,آستانه شکاف بحرانی
+19,critical_gap_threshold,rto,1.3,5.0,score,escalate,آستانه شکاف بحرانی
+20,critical_gap_threshold,holding,1.0,5.0,score,escalate,آستانه شکاف بحرانی

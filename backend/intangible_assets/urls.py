@@ -355,3 +355,12 @@ from .views_valuation_detail import ValuationDetailView
 urlpatterns += [
     path('valuation/<int:asset_id>/detail/', ValuationDetailView.as_view(), name='valuation-detail'),
 ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Engine 05: توسعه و نوآوری (Asset Development & Innovation)
+# ═══════════════════════════════════════════════════════════
+from .engine_05.urls import urlpatterns as engine_05_urls
+urlpatterns += [
+    path('engine/asset-development/', include(engine_05_urls)),
+]
