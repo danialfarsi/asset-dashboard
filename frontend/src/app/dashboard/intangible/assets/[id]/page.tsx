@@ -241,157 +241,48 @@ export default function AssetDetailPage() {
       setError(null);
       setIsDataReady(false);
       
-      console.log(`📥 دریافت داده‌های دارایی ID: ${assetId}`);
+      console.log(`📥 دریافت داده‌های کامل دارایی ID: ${assetId}`);
       
-      const assetIdNum = parseInt(assetId);
+      const { data } = await api.get(`/intangible/assets/${assetId}/full-detail/`);
       
-      const assetRes = await api.get(`/intangible/screened-assets/${assetId}/`);
-      const assetData = assetRes.data;
-      setAsset(assetData);
-      console.log('✅ Asset Data:', assetData);
-      
-      try {
-        setLoadingFiles(true);
-        const filesRes = await api.get(`/intangible/asset-files/?asset=${assetId}`);
-        const filesData = filesRes.data.results || filesRes.data || [];
-        setFiles(filesData);
-        console.log(`✅ ${filesData.length} فایل از دیتابیس دریافت شد`);
-      } catch (error) {
-        console.error('Error fetching files:', error);
-        setFiles([]);
-      } finally {
-        setLoadingFiles(false);
+      if (data.asset) {
+        setAsset(data.asset);
+        console.log('✅ Asset loaded');
       }
       
-      // ===============================================================
-      // 🔥 دریافت اطلاعات حفاظت (Protection Profile)
-      // ===============================================================
-      try {
-        // 🔥 جستجوی مستقیم protection profile بر اساس asset_id
-        const protectionRes = await api.get(`/intangible/protection/?asset=${assetId}`);
-        const protectionData = protectionRes.data.results || protectionRes.data || [];
-        
-        if (protectionData.length > 0) {
-          const profile = protectionData[0];
-          setProtectionProfile(profile);
-          console.log('✅ Protection Profile:', profile);
-        } else {
-          console.log('ℹ️ Protection Profile برای این دارایی وجود ندارد');
-          setProtectionProfile(null);
-        }
-      } catch (e) {
-        console.error('Error fetching protection profile:', e);
-        setProtectionProfile(null);
-      }
-      // ===============================================================
+      setFiles(data.files || []);
+      console.log(`✅ ${data.files?.length || 0} فایل`);
       
-      const casesRes = await api.get(`/intangible/valuation-cases/?asset=${assetId}`);
-      const cases = casesRes.data.results || casesRes.data || [];
-      const valuationCase = cases.length > 0 ? cases[0] : null;
-      
-      if (valuationCase) {
-        setValuationCaseId(valuationCase.id);
-        console.log('✅ ValuationCase ID:', valuationCase.id);
-        
-        try {
-          const step4Res = await api.get(`/intangible/valuation-step4/?valuation_case=${valuationCase.id}`);
-          const step4Items = step4Res.data.results || step4Res.data || [];
-          if (step4Items.length > 0) {
-            const step4 = step4Items[0];
-            setFinancialData({
-              final_value: step4.final_value || 0,
-              token_value: step4.token_value || calculateTokenValue(step4.final_value || 0),
-              confidence_level: step4.confidence_level || 0,
-              qc_score: step4.qc_score || 0,
-              method_id: step4.method_id || assetData.valuation_method || 'M-01',
-              step4_status: step4.step4_status || 'DRAFT',
-              calculation_details: step4.calculation_details || {},
-              effective_date: step4.updated_at || step4.created_at || valuationCase.updated_at || assetData.created_at,
-            });
-            console.log('✅ STEP 4 Data:', step4);
-          }
-        } catch (e) {
-          console.error('Error fetching STEP 4:', e);
-        }
-        
-        try {
-          const qcRes = await api.get(`/intangible/valuation-qc/?valuation_case=${valuationCase.id}`);
-          const qcItems = qcRes.data.results || qcRes.data || [];
-          if (qcItems.length > 0) {
-            const qc = qcItems[0];
-            setQCData({
-              id: qc.id,
-              completeness_score: qc.completeness_score || 0,
-              total_rules: qc.total_rules || 0,
-              passed: qc.passed || 0,
-              warnings: qc.warnings || 0,
-              errors: qc.errors || 0,
-              decision: qc.decision || 'PENDING',
-            });
-            console.log('✅ QC Data:', qc);
-          }
-        } catch (e) {
-          console.error('Error fetching QC:', e);
-        }
-        
-        try {
-          const sensRes = await api.get(`/intangible/sensitivity/?valuation_case=${valuationCase.id}`);
-          const sensItems = sensRes.data.results || sensRes.data || [];
-          if (sensItems.length > 0) {
-            const sens = sensItems[0];
-            setSensitivityData({
-              id: sens.id,
-              base_value: sens.base_value || 0,
-              min_value: sens.min_value || 0,
-              max_value: sens.max_value || 0,
-              confidence_level: sens.confidence_level || 0,
-              critical_drivers: sens.critical_drivers || [],
-            });
-            console.log('✅ Sensitivity Data:', sens);
-          }
-        } catch (e) {
-          console.error('Error fetching Sensitivity:', e);
-        }
+      if (data.protection_profile) {
+        setProtectionProfile(data.protection_profile);
       }
       
-      // ===============================================================
-      // دریافت ارزیابی‌ها
-      // ===============================================================
-      try {
-        console.log(`📥 دریافت ارزیابی‌های دارایی ID: ${assetIdNum}`);
-        const valuationsRes = await api.get(`/intangible/asset-valuations/?asset=${assetId}`);
-        const assetValuations = valuationsRes.data.results || valuationsRes.data || [];
-        
-        if (assetValuations.length > 0) {
-          const completed = assetValuations.find((v: any) => v.status === 'completed');
-          const targetValuation = completed || assetValuations[assetValuations.length - 1];
-          
-          if (targetValuation) {
-            const { data: summary } = await api.get(`/intangible/asset-valuations/${targetValuation.id}/summary/`);
-            setValuation({
-              id: targetValuation.id,
-              final_score: summary.weighted_score || summary.final_score || 0,
-              strategic_score: summary.strategic_score || 0,
-              technical_score: summary.technical_score || 0,
-              operational_score: summary.operational_score || 0,
-              market_score: summary.market_score || 0,
-              risk_score: summary.risk_score || 0,
-              status: targetValuation.status,
-              answered_questions: summary.answered_questions || 0,
-              total_questions: summary.total_questions || 23,
-            });
-            console.log('✅ Valuation Summary:', summary);
-          }
-        }
-      } catch (e) {
-        console.error('Error fetching valuation summary:', e);
+      if (data.valuation_case_id) {
+        setValuationCaseId(data.valuation_case_id);
       }
-      // ===============================================================
+      
+      if (data.financial_data) {
+        setFinancialData(data.financial_data);
+      }
+      
+      if (data.qc_data) {
+        setQCData(data.qc_data);
+      }
+      
+      if (data.sensitivity_data) {
+        setSensitivityData(data.sensitivity_data);
+      }
+      
+      if (data.valuation) {
+        setValuation(data.valuation);
+      }
       
       setIsDataReady(true);
+      console.log('✅ همه داده‌ها لود شد');
+      
     } catch (error: any) {
-      console.error('Error fetching data:', error);
-      setError(error.response?.data?.detail || 'خطا در دریافت اطلاعات');
+      console.error('❌ Error:', error);
+      setError(error.response?.data?.error || error.response?.data?.detail || 'خطا در دریافت اطلاعات');
       setFiles([]);
     } finally {
       setLoading(false);

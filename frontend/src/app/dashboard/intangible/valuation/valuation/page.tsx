@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllValuations } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PageTransition } from '@/components/ui/page-transition';
@@ -90,42 +89,20 @@ export default function ValuationPage() {
   const fetchAssets = async () => {
     try {
       setLoading(true);
-      const allValuations = await fetchAllValuations('completed');
       
-      const assetPromises = allValuations.map(async (val: any) => {
-        try {
-          const { data } = await api.get(`/intangible/screened-assets/${val.asset}/`);
-          return {
-            id: data.id,
-            asset_name: data.asset_name,
-            asset_uid: data.asset_uid,
-            asset_type: data.asset_type,
-            description: data.description || '',
-            created_at: data.created_at,
-            created_by_name: data.created_by_name || 'نامشخص',
-            valuation_method: data.valuation_method,
-            is_approved_for_valuation: data.is_approved_for_valuation || false,
-          };
-        } catch {
-          return null;
-        }
-      });
-      
-      const results = await Promise.all(assetPromises);
-      const validAssets: Asset[] = results
-        .filter((item): item is NonNullable<typeof item> => item !== null)
-        .filter((item) => item.is_approved_for_valuation === true)
-        .map((item) => ({
-          id: item.id,
-          asset_name: item.asset_name,
-          asset_uid: item.asset_uid,
-          asset_type: item.asset_type,
-          description: item.description,
-          created_at: item.created_at,
-          created_by_name: item.created_by_name,
-          valuation_method: item.valuation_method,
-          is_approved_for_valuation: item.is_approved_for_valuation,
-        }));
+      // 🎯 فقط یه API call بهینه
+      const { data } = await api.get('/intangible/valuation/approved-assets/');
+      const validAssets: Asset[] = (data.results || []).map((a: any) => ({
+        id: a.id,
+        asset_name: a.asset_name,
+        asset_uid: a.asset_uid,
+        asset_type: a.asset_type,
+        description: a.description || '',
+        created_at: a.created_at,
+        created_by_name: a.created_by_name || 'نامشخص',
+        valuation_method: a.valuation_method,
+        is_approved_for_valuation: a.is_approved_for_valuation,
+      }));
       
       console.log('📊 دارایی‌های تایید شده:', validAssets.length);
       
@@ -143,11 +120,8 @@ export default function ValuationPage() {
         
         if (firstAsset.valuation_method) {
           setSelectedMethod(firstAsset.valuation_method);
-          console.log('✅ روش دارایی (از دیتابیس):', firstAsset.valuation_method);
         }
         await createValuationCase(firstAsset.id);
-      } else {
-        console.log('⚠️ هیچ دارایی تایید شده‌ای برای ارزش‌گذاری وجود ندارد!');
       }
     } catch (error) {
       console.error('Error fetching assets:', error);
@@ -203,16 +177,11 @@ export default function ValuationPage() {
       
       await createValuationCase(asset.id);
       
+      // 🎯 فقط یه API call بهینه
       try {
-        const allValuations = await fetchAllValuations('completed');
-        const assetValuations = allValuations.filter((v: any) => v.asset === asset.id);
-        if (assetValuations.length > 0) {
-          const latest = assetValuations.sort((a: any, b: any) => 
-            new Date(b.evaluated_at).getTime() - new Date(a.evaluated_at).getTime()
-          )[0];
-          
-          const { data: summary } = await api.get(`/intangible/asset-valuations/${latest.id}/summary/`);
-          setValuationData(summary);
+        const { data } = await api.get(`/intangible/valuation/asset-summary/${asset.id}/`);
+        if (data.has_valuation) {
+          setValuationData(data.summary);
         } else {
           setValuationData(null);
         }

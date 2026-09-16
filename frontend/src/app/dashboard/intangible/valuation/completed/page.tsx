@@ -68,53 +68,20 @@ export default function CompletedValuationsPage() {
       
       console.log(`📥 دریافت دارایی‌های ارزیابی شده - صفحه ${currentPage}...`);
       
-      // ✅ FIX: ارسال درخواست مستقیم با پارامترهای صفحه‌بندی
-      // نکته: فرض بر این است که بک‌اند شما از پارامترهای 'page' و 'search' پشتیبانی می‌کند
-      const response = await api.get(`/intangible/asset-valuations/`, {
+      const response = await api.get('/intangible/valuation/completed-summaries/', {
         params: {
-          status: 'completed',
           page: currentPage,
           page_size: pageSize,
-          search: searchTerm || undefined
+          search: searchTerm || undefined,
         }
       });
 
-      const results = response.data.results || response.data || [];
-      setTotalPages(Math.ceil(response.data.count / pageSize) || 1);
-      setTotalItems(response.data.count || 0);
-
-      // 🛠️ اگر بک‌اند مستقیم ساماری را برنمی‌گرداند، باید ساماری‌ها را جداگانه بگیریم
-      // اما برای جلوگیری از ۴۵ ثانیه تاخیر، این کار را به صورت موازی و محدود انجام می‌دهیم
-      const summaries = await Promise.all(
-        results.map(async (val: any) => {
-          try {
-            // اگر بک‌اند ساماری را در خود آبجکت برگرداند این بخش حذف می‌شود
-            const { data: summary } = await api.get(`/intangible/asset-valuations/${val.id}/summary/`);
-            return { 
-              ...val, 
-              ...summary,
-              id: val.id, 
-              asset_id: val.asset,
-              weighted_score: summary.weighted_score || summary.final_score
-            };
-          } catch (e) {
-            return null;
-          }
-        })
-      );
+      const data = response.data;
+      setValuations(data.results || []);
+      setTotalPages(data.total_pages || 1);
+      setTotalItems(data.count || 0);
       
-      const sorted = summaries
-        .filter(s => s !== null)
-        .sort((a, b) => (b?.weighted_score || 0) - (a?.weighted_score || 0));
-      
-      // محاسبه رتبه بر اساس کل آیتم‌ها (فقط برای نمایش در صفحه فعلی)
-      const ranked = sorted.map((item, index) => ({
-        ...item,
-        rank: (currentPage - 1) * pageSize + index + 1 
-      }));
-      
-      setValuations(ranked);
-      console.log(`✅ ${ranked.length} دارایی در صفحه ${currentPage} نمایش داده شد`);
+      console.log(`✅ ${data.results?.length || 0} دارایی نمایش داده شد`);
       
     } catch (error) {
       console.error('❌ Error fetching completed valuations:', error);

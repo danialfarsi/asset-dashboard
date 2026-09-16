@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllValuations, fetchAllScreenedAssets } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
@@ -100,81 +99,31 @@ export default function RegisteredValuationsPage() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
 
-      // 🔥 دریافت همزمان داده‌ها با Promise.all
-      const [allAssets, allValuations, casesData, step4Data] = await Promise.all([
-        fetchAllScreenedAssets(),
-        fetchAllValuations(),
-        api.get('/intangible/valuation-cases/').then(res => res.data),
-        api.get('/intangible/valuation-step4/').then(res => res.data),
-      ]);
+      const res = await api.get('/intangible/valuation/registered-assets/');
+      const data = res.data;
 
-      const allCases = casesData.results || casesData || [];
-      const allStep4 = step4Data.results || step4Data || [];
-
-      // 🔥 ساخت Map برای STEP 4
-      const step4Map = new Map();
-      allStep4.forEach((step4: any) => {
-        step4Map.set(step4.valuation_case, step4);
-      });
-
-      const registered: RegisteredAsset[] = [];
-
-      for (const asset of allAssets) {
-        const assetCase = allCases.find((c: any) => c.asset === asset.id);
-        if (!assetCase) continue;
-
-        const valuation = allValuations.find((v: any) => 
-          v.asset === asset.id && v.status === 'completed'
-        );
-        if (!valuation) continue;
-
-        const isRegistered = assetCase.case_status === 'REGISTERED' || 
-                           assetCase.certificate_no !== undefined;
-
-        const step4 = step4Map.get(assetCase.id);
-        let finalValue = 0;
-        let confidenceLevel = 0;
-        let qcScore = 0;
-        let tokenValue = 0;
-
-        if (step4) {
-          finalValue = step4.final_value || 0;
-          confidenceLevel = step4.confidence_level || 0;
-          qcScore = step4.qc_score || 0;
-          tokenValue = step4.token_value || calculateTokenValue(finalValue);
-        }
-
-        // 🔥 فقط دارایی‌هایی که ارزش نهایی > ۰ دارند یا ثبت شده‌اند
-        if (finalValue === 0 && !isRegistered) continue;
-        if (finalValue === 0 && qcScore === 0 && !isRegistered) continue;
-
-        registered.push({
-          id: asset.id,
-          asset_name: asset.asset_name,
-          asset_uid: asset.asset_uid,
-          category: asset.category || 'unknown',
-          result: asset.result || 'confirmed',
-          description: asset.description || '',
-          created_at: asset.created_at,
-          created_by_name: asset.created_by_name || 'نامشخص',
-          organization_name: asset.organization_name || 'نامشخص',
-          department_name: asset.department_name || 'نامشخص',
-          valuation_case_id: assetCase.id,
-          valuation_method: asset.valuation_method || assetCase.method_id || 'M-01',
-          final_value: finalValue,
-          token_value: tokenValue,
-          confidence_level: confidenceLevel,
-          qc_score: qcScore,
-          certificate_no: assetCase.certificate_no || `VAL-${String(assetCase.id).padStart(5, '0')}`,
-          effective_date: assetCase.effective_date || assetCase.updated_at || asset.created_at,
-          case_status: assetCase.case_status || (isRegistered ? 'REGISTERED' : 'COMPLETED'),
-          is_registered: isRegistered,
-        });
-      }
-
-      registered.sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      const registered: RegisteredAsset[] = (data.results || []).map((a: any) => ({
+        id: a.id,
+        asset_name: a.asset_name,
+        asset_uid: a.asset_uid,
+        category: a.category || 'unknown',
+        result: a.result || 'confirmed',
+        description: a.description || '',
+        created_at: a.created_at,
+        created_by_name: a.created_by_name || 'نامشخص',
+        organization_name: a.organization_name || 'نامشخص',
+        department_name: a.department_name || 'نامشخص',
+        valuation_case_id: a.case_id,
+        valuation_method: a.valuation_method || 'M-01',
+        final_value: a.final_value || 0,
+        token_value: a.token_value || calculateTokenValue(a.final_value || 0),
+        confidence_level: a.confidence_level || 0,
+        qc_score: a.qc_score || 0,
+        certificate_no: a.certificate_no || `VAL-${String(a.case_id).padStart(5, '0')}`,
+        effective_date: a.created_at,
+        case_status: a.is_registered ? 'REGISTERED' : 'COMPLETED',
+        is_registered: a.is_registered || false,
+      }));
 
       setAssets(registered);
       setTotalCount(registered.length);

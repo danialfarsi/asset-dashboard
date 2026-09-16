@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllScreenedAssets, fetchAllValuations } from '@/lib/api-utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SkeletonLoader } from '@/components/ui/skeleton-loader';
@@ -72,55 +71,43 @@ export default function ValuationListPage() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
       
-      console.log('📥 دریافت همه دارایی‌های غربالگری شده...');
+      console.log('📥 دریافت دارایی‌ها با وضعیت ارزیابی...');
       
-      // 🔥 دریافت همه دارایی‌ها با Pagination کامل
-      const allAssets = await fetchAllScreenedAssets();
+      const response = await api.get('/intangible/valuation/assets-with-status/');
+      const data = response.data;
       
-      // فقط دارایی‌های قطعی (confirmed) قابل ارزیابی هستند
-      const confirmedAssets = allAssets.filter((a: any) => a.result === 'confirmed');
-      setAssets(confirmedAssets);
-      setTotalCount(confirmedAssets.length);
-      console.log(`✅ ${confirmedAssets.length} دارایی قابل ارزیابی دریافت شد`);
+      const items = data.results || [];
       
-      // 🔥 دریافت همه ارزیابی‌ها با Pagination کامل
-      console.log('📥 دریافت همه ارزیابی‌ها...');
-      const allValuations = await fetchAllValuations();
-      console.log(`✅ ${allValuations.length} ارزیابی دریافت شد`);
+      const assetsList: Asset[] = items.map((item: any) => ({
+        id: item.id,
+        asset_name: item.asset_name,
+        asset_uid: item.asset_uid,
+        category: item.category,
+        result: item.result,
+        created_at: item.created_at,
+        created_by_name: item.created_by_name,
+        organization_name: item.organization_name,
+        department_name: item.department_name,
+        description: item.description,
+      }));
       
-      // بررسی وضعیت ارزیابی هر دارایی
       const statusMap: Record<number, ValuationStatus> = {};
+      items.forEach((item: any) => {
+        statusMap[item.id] = item.valuation_status || {
+          has_valuation: false,
+          valuation_id: null,
+          status: null,
+          final_score: null,
+          is_completed: false,
+          is_in_progress: false,
+        };
+      });
       
-      for (const asset of confirmedAssets) {
-        // پیدا کردن ارزیابی‌های این دارایی
-        const assetValuations = allValuations.filter((v: any) => v.asset === asset.id);
-        
-        if (assetValuations.length === 0) {
-          statusMap[asset.id] = {
-            has_valuation: false,
-            valuation_id: null,
-            status: null,
-            final_score: null,
-            is_completed: false,
-            is_in_progress: false,
-          };
-        } else {
-          // پیدا کردن ارزیابی تکمیل شده
-          const completed = assetValuations.find((v: any) => v.status === 'completed');
-          const inProgress = assetValuations.some((v: any) => v.status === 'draft' || v.status === 'in_progress');
-          
-          statusMap[asset.id] = {
-            has_valuation: true,
-            valuation_id: assetValuations[assetValuations.length - 1].id,
-            status: assetValuations[assetValuations.length - 1].status,
-            final_score: completed?.final_score || null,
-            is_completed: !!completed,
-            is_in_progress: inProgress && !completed,
-          };
-        }
-      }
-      
+      setAssets(assetsList);
+      setTotalCount(data.count || assetsList.length);
       setValuationStatus(statusMap);
+      
+      console.log(`✅ ${assetsList.length} دارایی با وضعیت دریافت شد`);
       
     } catch (error) {
       console.error('❌ Error fetching assets:', error);

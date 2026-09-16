@@ -274,3 +274,66 @@ from .views_super_dashboard import SuperAdminDashboardView
 urlpatterns += [
     path('dashboard/super-stats/', SuperAdminDashboardView.as_view(), name='super-dashboard-stats'),
 ]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Registered Assets (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_registered_assets import RegisteredAssetsView
+urlpatterns += [
+    path('valuation/registered-assets/', RegisteredAssetsView.as_view(), name='registered-assets'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Approved Assets for Valuation (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_approved_assets import ApprovedAssetsForValuationView
+urlpatterns += [
+    path('valuation/approved-assets/', ApprovedAssetsForValuationView.as_view(), name='approved-assets'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Asset Valuation Summary (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_asset_summary import AssetValuationSummaryView
+urlpatterns += [
+    path('valuation/asset-summary/<int:asset_id>/', AssetValuationSummaryView.as_view(), name='asset-valuation-summary'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Completed Valuations (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_completed_valuations import CompletedValuationsView
+urlpatterns += [
+    path('valuation/completed-summaries/', CompletedValuationsView.as_view(), name='completed-valuations'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Assets with Valuation Status (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_assets_with_valuation import AssetsWithValuationStatusView
+urlpatterns += [
+    path('valuation/assets-with-status/', AssetsWithValuationStatusView.as_view(), name='assets-with-status'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Asset Full Detail (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_asset_full_detail import AssetFullDetailView
+urlpatterns += [
+    path('assets/<int:asset_id>/full-detail/', AssetFullDetailView.as_view(), name='asset-full-detail'),
+]
+
+
+# ═══════════════════════════════════════════════════════════
+# 🎯 Screened Assets List (بهینه)
+# ═══════════════════════════════════════════════════════════
+from .views_screened_list import ScreenedAssetsListView
+urlpatterns += [
+    path('screening/screened-assets/', ScreenedAssetsListView.as_view(), name='screened-assets-list'),
+]

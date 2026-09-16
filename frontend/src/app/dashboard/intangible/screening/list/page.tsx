@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 import api from '@/lib/api';
-import { fetchAllScreenedAssets } from '@/lib/api-utils';
 import { toPersianDate } from '@/lib/date-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,14 +42,15 @@ export default function ScreenedAssetsListPage() {
       if (showRefresh) setRefreshing(true);
       else setLoading(true);
       
-      console.log('📥 دریافت همه دارایی‌های غربالگری شده...');
+      console.log('📥 دریافت دارایی‌های غربالگری شده...');
       
-      // 🔥 استفاده از تابع جدید برای دریافت همه
-      const allAssets = await fetchAllScreenedAssets();
+      const response = await api.get('/intangible/screening/screened-assets/');
+      const data = response.data;
       
-      setAssets(allAssets);
-      setTotalCount(allAssets.length);
-      console.log(`✅ ${allAssets.length} دارایی دریافت شد`);
+      setAssets(data.results || []);
+      setTotalCount(data.count || 0);
+      
+      console.log(`✅ ${data.results?.length || 0} دارایی دریافت شد`);
       
     } catch (error) {
       console.error('❌ Error fetching assets:', error);
