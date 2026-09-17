@@ -40,8 +40,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',  # غیرفعال شده برای media preview
-    'config.middleware.MediaFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -163,5 +162,3 @@ CORS_PREFLIGHT_MAX_AGE = 86400
 
 # Disable append slash to fix external API
 APPEND_SLASH = False
-
-

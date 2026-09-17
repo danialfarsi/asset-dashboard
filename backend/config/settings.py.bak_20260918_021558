@@ -40,7 +40,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',  # غیرفعال شده برای media preview
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'config.middleware.MediaFrameOptionsMiddleware',
 ]
 

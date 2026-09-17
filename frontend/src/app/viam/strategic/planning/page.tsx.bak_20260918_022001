@@ -1,0 +1,341 @@
+/**
+ * 📋 برنامه‌ریزی و نقشه‌برداری
+ * مرحله ۱ VIAM — بخش ۱
+ */
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Target, TrendingUp, Route, Users, BarChart3, Lightbulb,
+  FileText, Image as ImageIcon, Video, Music, Trash2,
+  Download, Eye, Search, Filter, RefreshCw, X, Loader2,
+  FileSpreadsheet, Presentation, Database, Archive, Code,
+} from 'lucide-react';
+import { FileUploader } from '@/components/viam/FileUploader';
+import { FilePreviewModal } from '@/components/viam/FilePreviewModal';
+import { viamUploadsApi, VIAMUpload } from '@/services/viam/uploads';
+
+export default function StrategicPlanningPage() {
+  const [uploads, setUploads] = useState<VIAMUpload[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filterType, setFilterType] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [previewFile, setPreviewFile] = useState<VIAMUpload | null>(null);
+
+  const loadUploads = async () => {
+    setLoading(true);
+    try {
+      const res = await viamUploadsApi.list({ section: 'strategic_planning' });
+      setUploads(res.data.results || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUploads();
+  }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('آیا از حذف این فایل مطمئن هستید؟')) return;
+    try {
+      await viamUploadsApi.delete(id);
+      setUploads((prev) => prev.filter((u) => u.id !== id));
+    } catch (err) {
+      alert('خطا در حذف');
+    }
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1e9) return `${(bytes / 1e9).toFixed(2)} GB`;
+    if (bytes >= 1e6) return `${(bytes / 1e6).toFixed(2)} MB`;
+    if (bytes >= 1e3) return `${(bytes / 1e3).toFixed(2)} KB`;
+    return `${bytes} B`;
+  };
+
+  const formatDate = (date: string) => {
+    try {
+      return new Date(date).toLocaleDateString('fa-IR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch {
+      return date;
+    }
+  };
+
+  const getFileIcon = (type: string) => {
+    const map: Record<string, { icon: any; color: string; bg: string }> = {
+      pdf: { icon: FileText, color: 'text-red-600', bg: 'bg-red-50' },
+      word: { icon: FileText, color: 'text-blue-600', bg: 'bg-blue-50' },
+      excel: { icon: FileSpreadsheet, color: 'text-green-600', bg: 'bg-green-50' },
+      powerpoint: { icon: Presentation, color: 'text-orange-600', bg: 'bg-orange-50' },
+      image: { icon: ImageIcon, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+      video: { icon: Video, color: 'text-purple-600', bg: 'bg-purple-50' },
+      audio: { icon: Music, color: 'text-amber-600', bg: 'bg-amber-50' },
+      database: { icon: Database, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+      archive: { icon: Archive, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+      code: { icon: Code, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+      other: { icon: FileText, color: 'text-gray-600', bg: 'bg-gray-50' },
+    };
+    return map[type] || map.other;
+  };
+
+  // فیلتر
+  const filteredUploads = uploads.filter((u) => {
+    if (filterType !== 'all' && u.file_type !== filterType) return false;
+    if (searchTerm && !u.title.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !u.original_name.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+    return true;
+  });
+
+  // آمار
+  const stats = {
+    total: uploads.length,
+    pdf: uploads.filter((u) => u.file_type === 'pdf').length,
+    word: uploads.filter((u) => u.file_type === 'word').length,
+    excel: uploads.filter((u) => u.file_type === 'excel').length,
+    powerpoint: uploads.filter((u) => u.file_type === 'powerpoint').length,
+    image: uploads.filter((u) => u.file_type === 'image').length,
+    video: uploads.filter((u) => u.file_type === 'video').length,
+    audio: uploads.filter((u) => u.file_type === 'audio').length,
+    database: uploads.filter((u) => u.file_type === 'database').length,
+    archive: uploads.filter((u) => u.file_type === 'archive').length,
+  };
+
+  return (
+    <div className="container mx-auto p-6 rtl space-y-6">
+      {/* ─── Header ─── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#04241D] to-[#0B4A3C] p-6 text-white shadow-xl">
+        <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-[#D9B65D]/10 blur-3xl" />
+
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm">
+                <Target className="h-6 w-6 text-[#F2D27E]" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">برنامه‌ریزی و نقشه‌برداری</h1>
+                <p className="text-sm text-white/70">
+                  آپلود و مدیریت اسناد راهبردی
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button
+            onClick={loadUploads}
+            variant="outline"
+            size="sm"
+            className="bg-white/10 text-white border-white/20 hover:bg-white/20"
+          >
+            <RefreshCw className={`w-4 h-4 ml-1 ${loading ? 'animate-spin' : ''}`} />
+            بروزرسانی
+          </Button>
+        </div>
+
+        {/* ─── Stats ─── */}
+        <div className="relative mt-6 grid grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2">
+          {[
+            { label: 'کل', value: stats.total, color: 'text-white' },
+            { label: 'PDF', value: stats.pdf, color: 'text-red-300' },
+            { label: 'Word', value: stats.word, color: 'text-blue-300' },
+            { label: 'اکسل', value: stats.excel, color: 'text-green-300' },
+            { label: 'PPT', value: stats.powerpoint, color: 'text-orange-300' },
+            { label: 'تصویر', value: stats.image, color: 'text-emerald-300' },
+            { label: 'ویدیو', value: stats.video, color: 'text-purple-300' },
+            { label: 'صوت', value: stats.audio, color: 'text-amber-300' },
+            { label: 'DB', value: stats.database, color: 'text-cyan-300' },
+          ].map((s) => (
+            <div
+              key={s.label}
+              className="rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-2"
+            >
+              <p className="text-[10px] text-white/60">{s.label}</p>
+              <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── Uploader ─── */}
+      <Card className="border-2 border-dashed border-gray-200 shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#04241D]/10">
+              <FileText className="h-4 w-4 text-[#04241D]" />
+            </div>
+            <h2 className="font-bold text-gray-800">آپلود فایل جدید</h2>
+          </div>
+          <FileUploader
+            section="strategic_planning"
+            onSuccess={() => loadUploads()}
+          />
+        </CardContent>
+      </Card>
+
+      {/* ─── Filters & Search ─── */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="جستجو در فایل‌ها..."
+                className="w-full pr-10 pl-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#04241D]/20 focus:border-[#04241D] outline-none"
+              />
+            </div>
+
+            <div className="flex gap-1 flex-wrap">
+              {[
+                { key: 'all', label: 'همه' },
+                { key: 'pdf', label: 'PDF' },
+                { key: 'word', label: 'Word' },
+                { key: 'excel', label: 'اکسل' },
+                { key: 'powerpoint', label: 'PPT' },
+                { key: 'image', label: 'تصویر' },
+                { key: 'video', label: 'ویدیو' },
+                { key: 'audio', label: 'صوت' },
+                { key: 'database', label: 'دیتابیس' },
+                { key: 'archive', label: 'آرشیو' },
+                { key: 'code', label: 'کد' },
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setFilterType(t.key)}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition ${
+                    filterType === t.key
+                      ? 'bg-[#04241D] text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Files List ─── */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 text-[#04241D] animate-spin" />
+        </div>
+      ) : filteredUploads.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 text-sm">
+              {uploads.length === 0
+                ? 'هنوز فایلی آپلود نشده است'
+                : 'فایلی با این فیلتر پیدا نشد'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredUploads.map((u) => {
+            const meta = getFileIcon(u.file_type);
+            const Icon = meta.icon;
+
+            return (
+              <Card
+                key={u.id}
+                className="group hover:shadow-lg transition-all duration-300 overflow-hidden border-2 border-transparent hover:border-[#04241D]/10"
+              >
+                <CardContent className="p-0">
+                  {/* Preview */}
+                  <div className="relative h-32 bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+                    {u.file_type === 'image' ? (
+                      <img
+                        src={u.file_url}
+                        alt={u.title}
+                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${meta.bg} shadow-sm`}>
+                          <Icon className={`h-8 w-8 ${meta.color}`} />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Type Badge */}
+                    <div className={`absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.bg} ${meta.color} shadow-sm`}>
+                      {u.file_type_display}
+                    </div>
+
+                    {/* Hover Actions */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setPreviewFile(u)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white transition"
+                        title="پیش‌نمایش"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <a
+                        href={u.file_url}
+                        download={u.original_name}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white transition"
+                        title="دانلود"
+                      >
+                        <Download className="h-4 w-4" />
+                      </a>
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/80 hover:bg-red-500 text-white transition"
+                        title="حذف"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="p-4">
+                    <h3 className="font-bold text-sm text-gray-800 truncate mb-1">
+                      {u.title || u.original_name}
+                    </h3>
+                    <p className="text-[11px] text-gray-400 truncate mb-3" dir="ltr">
+                      {u.original_name}
+                    </p>
+                    <div className="flex items-center justify-between text-[11px] text-gray-500">
+                      <span>{formatSize(u.file_size)}</span>
+                      <span>{formatDate(u.created_at)}</span>
+                    </div>
+                    {u.uploaded_by_name && (
+                      <p className="text-[10px] text-gray-400 mt-2">
+                        👤 {u.uploaded_by_name}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* 🎨 Modal پیش‌نمایش */}
+      <FilePreviewModal
+        file={previewFile}
+        onClose={() => setPreviewFile(null)}
+        onDelete={handleDelete}
+      />
+    </div>
+  );
+}

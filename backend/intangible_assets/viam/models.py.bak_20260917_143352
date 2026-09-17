@@ -1,0 +1,64 @@
+"""
+📁 VIAM — مدل‌های آپلود فایل
+"""
+from django.db import models
+from django.conf import settings
+
+
+class VIAMUploadedFile(models.Model):
+    """فایل آپلودشده در بخش‌های VIAM"""
+    
+    FILE_TYPE_CHOICES = [
+        ('pdf', 'PDF'),
+        ('word', 'Word'),
+        ('image', 'تصویر'),
+        ('video', 'ویدیو'),
+        ('audio', 'صوت'),
+        ('other', 'سایر'),
+    ]
+    
+    SECTION_CHOICES = [
+        ('strategic_planning', 'برنامه‌ریزی و نقشه‌برداری'),
+        ('culture', 'جریان‌سازی و فرهنگ‌سازی'),
+        ('empowerment', 'توانمندسازی و گواهی حرفه‌ای'),
+        ('performance', 'عملکرد، ممیزی و بلوغ'),
+    ]
+    
+    # فایل
+    file = models.FileField(upload_to='viam/uploads/%Y/%m/')
+    original_name = models.CharField(max_length=500)
+    file_type = models.CharField(max_length=20, choices=FILE_TYPE_CHOICES)
+    mime_type = models.CharField(max_length=200, blank=True)
+    file_size = models.BigIntegerField(default=0)
+    
+    # دسته‌بندی
+    section = models.CharField(max_length=50, choices=SECTION_CHOICES)
+    title = models.CharField(max_length=500, blank=True)
+    description = models.TextField(blank=True)
+    tags = models.JSONField(default=list, blank=True)
+    
+    # ارتباط
+    organization = models.ForeignKey(
+        'accounts.Organization',
+        on_delete=models.CASCADE,
+        related_name='viam_uploads',
+        null=True, blank=True,
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='viam_uploads',
+    )
+    
+    # متادیتا
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'فایل آپلودشده VIAM'
+        verbose_name_plural = 'فایل‌های آپلودشده VIAM'
+    
+    def __str__(self):
+        return f"{self.original_name} ({self.get_file_type_display()})"
