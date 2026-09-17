@@ -793,93 +793,11 @@ class DevelopedOrNewAssetViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def register_in_engine_1(self, request, pk=None):
-        """
-        ثبت واقعی در موتور ۱ (مسیر A)
-        
-        ساخت ScreenedAsset جدید با result='confirmed'
-        → خودکار تو /valuation/list ظاهر می‌شه
-        """
-        from intangible_assets.models import ScreenedAsset
-        from django.utils import timezone
-
-        developed = self.get_object()
-
-        # چک تکراری
-        if developed.registered_in_engine_1 and developed.new_asset:
-            return Response({
-                'error': 'این دارایی قبلاً در موتور ۱ ثبت شده',
-                'new_asset_id': developed.new_asset.id,
-            }, status=400)
-
-        source = developed.source_asset
-        project = developed.project
-
-        # fallback: اگه source_asset خالیه، از opportunity.asset بگیر
-        if not source and project.opportunity:
-            source = project.opportunity.asset
-            # ذخیره برای استفاده بعدی
-            if source:
-                developed.source_asset = source
-                developed.save(update_fields=['source_asset'])
-
-        # محاسبه asset_uid (فرمت IA-XXX-YY-000001)
-        from intangible_assets.asset_codes import generate_asset_uid
-
-        category = source.category if source else 'support_knowledge'
-        asset_name_for_uid = developed.asset_name or project.title
-
-        # شمارش دارایی‌های موجود با prefix مشابه
-        existing_count = ScreenedAsset.objects.filter(
-            asset_uid__startswith='IA-'
-        ).count()
-
-        asset_uid = generate_asset_uid(category, asset_name_for_uid, existing_count)
-
-        # ساخت ScreenedAsset با result='confirmed'
-        screened = ScreenedAsset.objects.create(
-            asset_name=asset_name_for_uid,
-            asset_uid=asset_uid,                # ← کد یکتا
-            description=(
-                f"دارایی توسعه‌یافته از پروژه «{project.title}»\n"
-                f"نوع: {'جدید' if developed.is_new else 'توسعه‌یافته'}\n"
-                f"نسخه: {developed.version}"
-            ),
-            version=developed.version,
-
-            # قالب از source_asset (کپی)
-            asset_type=source.asset_type if source else None,
-            category=category,
-            organization=project.organization or (source.organization if source else None),
-            department=source.department if source else None,
-
-            # مسیر A
-            result='confirmed',
-            is_approved_for_valuation=True,
-            approved_by=request.user,
-            approved_at=timezone.now(),
-
-            # متادیتا
-            created_by=request.user,
-            source_type='internal',
-        )
-
-        # لینک دو طرفه
-        developed.new_asset = screened
-        developed.registered_in_engine_1 = True
-        developed.save(update_fields=['new_asset', 'registered_in_engine_1', 'updated_at'])
-
-        return Response({
-            'success': True,
-            'message': f'دارایی «{screened.asset_name}» در موتور ۱ ثبت شد',
-            'new_asset': {
-                'id': screened.id,
-                'asset_name': screened.asset_name,
-                'asset_uid': screened.asset_uid,
-                'category': screened.category,
-                'result': screened.result,
-            },
-            'redirect_to_valuation': '/dashboard/intangible/valuation/list',
-        })
+        """ثبت در موتور ۱"""
+        asset = self.get_object()
+        asset.registered_in_engine_1 = True
+        asset.save()
+        return Response({'message': 'ثبت در موتور ۱ انجام شد', 'id': asset.id})
     
     @action(detail=True, methods=['post'])
     def protect_in_engine_3(self, request, pk=None):

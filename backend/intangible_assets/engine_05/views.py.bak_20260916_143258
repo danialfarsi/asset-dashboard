@@ -814,31 +814,9 @@ class DevelopedOrNewAssetViewSet(viewsets.ModelViewSet):
         source = developed.source_asset
         project = developed.project
 
-        # fallback: اگه source_asset خالیه، از opportunity.asset بگیر
-        if not source and project.opportunity:
-            source = project.opportunity.asset
-            # ذخیره برای استفاده بعدی
-            if source:
-                developed.source_asset = source
-                developed.save(update_fields=['source_asset'])
-
-        # محاسبه asset_uid (فرمت IA-XXX-YY-000001)
-        from intangible_assets.asset_codes import generate_asset_uid
-
-        category = source.category if source else 'support_knowledge'
-        asset_name_for_uid = developed.asset_name or project.title
-
-        # شمارش دارایی‌های موجود با prefix مشابه
-        existing_count = ScreenedAsset.objects.filter(
-            asset_uid__startswith='IA-'
-        ).count()
-
-        asset_uid = generate_asset_uid(category, asset_name_for_uid, existing_count)
-
         # ساخت ScreenedAsset با result='confirmed'
         screened = ScreenedAsset.objects.create(
-            asset_name=asset_name_for_uid,
-            asset_uid=asset_uid,                # ← کد یکتا
+            asset_name=developed.asset_name or project.title,
             description=(
                 f"دارایی توسعه‌یافته از پروژه «{project.title}»\n"
                 f"نوع: {'جدید' if developed.is_new else 'توسعه‌یافته'}\n"
@@ -848,7 +826,7 @@ class DevelopedOrNewAssetViewSet(viewsets.ModelViewSet):
 
             # قالب از source_asset (کپی)
             asset_type=source.asset_type if source else None,
-            category=category,
+            category=source.category if source else 'unknown',
             organization=project.organization or (source.organization if source else None),
             department=source.department if source else None,
 

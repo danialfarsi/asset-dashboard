@@ -169,16 +169,13 @@ export function CompletionPanel() {
 
   const handleRegisterEngine = async (assetId: number, engine: string) => {
     try {
-      if (engine === '1') {
-        const res = await engine05Api.registerInEngine1(assetId);
-        showToast('دارایی در موتور ۱ ثبت شد — در صف ارزیابی قرار گرفت ✅');
-        if (activeProject) loadDetails(activeProject);
-      }
+      if (engine === '1') await engine05Api.registerInEngine1(assetId);
       if (engine === '3') await engine05Api.protectInEngine3(assetId);
       if (engine === '2') await engine05Api.valueInEngine2(assetId);
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || 'خطا';
-      showToast(msg, 'error');
+      showToast(`ثبت در موتور ${engine} انجام شد`);
+      if (activeProject) loadDetails(activeProject);
+    } catch (err) {
+      showToast('خطا', 'error');
     }
   };
 
@@ -445,26 +442,26 @@ export function CompletionPanel() {
                             )}
                           </div>
 
-                          {/* ثبت در موتور ۱ — یک دکمه */}
-                          <div className="flex items-center gap-2">
-                            {asset.registered_in_engine_1 ? (
-                              <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs">
-                                <CheckCircle className="w-4 h-4 text-green-600" />
-                                <span className="text-green-700">در موتور ۱ ثبت شده</span>
-                                <span className="text-[10px] text-green-500">
-                                  (در صف ارزیابی)
-                                </span>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleRegisterEngine(asset.id, '1')}
-                                className="flex items-center gap-2 bg-[#04241D] text-white rounded-lg px-4 py-2 text-xs hover:opacity-90"
-                              >
-                                <FileText className="w-4 h-4" />
-                                ثبت در ارزیابی دارایی‌ها
-                                <ArrowRight className="w-3 h-3" />
-                              </button>
-                            )}
+                          {/* ثبت در موتورها */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <EngineStatus
+                              engine="۱ (کشف)"
+                              status={asset.registered_in_engine_1}
+                              onRegister={() => handleRegisterEngine(asset.id, '1')}
+                              icon={FileText}
+                            />
+                            <EngineStatus
+                              engine="۳ (حفاظت)"
+                              status={asset.protected_in_engine_3}
+                              onRegister={() => handleRegisterEngine(asset.id, '3')}
+                              icon={Shield}
+                            />
+                            <EngineStatus
+                              engine="۲ (ارزش‌گذاری)"
+                              status={asset.valued_in_engine_2}
+                              onRegister={() => handleRegisterEngine(asset.id, '2')}
+                              icon={DollarSign}
+                            />
                           </div>
                         </div>
                       ))}
