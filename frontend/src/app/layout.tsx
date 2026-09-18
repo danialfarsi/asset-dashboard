@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
+import { Toaster } from 'sonner';
 
 const vazir = localFont({
   src: [
@@ -29,6 +30,17 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" className={`${vazir.variable} h-full`}>
       <body className="min-h-full flex flex-col font-[family-name:var(--font-vazir)]">
         <TooltipProvider>{children}</TooltipProvider>
+              <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          dir="rtl"
+          toastOptions={{
+            style: {
+              fontFamily: 'Vazirmatn, IRANSans, Tahoma, sans-serif',
+            },
+          }}
+        />
       </body>
     </html>
   );

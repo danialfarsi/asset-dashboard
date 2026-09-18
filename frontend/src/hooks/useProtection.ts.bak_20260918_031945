@@ -26,11 +26,12 @@ export const useProtectionFull = (id: number) => {
   return useQuery({
     queryKey: ['protection', id, 'full'],
     queryFn: async () => {
-      // استفاده از متد جدید که asset_id قبول می‌کنه
-      return await protectionApi.getFullByAsset(id);
+      const response = await protectionApi.getFull(id);
+      console.log('🔍 API Response for full:', response);
+      return response; // 🔥 چون getFull خودش data رو برمی‌گردونه
     },
     enabled: !!id,
-    retry: 0,  // ❌ دیگه retry نکن (چون اگه profile نباشه، 404 بی‌فایده‌ست)
+    retry: 1,
   });
 };
 

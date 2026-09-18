@@ -10,7 +10,6 @@ import { SkeletonLoader } from '@/components/ui/skeleton-loader';
 import { PageTransition } from '@/components/ui/page-transition';
 import { ArrowLeft, Save, Eye, Info, ChevronDown, ChevronUp, Upload, File, X } from 'lucide-react';
 import { fetchAllValuations, type ValuationItem } from '@/lib/api-utils';
-import { toast } from 'sonner';
 
 interface ScoreGuide {
   id: number;
@@ -281,25 +280,19 @@ export default function ValuationPage() {
         }
       } catch (err) {
         console.error('❌ خطا:', err);
-        toast.error('ارزیابی یافت نشد', {
-        description: 'لطفاً صفحه را رفرش کنید یا با پشتیبانی تماس بگیرید',
-      });
+        alert('ارزیابی یافت نشد!');
         return;
       }
     }
     
     if (!currentValuationId) {
-      toast.error('ارزیابی یافت نشد', {
-        description: 'لطفاً صفحه را رفرش کنید یا با پشتیبانی تماس بگیرید',
-      });
+      alert('ارزیابی یافت نشد!');
       return;
     }
 
     const answeredCount = Object.keys(selectedScores).length;
     if (answeredCount < questions.length) {
-      toast.warning('لطفاً به همه سوالات پاسخ دهید', {
-        description: `${answeredCount} از ${questions.length} سوال پاسخ داده شده`,
-      });
+      alert(`لطفاً به همه سوالات پاسخ دهید (${answeredCount}/${questions.length})`);
       return;
     }
 
@@ -328,16 +321,11 @@ export default function ValuationPage() {
       setIsComplete(true);
       setIsViewMode(true);
       
-      toast.success('🎉 ارزیابی با موفقیت ثبت شد!', {
-        description: `امتیاز نهایی: ${data.final_score.toFixed(2)}`,
-        duration: 5000,
-      });
+      alert(`✅ ارزیابی تکمیل شد! امتیاز: ${data.final_score.toFixed(2)}`);
       router.push('/dashboard/intangible/valuation/completed');
     } catch (error: any) {
       console.error('❌ Error:', error);
-      toast.error('خطا در ثبت ارزیابی', {
-        description: error.response?.data?.error || 'لطفاً دوباره تلاش کنید',
-      });
+      alert(error.response?.data?.error || '❌ خطا در ثبت ارزیابی');
     } finally {
       setSubmitting(false);
     }

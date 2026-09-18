@@ -105,31 +105,6 @@ export const protectionApi = {
     // 🔥 برگردوندن خود data
     return response.data;
   },
-  
-  // 🆕 دریافت اطلاعات کامل با asset_id (نه profile_id)
-  getFullByAsset: async (assetId: number): Promise<FullProtectionData> => {
-    // ۱. اول profile رو با asset_id پیدا کن
-    const listRes = await api.get<{ results: ProtectionProfile[]; count: number }>(
-      `/intangible/protection/?asset=${assetId}`
-    );
-    
-    const profiles = listRes.data.results || [];
-    if (profiles.length === 0) {
-      // پروفایل وجود نداره — خطای خاص بده که بتونیم تشخیص بدیم
-      const err: any = new Error('PROFILE_NOT_FOUND');
-      err.code = 'PROFILE_NOT_FOUND';
-      throw err;
-    }
-    
-    const profileId = profiles[0].id;
-    
-    // ۲. حالا full رو با profile_id بگیر
-    const fullRes = await api.get<FullProtectionData>(
-      `/intangible/protection/${profileId}/full/`
-    );
-    
-    return fullRes.data;
-  },
   step1: (id: number, data: {analyzed_at?: string}) => 
     api.post<ProtectionStep1>(`/intangible/protection/${id}/step1/`, data),
   step2: (id: number, data: any) => 
