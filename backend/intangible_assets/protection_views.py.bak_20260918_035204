@@ -168,15 +168,9 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         step, _ = ProtectionStep3.objects.get_or_create(protection_profile=profile)
         
         step.selected_legal_tools = request.data.get('selected_legal_tools', [])
-        # اگه Frontend status داد، ولی فقط وضعیت‌های معتبر قبول کن
+        # اگه Frontend status نداد، خودکار completed کن
         incoming_status = request.data.get('legal_status', '')
-        
-        # وضعیت‌های معتبر که یعنی "تکمیل شده"
-        COMPLETED_STATUSES = ['completed', 'registered', 'submitted', 'done']
-        
-        if incoming_status in COMPLETED_STATUSES:
-            step.legal_status = 'completed'  # نرمال‌سازی
-        elif incoming_status:
+        if incoming_status:
             step.legal_status = incoming_status
         else:
             # اگه حداقل یه tool انتخاب شده، completed
@@ -250,11 +244,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         # چک کن فیلد status داره یا نه
         if hasattr(step, 'security_status'):
             incoming = request.data.get('security_status', '')
-            COMPLETED_STATUSES = ['completed', 'registered', 'submitted', 'done']
-            
-            if incoming in COMPLETED_STATUSES:
-                step.security_status = 'completed'
-            elif incoming:
+            if incoming:
                 step.security_status = incoming
             else:
                 step.security_status = 'completed' if has_content else 'pending'

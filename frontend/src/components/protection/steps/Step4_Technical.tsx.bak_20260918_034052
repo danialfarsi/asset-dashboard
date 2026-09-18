@@ -15,7 +15,6 @@ import { format } from 'date-fns';
 import { faIR } from 'date-fns/locale';
 import { CalendarIcon, Info, Upload, FileText, CheckCircle2, Shield, User, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { useProtectionStep4 } from '@/hooks/useProtection';
 
 interface Step4TechnicalProps {
@@ -292,11 +291,23 @@ export default function Step4_Technical({ id, data, archetype, config, onComplet
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-slate-500">تاریخ اجرا</Label>
-              <JalaliDatePicker
-                value={executionDate ? format(executionDate, 'yyyy-MM-dd') : ''}
-                onChange={(date) => setExecutionDate(date ? new Date(date) : null)}
-                placeholder="انتخاب تاریخ"
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'w-full justify-start border-slate-200 text-right font-normal bg-white/80 backdrop-blur-sm',
+                      !executionDate && 'text-slate-400'
+                    )}
+                  >
+                    <CalendarIcon className="ml-2 h-4 w-4" />
+                    {executionDate ? format(executionDate, 'yyyy/MM/dd', { locale: faIR }) : <span>انتخاب تاریخ</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-white/90 backdrop-blur-md border-slate-200/50 shadow-lg">
+                  <Calendar mode="single" selected={executionDate || undefined} onSelect={setExecutionDate} initialFocus />
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-slate-500">مسئول اجرا</Label>

@@ -168,22 +168,7 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         step, _ = ProtectionStep3.objects.get_or_create(protection_profile=profile)
         
         step.selected_legal_tools = request.data.get('selected_legal_tools', [])
-        # اگه Frontend status داد، ولی فقط وضعیت‌های معتبر قبول کن
-        incoming_status = request.data.get('legal_status', '')
-        
-        # وضعیت‌های معتبر که یعنی "تکمیل شده"
-        COMPLETED_STATUSES = ['completed', 'registered', 'submitted', 'done']
-        
-        if incoming_status in COMPLETED_STATUSES:
-            step.legal_status = 'completed'  # نرمال‌سازی
-        elif incoming_status:
-            step.legal_status = incoming_status
-        else:
-            # اگه حداقل یه tool انتخاب شده، completed
-            if request.data.get('selected_legal_tools'):
-                step.legal_status = 'completed'
-            else:
-                step.legal_status = 'pending'
+        step.legal_status = request.data.get('legal_status', 'pending')
         step.registration_number = request.data.get('registration_number', '')
         step.registration_date = request.data.get('registration_date')
         step.expiry_date = request.data.get('expiry_date')
@@ -200,11 +185,6 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         if step.selected_legal_tools:
             tools_count = len(step.selected_legal_tools)
             profile.legal_score = min(tools_count * 20, 100)
-            # 🆕 اگه حداقل ۲ تا tool انتخاب شده، step complete
-            if tools_count >= 1:
-                if step.legal_status == 'pending':
-                    step.legal_status = 'completed'
-                    step.save(update_fields=['legal_status'])
         else:
             profile.legal_score = 0
             
@@ -237,28 +217,6 @@ class ProtectionViewSet(viewsets.ModelViewSet):
         step.backup_enabled = request.data.get('backup_enabled', False)
         step.monitoring_enabled = request.data.get('monitoring_enabled', False)
         step.notes = request.data.get('notes', '')
-        
-        # 🆕 اگه حداقل یه tool انتخاب شده یا یه گزینه فعاله، completed
-        has_content = (
-            bool(request.data.get('selected_technical_tools')) or
-            step.encryption_enabled or
-            step.access_control_enabled or
-            step.backup_enabled or
-            step.monitoring_enabled
-        )
-        
-        # چک کن فیلد status داره یا نه
-        if hasattr(step, 'security_status'):
-            incoming = request.data.get('security_status', '')
-            COMPLETED_STATUSES = ['completed', 'registered', 'submitted', 'done']
-            
-            if incoming in COMPLETED_STATUSES:
-                step.security_status = 'completed'
-            elif incoming:
-                step.security_status = incoming
-            else:
-                step.security_status = 'completed' if has_content else 'pending'
-        
         step.save()
         
         score = len(step.selected_technical_tools) * 15

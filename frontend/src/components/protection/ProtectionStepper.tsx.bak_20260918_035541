@@ -78,9 +78,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
 
   const { profile } = data;
   const archetype = profile.archetype || 'PA-5';
-  
-  // 🔒 چک کن آیا نهایی تأیید شده (قفل ویرایش)
-  const isApproved = (profile as any).is_approved === true;
   const config = STEP_CONFIGS[archetype] || STEP_CONFIGS['PA-5'];
   const color = ARCHETYPE_COLORS[archetype] || ARCHETYPE_COLORS['PA-5'];
 
@@ -145,11 +142,6 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
                 <CardDescription className="text-sm text-slate-500">
                   فرآیند {toPersianNumber(5)} گام حفاظت و امنیت
                 </CardDescription>
-                {isApproved && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-medium text-amber-700">
-                    🔒 نقشه حفاظت تأیید شده — فقط قابل مشاهده
-                  </div>
-                )}
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 <Badge
@@ -189,11 +181,9 @@ export function ProtectionStepper({ id, data, isLoading }: ProtectionStepperProp
               <button
                 key={index}
                 type="button"
-                onClick={() => !isApproved && setCurrentStep(index)}
-                className={`relative z-10 flex flex-1 flex-col items-center gap-2 text-center transition ${
-                  !isApproved ? 'cursor-pointer hover:opacity-80' : 'cursor-default'
-                }`}
-                disabled={isApproved && !isCurrent}
+                onClick={() => setCurrentStep(index)}
+                className="relative z-10 flex flex-1 flex-col items-center gap-2 text-center"
+                disabled={isDone}
               >
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-bold transition-colors ${

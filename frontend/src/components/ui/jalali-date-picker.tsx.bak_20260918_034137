@@ -1,0 +1,260 @@
+/**
+ * 📅 JalaliDatePicker — انتخاب تاریخ شمسی با تقویم پاپ‌آپ
+ */
+'use client';
+
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { Calendar, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import jalaliMoment from 'jalali-moment';
+
+interface JalaliDatePickerProps {
+  value?: string;              // میلادی ISO: '2026-09-16' یا خالی
+  onChange: (gregorian: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
+  className?: string;
+  required?: boolean;
+  name?: string;
+}
+
+export function JalaliDatePicker({
+  value,
+  onChange,
+  placeholder = 'انتخاب تاریخ...',
+  disabled = false,
+  className = '',
+  required = false,
+  name,
+}: JalaliDatePickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(() => {
+    if (value) return jalaliMoment(value);
+    return jalaliMoment();
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // بستن با کلیک بیرون
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // فرمت نمایش
+  const displayValue = useMemo(() => {
+    if (!value) return '';
+    try {
+      return jalaliMoment(value).locale('fa').format('YYYY/MM/DD');
+    } catch {
+      return '';
+    }
+  }, [value]);
+
+  // ═══════════════════════════════════════════════════════
+  // ساخت گرید روزهای ماه
+  // ═══════════════════════════════════════════════════════
+  const calendarDays = useMemo(() => {
+    const year = viewDate.jYear();
+    const month = viewDate.jMonth(); // 0-11
+
+    // اول ماه
+    const firstDay = jalaliMoment(`${year}/${month + 1}/1`, 'jYYYY/jM/jD');
+    // آخر ماه
+    const daysInMonth = jalaliMoment.jDaysInMonth(year, month);
+
+    // روز هفته اول ماه (شنبه = 0)
+    // jalaliMoment: day() → 0=Sunday, 6=Saturday
+    // برای شمسی: شنبه = 0, یکشنبه = 1, ..., جمعه = 6
+    const firstDayOfWeek = (firstDay.day() + 1) % 7;
+
+    const days: Array<{ day: number; isToday: boolean; isEmpty: boolean }> = [];
+
+    // روزهای خالی قبل
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push({ day: 0, isToday: false, isEmpty: true });
+    }
+
+    // روزهای ماه
+    const today = jalaliMoment();
+    for (let d = 1; d <= daysInMonth; d++) {
+      const isToday =
+        today.jYear() === year &&
+        today.jMonth() === month &&
+        today.jDate() === d;
+      days.push({ day: d, isToday, isEmpty: false });
+    }
+
+    return days;
+  }, [viewDate]);
+
+  // انتخاب روز
+  const handleSelectDay = (day: number) => {
+    if (day === 0) return;
+    const year = viewDate.jYear();
+    const month = viewDate.jMonth() + 1;
+    const gregorianDate = jalaliMoment(`${year}/${month}/${day}`, 'jYYYY/jM/jD').format('YYYY-MM-DD');
+    onChange(gregorianDate);
+    setIsOpen(false);
+  };
+
+  // پاک کردن
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange('');
+  };
+
+  // ناوبری ماه
+  const prevMonth = () => {
+    setViewDate(viewDate.clone().subtract(1, 'jMonth'));
+  };
+
+  const nextMonth = () => {
+    setViewDate(viewDate.clone().add(1, 'jMonth'));
+  };
+
+  // نام ماه‌ها
+  const monthName = viewDate.locale('fa').format('jMMMM jYYYY');
+
+  // روزهای هفته
+  const weekDays = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
+
+  return (
+    <div ref={containerRef} className={`relative ${className}`} dir="rtl">
+      {/* ─── Input ─── */}
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        className={`
+          flex items-center gap-2 w-full px-3 py-2 border rounded-lg
+          bg-white cursor-pointer transition
+          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-[#04241D]/30'}
+          ${isOpen ? 'border-[#04241D] ring-2 ring-[#04241D]/20' : 'border-gray-300'}
+        `}
+      >
+        <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
+        <input
+          type="text"
+          value={displayValue}
+          placeholder={placeholder}
+          readOnly
+          required={required}
+          name={name}
+          className="flex-1 outline-none bg-transparent cursor-pointer text-sm text-right"
+        />
+        {value && !disabled && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-gray-400 hover:text-red-500 transition shrink-0"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* ─── Calendar Popup ─── */}
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-2 z-50 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 w-[300px] animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={prevMonth}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="font-bold text-sm text-gray-800">
+              {monthName}
+            </div>
+            <button
+              type="button"
+              onClick={nextMonth}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Week days */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {weekDays.map((d) => (
+              <div
+                key={d}
+                className="flex h-8 items-center justify-center text-[11px] font-bold text-gray-500"
+              >
+                {d}
+              </div>
+            ))}
+          </div>
+
+          {/* Days */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((d, i) => {
+              if (d.isEmpty) return <div key={i} className="h-9" />;
+
+              // چک کن انتخاب شده
+              const isSelected = value && (() => {
+                try {
+                  const selected = jalaliMoment(value);
+                  return (
+                    selected.jYear() === viewDate.jYear() &&
+                    selected.jMonth() === viewDate.jMonth() &&
+                    selected.jDate() === d.day
+                  );
+                } catch {
+                  return false;
+                }
+              })();
+
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleSelectDay(d.day)}
+                  className={`
+                    flex h-9 items-center justify-center rounded-lg text-sm transition
+                    ${
+                      isSelected
+                        ? 'bg-[#04241D] text-white font-bold shadow-sm'
+                        : d.isToday
+                        ? 'bg-[#04241D]/10 text-[#04241D] font-bold hover:bg-[#04241D]/20'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }
+                  `}
+                >
+                  {d.day.toLocaleString('fa-IR')}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={() => {
+                const today = jalaliMoment().format('YYYY-MM-DD');
+                onChange(today);
+                setIsOpen(false);
+              }}
+              className="text-xs text-[#04241D] hover:underline font-medium"
+            >
+              امروز
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              بستن
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -13,18 +13,18 @@ import {
   Loader2, 
   CheckCircle, 
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import api from '@/lib/api';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
-
-interface FCFRow {
-  id: number;
-  year: number;
-  fcf: number;
-  capex: number;
-  delta_wc: number;
-}
 
 interface ExpertSignoff {
   id: number;
@@ -42,19 +42,20 @@ interface Evidence {
   uploaded_at: string;
 }
 
-interface M03_DCFProps {
+interface M01_RfRProps {
   formData: any;
   onChange: (data: any) => void;
   assetId?: number;
   valuationCaseId?: number;
   step2Data?: any;
+  // 🔥 Props جدید برای شواهد
   onUploadEvidence?: (file: File, type: string) => Promise<void>;
   evidences?: Evidence[];
   onDeleteEvidence?: (id: number) => Promise<void>;
   uploadingEvidence?: boolean;
 }
 
-export function M03_DCF({ 
+export function M01_RfR({ 
   formData, 
   onChange, 
   assetId, 
@@ -64,39 +65,60 @@ export function M03_DCF({
   evidences = [],
   onDeleteEvidence,
   uploadingEvidence = false
-}: M03_DCFProps) {
+}: M01_RfRProps) {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [prevValuationCaseId, setPrevValuationCaseId] = useState<number | undefined>(undefined);
+  const [showBenchmarkDetails, setShowBenchmarkDetails] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // ✅ صنایع مرجع برای نرخ حق‌الامتیاز
+  const INDUSTRY_BENCHMARKS = [
+    { value: 'software', label: 'نرم‌افزار (Software)' },
+    { value: 'fmcg', label: 'کالاهای مصرفی سریع (FMCG)' },
+    { value: 'pharma', label: 'داروسازی (Pharma)' },
+    { value: 'automotive', label: 'خودروسازی (Automotive)' },
+    { value: 'telecom', label: 'ارتباطات (Telecom)' },
+    { value: 'retail', label: 'خرده‌فروشی (Retail)' },
+    { value: 'industrial', label: 'صنعتی (Industrial)' },
+    { value: 'media', label: 'رسانه (Media)' },
+  ];
+
+  const ROYALTY_RATE_SUGGESTIONS: Record<string, number[]> = {
+    software: [2, 3, 4, 5, 6, 7],
+    fmcg: [3, 4, 5, 6, 8],
+    pharma: [4, 5, 6, 8, 10],
+    automotive: [2, 3, 4, 5],
+    telecom: [3, 4, 5, 6],
+    retail: [2, 3, 4, 5],
+    industrial: [2, 3, 4],
+    media: [3, 4, 5, 6, 7],
+  };
+
   // ============================================
-  // تشخیص تغییر دارایی
+  // تشخیص تغییر مورد ارزش‌گذاری
   // ============================================
   useEffect(() => {
     if (valuationCaseId && valuationCaseId !== prevValuationCaseId) {
-      const hasExistingData = formData.fcf_schedule !== undefined || formData.intangible_share_percent !== undefined;
+      const hasExistingData = formData.royalty_rate !== undefined || formData.industry_benchmark;
       
       if (!hasExistingData) {
         setInitialized(false);
         onChange({
-          fcf_schedule: [
-            { id: 1, year: 1, fcf: 80000000, capex: 15000000, delta_wc: 5000000 },
-            { id: 2, year: 2, fcf: 90000000, capex: 16000000, delta_wc: 6000000 },
-            { id: 3, year: 3, fcf: 100000000, capex: 17000000, delta_wc: 7000000 },
-            { id: 4, year: 4, fcf: 110000000, capex: 18000000, delta_wc: 8000000 },
-            { id: 5, year: 5, fcf: 120000000, capex: 19000000, delta_wc: 9000000 },
-          ],
-          intangible_share_percent: 70,
+          royalty_rate: 4.0,
+          industry_benchmark: 'software',
+          revenue_attribution: 80,
+          revenue_growth_rate: 8,
+          attribution_basis: '',
           expert_signoffs: [],
         });
       }
       
       setPrevValuationCaseId(valuationCaseId);
     }
-  }, [valuationCaseId, formData.fcf_schedule]);
+  }, [valuationCaseId, formData.royalty_rate]);
 
   // ============================================
   // مقداردهی اولیه با STEP 2
@@ -104,17 +126,13 @@ export function M03_DCF({
   useEffect(() => {
     if (step2Data && !initialized) {
       const updates: any = {};
-      
-      ['forecast_horizon', 'tax_rate', 'discount_rate', 
-       'terminal_growth_rate', 'quality_multiplier', 'current_revenue'].forEach(field => {
-        if (formData[field] === undefined && step2Data[field] !== undefined) {
-          updates[field] = step2Data[field];
-        }
-      });
+      if (formData.royalty_rate === undefined) updates.royalty_rate = 4.0;
+      if (!formData.industry_benchmark) updates.industry_benchmark = 'software';
+      if (formData.revenue_attribution === undefined) updates.revenue_attribution = 80;
+      if (formData.revenue_growth_rate === undefined) updates.revenue_growth_rate = 8;
       
       if (Object.keys(updates).length > 0) {
         onChange(updates);
-        console.log('📥 داده‌های STEP 2 به فرم اضافه شد:', updates);
       }
       setInitialized(true);
     }
@@ -134,30 +152,30 @@ export function M03_DCF({
       const { data } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = data.results || data || [];
       
+      // 🔥 فیلتر بر اساس valuation_case
       const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
       if (filteredItems.length > 0 && filteredItems[0].method_inputs) {
         const inputs = filteredItems[0].method_inputs;
-        const m03Data: any = {};
+        const m01Data: any = {};
         
         const fields = [
-          'fcf_schedule', 'intangible_share_percent', 'expert_signoffs',
-          'forecast_horizon', 'tax_rate', 'discount_rate',
-          'terminal_growth_rate', 'quality_multiplier', 'current_revenue'
+          'royalty_rate', 'industry_benchmark', 'revenue_attribution',
+          'revenue_growth_rate', 'attribution_basis', 'expert_signoffs'
         ];
         
         fields.forEach(field => {
           if (inputs[field] !== undefined) {
-            m03Data[field] = inputs[field];
+            m01Data[field] = inputs[field];
           }
         });
         
-        if (Object.keys(m03Data).length > 0) {
-          onChange(m03Data);
+        if (Object.keys(m01Data).length > 0) {
+          onChange(m01Data);
         }
       }
     } catch (error) {
-      console.error('Error loading M03 data:', error);
+      console.error('Error loading M01 data:', error);
     }
   };
 
@@ -165,57 +183,8 @@ export function M03_DCF({
     onChange({ [field]: value });
   };
 
-  const fcfSchedule: FCFRow[] = formData.fcf_schedule || [];
   const expertSignoffs: ExpertSignoff[] = formData.expert_signoffs || [];
 
-  // ============================================
-  // توابع جدول FCF
-  // ============================================
-  const addFCFRow = () => {
-    const maxYear = fcfSchedule.reduce((max, row) => Math.max(max, row.year), 0);
-    const newRow: FCFRow = {
-      id: Date.now(),
-      year: maxYear + 1,
-      fcf: 0,
-      capex: 0,
-      delta_wc: 0,
-    };
-    handleChange('fcf_schedule', [...fcfSchedule, newRow]);
-  };
-
-  const updateFCFRow = (id: number, field: string, value: any) => {
-    const newSchedule = fcfSchedule.map(row =>
-      row.id === id ? { ...row, [field]: value } : row
-    );
-    handleChange('fcf_schedule', newSchedule);
-  };
-
-  const removeFCFRow = (id: number) => {
-    if (fcfSchedule.length <= 2) {
-      alert('حداقل ۲ ردیف باید وجود داشته باشد');
-      return;
-    }
-    handleChange('fcf_schedule', fcfSchedule.filter(row => row.id !== id));
-  };
-
-  // ============================================
-  // محاسبات
-  // ============================================
-  const calculateTotalFCF = () => {
-    return fcfSchedule.reduce((sum, row) => sum + (row.fcf || 0), 0);
-  };
-
-  const calculateAverageGrowth = () => {
-    if (fcfSchedule.length < 2) return 0;
-    const first = fcfSchedule[0]?.fcf || 0;
-    const last = fcfSchedule[fcfSchedule.length - 1]?.fcf || 0;
-    if (first === 0) return 0;
-    return ((last / first) ** (1 / (fcfSchedule.length - 1)) - 1) * 100;
-  };
-
-  // ============================================
-  // توابع خبرگان
-  // ============================================
   const addExpertSignoff = () => {
     const newSignoff: ExpertSignoff = {
       id: Date.now(),
@@ -263,11 +232,11 @@ export function M03_DCF({
   // 🔥 رندر شواهد آپلود شده
   // ============================================
   const renderEvidences = () => {
-    const m03Evidences = evidences.filter((e: Evidence) => 
-      e.evidence_type?.startsWith('m03_')
+    const m01Evidences = evidences.filter((e: Evidence) => 
+      e.evidence_type?.startsWith('m01_')
     );
 
-    if (m03Evidences.length === 0) {
+    if (m01Evidences.length === 0) {
       return (
         <div className="text-center py-6 text-gray-400 text-sm">
           <FileText className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -279,18 +248,19 @@ export function M03_DCF({
 
     return (
       <div className="space-y-2 max-h-48 overflow-y-auto">
-        {m03Evidences.map((evidence: Evidence) => {
+        {m01Evidences.map((evidence: Evidence) => {
           const typeLabels: Record<string, string> = {
-            'm03_budget_plan': 'فایل Budget/Plan',
-            'm03_fcf_calculation': 'فایل FCF Calculation',
-            'm03_asset_description': 'مستندات توصیف دارایی',
+            'm01_benchmark': 'فایل Benchmark صنعت',
+            'm01_revenue': 'منبع درآمدی',
+            'm01_asset_description': 'مستندات توصیف دارایی',
+            'm01_licensable': 'مستندات قابل لایسنس بودن',
           };
           const typeLabel = typeLabels[evidence.evidence_type] || evidence.evidence_type;
           
           return (
             <div key={evidence.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
               <div className="flex items-center gap-3 min-w-0">
-                <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <FileText className="w-4 h-4 text-dark-green flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{evidence.file_name}</p>
                   <p className="text-xs text-gray-400">{typeLabel}</p>
@@ -302,7 +272,7 @@ export function M03_DCF({
                     href={evidence.file} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-xs text-blue-600 hover:underline"
+                    className="text-xs text-dark-green hover:underline"
                   >
                     مشاهده
                   </a>
@@ -324,13 +294,14 @@ export function M03_DCF({
   };
 
   // ============================================
-  // 🔥 دکمه‌های آپلود
+  // 🔥 رندر دکمه‌های آپلود
   // ============================================
   const renderUploadButtons = () => {
     const uploadTypes = [
-      { type: 'm03_budget_plan', label: 'فایل Budget/Plan', required: true },
-      { type: 'm03_fcf_calculation', label: 'فایل FCF Calculation', required: true },
-      { type: 'm03_asset_description', label: 'مستندات توصیف دارایی', required: false },
+      { type: 'm01_benchmark', label: 'فایل Benchmark صنعت', required: true },
+      { type: 'm01_revenue', label: 'منبع درآمدی', required: true },
+      { type: 'm01_asset_description', label: 'مستندات توصیف دارایی', required: false },
+      { type: 'm01_licensable', label: 'مستندات قابل لایسنس بودن', required: false },
     ];
 
     return (
@@ -392,65 +363,50 @@ export function M03_DCF({
       setSaving(true);
       setSaveError(null);
 
-      const fcfScheduleForApi = fcfSchedule.map(row => ({
-        year: row.year,
-        fcf: row.fcf || 0,
-        capex: row.capex || 0,
-        delta_wc: row.delta_wc || 0,
-      }));
-
       const payload = {
         valuation_case: valuationCaseId,
-        method_id: 'M-03',
+        method_id: 'M-01',
         method_inputs: {
-          fcf_schedule: fcfScheduleForApi,
-          intangible_share_percent: formData.intangible_share_percent || 70,
-          expert_signoffs: expertSignoffs.map(s => ({
-            expert_name: s.expert_name,
-            signature_date: s.signature_date,
-            notes: s.notes,
-          })),
-          forecast_horizon: formData.forecast_horizon || step2Data?.forecast_horizon || 5,
-          tax_rate: formData.tax_rate || step2Data?.tax_rate || 25,
-          discount_rate: formData.discount_rate || step2Data?.discount_rate || 18,
-          terminal_growth_rate: formData.terminal_growth_rate || step2Data?.terminal_growth_rate || 5,
-          quality_multiplier: formData.quality_multiplier || step2Data?.quality_multiplier || 0.85,
-          current_revenue: formData.current_revenue || step2Data?.current_revenue || 0,
+          royalty_rate: formData.royalty_rate || 4.0,
+          industry_benchmark: formData.industry_benchmark || 'software',
+          revenue_attribution: formData.revenue_attribution || 80,
+          revenue_growth_rate: formData.revenue_growth_rate || 8,
+          attribution_basis: formData.attribution_basis || '',
+          expert_signoffs: expertSignoffs,
         },
       };
 
-      console.log('📤 ذخیره M03:', payload);
-
       const { data: existing } = await api.get(`/intangible/valuation-step3/?valuation_case=${valuationCaseId}`);
       const items = existing.results || existing || [];
+      
+      // 🔥 فیلتر بر اساس valuation_case
       const filteredItems = items.filter((item: any) => item.valuation_case === valuationCaseId);
       
       if (filteredItems.length > 0) {
         const step3Id = filteredItems[0].id;
         await api.patch(`/intangible/valuation-step3/${step3Id}/`, payload);
-        console.log('✅ M03 به‌روزرسانی شد (PATCH)');
+        console.log('✅ M01 به‌روزرسانی شد (PATCH)');
       } else {
         await api.post('/intangible/valuation-step3/', payload);
-        console.log('✅ M03 جدید ایجاد شد (POST)');
+        console.log('✅ M01 جدید ایجاد شد (POST)');
       }
 
       setLastSaved(new Date().toLocaleTimeString('fa-IR'));
     } catch (error: any) {
-      console.error('❌ خطا در ذخیره M03:', error);
+      console.error('❌ خطا در ذخیره M01:', error);
       setSaveError(error?.response?.data?.message || 'خطا در ذخیره');
     } finally {
       setSaving(false);
     }
   };
 
+  // Auto-save
   useEffect(() => {
     const timer = setTimeout(() => {
       saveToDatabase();
     }, 1500);
     return () => clearTimeout(timer);
-  }, [formData, fcfSchedule, expertSignoffs]);
-
-  const step2Display = step2Data || formData;
+  }, [formData, expertSignoffs]);
 
   return (
     <div className="space-y-6 font-[family-name:var(--font-vazir)]">
@@ -459,8 +415,8 @@ export function M03_DCF({
       <div className="flex items-center justify-between">
         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 flex-1">
           <p className="text-sm text-blue-700 flex items-center gap-2">
-            <span className="font-bold">📊 M-03: روش جریان نقدی تنزیل‌شده (DCF)</span>
-            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">روش درآمد</span>
+            <span className="font-bold">📊 M-01: روش حق‌الامتیاز (Relief-from-Royalty)</span>
+            <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full">روش هزینه</span>
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs mr-4">
@@ -491,163 +447,185 @@ export function M03_DCF({
           <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-2">
             📎 شواهد و مدارک
             <span className="text-xs text-gray-500 font-normal">
-              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m03_')).length} فایل)
+              ({evidences.filter((e: Evidence) => e.evidence_type?.startsWith('m01_')).length} فایل)
             </span>
           </h3>
           <span className="text-xs text-red-500">* فیلدهای اجباری</span>
         </div>
 
+        {/* دکمه‌های آپلود */}
         {renderUploadButtons()}
-        <div className="mt-4">{renderEvidences()}</div>
-      </div>
 
-      {/* داده‌های STEP 2 */}
-      <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">
-        <p className="font-medium text-blue-700 mb-1 font-[family-name:var(--font-vazir)]">📥 داده‌های ورودی از STEP 2:</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-1 font-[family-name:var(--font-vazir)]">
-          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{step2Display.forecast_horizon || 5} سال</span></div>
-          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{step2Display.tax_rate || 25}%</span></div>
-          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{step2Display.discount_rate || 18}%</span></div>
-          <div><span className="text-gray-500">ضریب کیفیت:</span> <span className="font-bold">{step2Display.quality_multiplier || 0.85}</span></div>
+        {/* لیست شواهد آپلود شده */}
+        <div className="mt-4">
+          {renderEvidences()}
         </div>
       </div>
 
-      {/* پارامترهای اختصاصی M-03 */}
+      {/* ========================================== */}
+      {/* پارامترهای اختصاصی M-01 */}
+      {/* ========================================== */}
       <div className="border rounded-lg p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
-          🎯 پارامترهای اختصاصی روش M-03
+          🎯 پارامترهای اختصاصی روش M-01
           <Badge className="text-xs bg-red-100 text-red-700">ورودی کاربر</Badge>
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* نرخ حق‌الامتیاز مبنا */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-1">
-              سهم دارایی نامشهود <span className="text-red-500">*</span>
+              نرخ حق‌الامتیاز مبنا <span className="text-red-500">*</span>
             </Label>
             <div className="flex items-center gap-2">
               <Input
                 type="number"
                 step="0.1"
-                value={formData.intangible_share_percent || ''}
-                onChange={(e) => handleChange('intangible_share_percent', parseFloat(e.target.value) || 0)}
-                placeholder="۷۰"
+                value={formData.royalty_rate || ''}
+                onChange={(e) => handleChange('royalty_rate', parseFloat(e.target.value) || 0)}
+                placeholder="مثلاً ۴"
                 className="flex-1 focus:ring-2 focus:ring-blue-500"
               />
               <span className="text-sm text-gray-400">%</span>
             </div>
-            <p className="text-[10px] text-gray-400">درصدی از ارزش کل شرکت که به این دارایی نامشهود تعلق می‌گیرد</p>
+            <div className="flex flex-wrap gap-1">
+              {ROYALTY_RATE_SUGGESTIONS[formData.industry_benchmark || 'software']?.map((rate) => (
+                <button
+                  key={rate}
+                  onClick={() => handleChange('royalty_rate', rate)}
+                  className={`px-2 py-0.5 text-xs rounded-full border transition-colors ${
+                    formData.royalty_rate === rate 
+                      ? 'bg-blue-500 text-white border-blue-500' 
+                      : 'bg-gray-100 hover:bg-gray-200 border-gray-200'
+                  }`}
+                >
+                  {rate}%
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-gray-400">نرخ مبتنی بر بازار/قراردادهای مشابه</p>
           </div>
 
+          {/* صنعت مرجع */}
           <div className="space-y-2">
             <Label className="text-sm font-medium flex items-center gap-1">
-              افق پیش‌بینی <span className="text-blue-500 text-xs">(از STEP 2)</span>
+              صنعت مرجع <span className="text-red-500">*</span>
             </Label>
-            <div className="p-2 bg-gray-100 rounded-lg text-sm font-bold text-dark-green">
-              {step2Display.forecast_horizon || 5} سال
+            <Select
+              value={formData.industry_benchmark || 'software'}
+              onValueChange={(value) => handleChange('industry_benchmark', value)}
+            >
+              <SelectTrigger className="w-full focus:ring-2 focus:ring-blue-500">
+                <SelectValue placeholder="انتخاب صنعت" />
+              </SelectTrigger>
+              <SelectContent>
+                {INDUSTRY_BENCHMARKS.map((industry) => (
+                  <SelectItem key={industry.value} value={industry.value}>
+                    {industry.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-gray-400">انتخاب صنعت برای تطبیق نرخ حق‌الامتیاز</p>
+          </div>
+
+          {/* درصد تخصیص درآمد */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-1">
+              درصد تخصیص درآمد به دارایی <span className="text-red-500">*</span>
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                step="1"
+                value={formData.revenue_attribution || ''}
+                onChange={(e) => handleChange('revenue_attribution', parseFloat(e.target.value) || 0)}
+                placeholder="مثلاً ۸۰"
+                className="flex-1 focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-400">%</span>
             </div>
+            <p className="text-[10px] text-gray-400">سهم درآمدی که به این دارایی خاص تعلق می‌گیرد</p>
+          </div>
+
+          {/* نرخ رشد درآمد */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium flex items-center gap-1">
+              نرخ رشد درآمد <span className="text-red-500">*</span>
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                step="0.1"
+                value={formData.revenue_growth_rate || ''}
+                onChange={(e) => handleChange('revenue_growth_rate', parseFloat(e.target.value) || 0)}
+                placeholder="مثلاً ۸"
+                className="flex-1 focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-400">%</span>
+            </div>
+            <p className="text-[10px] text-gray-400">نرخ رشد سالانه درآمد</p>
+          </div>
+
+          {/* توجیه مبنای تخصیص */}
+          <div className="space-y-2 md:col-span-2">
+            <Label className="text-sm font-medium flex items-center gap-1">
+              توجیه مبنای تخصیص <span className="text-xs text-gray-400">(توصیه می‌شود)</span>
+            </Label>
+            <textarea
+              value={formData.attribution_basis || ''}
+              onChange={(e) => handleChange('attribution_basis', e.target.value)}
+              placeholder="توضیح دهید چرا این درصد تخصیص انتخاب شده است..."
+              className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 min-h-[60px] resize-y"
+            />
           </div>
         </div>
+      </div>
 
-        {/* جدول FCF */}
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex items-center justify-between mb-3">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              جریان نقدی آزاد سالانه (FCFs) <span className="text-red-500">*</span>
-            </Label>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={addFCFRow}
-              className="flex items-center gap-1 text-blue-600 border-blue-300 hover:bg-blue-50"
-            >
-              <Plus className="w-4 h-4" />
-              افزودن سال
-            </Button>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-sm">
+      {/* جدول خلاصه ورودی‌ها */}
+      <div className="border rounded-lg p-4 bg-gray-50">
+        <button
+          onClick={() => setShowBenchmarkDetails(!showBenchmarkDetails)}
+          className="flex items-center justify-between w-full text-sm font-semibold text-gray-700"
+        >
+          <span>📋 خلاصه ورودی‌ها</span>
+          {showBenchmarkDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </button>
+        
+        {showBenchmarkDetails && (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-blue-50">
-                  <th className="border p-2 text-center">سال</th>
-                  <th className="border p-2 text-right">FCF</th>
-                  <th className="border p-2 text-right">CapEx</th>
-                  <th className="border p-2 text-right">Δ WC</th>
-                  <th className="border p-2 text-center">عملیات</th>
+                <tr className="bg-gray-100">
+                  <th className="p-2 text-right border">پارامتر</th>
+                  <th className="p-2 text-right border">مقدار</th>
+                  <th className="p-2 text-right border">منبع</th>
+                  <th className="p-2 text-center border">وضعیت</th>
                 </tr>
               </thead>
               <tbody>
-                {fcfSchedule.map((row) => (
-                  <tr key={row.id} className="hover:bg-gray-50">
-                    <td className="border p-1 text-center font-medium">{row.year}</td>
-                    <td className="border p-1">
-                      <Input
-                        type="number"
-                        value={row.fcf || ''}
-                        onChange={(e) => updateFCFRow(row.id, 'fcf', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1"
-                        placeholder="۰"
-                      />
-                    </td>
-                    <td className="border p-1">
-                      <Input
-                        type="number"
-                        value={row.capex || ''}
-                        onChange={(e) => updateFCFRow(row.id, 'capex', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1"
-                        placeholder="۰"
-                      />
-                    </td>
-                    <td className="border p-1">
-                      <Input
-                        type="number"
-                        value={row.delta_wc || ''}
-                        onChange={(e) => updateFCFRow(row.id, 'delta_wc', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-sm border-0 focus:ring-1"
-                        placeholder="۰"
-                      />
-                    </td>
-                    <td className="border p-1 text-center">
-                      <button
-                        onClick={() => removeFCFRow(row.id)}
-                        className="text-red-500 hover:text-red-700"
-                        disabled={fcfSchedule.length <= 2}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+                {[
+                  { label: 'نرخ حق‌الامتیاز', value: `${formData.royalty_rate || 0}%`, source: 'ورودی کاربر', status: '✅' },
+                  { label: 'درصد تخصیص درآمد', value: `${formData.revenue_attribution || 0}%`, source: 'ورودی کاربر', status: '✅' },
+                  { label: 'نرخ رشد درآمد', value: `${formData.revenue_growth_rate || 0}%`, source: 'ورودی کاربر', status: '✅' },
+                  { label: 'صنعت مرجع', value: INDUSTRY_BENCHMARKS.find(i => i.value === formData.industry_benchmark)?.label || '-', source: 'ورودی کاربر', status: '✅' },
+                ].map((row, index) => (
+                  <tr key={index} className="hover:bg-gray-50">
+                    <td className="p-2 border">{row.label}</td>
+                    <td className="p-2 border font-medium">{row.value}</td>
+                    <td className="p-2 border text-gray-500 text-xs">{row.source}</td>
+                    <td className="p-2 border text-center">{row.status}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-          <p className="text-[10px] text-gray-400 mt-1">* حداقل ۲ ردیف الزامی است</p>
-        </div>
-
-        {/* خلاصه */}
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-sm font-medium mb-3 font-[family-name:var(--font-vazir)]">📊 خلاصه محاسبه</p>
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="p-2 bg-white rounded-lg border">
-              <p className="text-xs text-gray-400">جمع FCF</p>
-              <p className="text-sm font-bold text-blue-600">
-                {calculateTotalFCF().toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 bg-white rounded-lg border">
-              <p className="text-xs text-gray-400">نرخ رشد CAGR</p>
-              <p className="text-sm font-bold text-green-600">
-                {calculateAverageGrowth().toFixed(1)}%
-              </p>
-            </div>
-            <div className="p-2 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs text-gray-400">سهم دارایی نامشهود</p>
-              <p className="text-lg font-bold text-blue-700">
-                {formData.intangible_share_percent || 70}%
-              </p>
+            <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
+              <CheckCircle className="w-3 h-3" />
+              تمامی فیلدهای اجباری تکمیل شده است ✓
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* تأیید خبرگان */}
@@ -669,9 +647,10 @@ export function M03_DCF({
                     placeholder="نام خبره"
                     className="h-8 text-sm"
                   />
-                  <JalaliDatePicker
+                  <Input
+                    type="date"
                     value={signoff.signature_date}
-                    onChange={(date) => updateExpertSignoff(signoff.id, 'signature_date', date)}
+                    onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
                     className="h-8 text-sm"
                   />
                 </div>

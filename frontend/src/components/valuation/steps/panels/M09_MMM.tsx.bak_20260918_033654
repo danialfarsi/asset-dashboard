@@ -25,7 +25,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
 interface ExpertSignoff {
   id: number;
@@ -818,9 +817,10 @@ export function M09_MMM({
                     placeholder="نام خبره"
                     className="h-8 text-sm"
                   />
-                  <JalaliDatePicker
+                  <Input
+                    type="date"
                     value={signoff.signature_date}
-                    onChange={(date) => updateExpertSignoff(signoff.id, 'signature_date', date)}
+                    onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
                     className="h-8 text-sm"
                   />
                 </div>

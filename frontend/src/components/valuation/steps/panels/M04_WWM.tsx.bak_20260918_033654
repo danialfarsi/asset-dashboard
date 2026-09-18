@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Plus, Trash2, Upload, X, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
 
@@ -780,9 +779,10 @@ export function M04_WWM({
                     placeholder="نام خبره"
                     className="h-8 text-sm font-[family-name:var(--font-vazir)]"
                   />
-                  <JalaliDatePicker
+                  <Input
+                    type="date"
                     value={signoff.signature_date}
-                    onChange={(date) => updateExpertSignoff(signoff.id, 'signature_date', date)}
+                    onChange={(e) => updateExpertSignoff(signoff.id, 'signature_date', e.target.value)}
                     className="h-8 text-sm font-[family-name:var(--font-vazir)]"
                   />
                 </div>

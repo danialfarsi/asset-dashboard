@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { viamApi } from '@/services/viam/api';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 
@@ -19,20 +17,10 @@ interface StrategicPlan {
   created_at: string;
 }
 
-interface User {
-  id: number;
-  email: string;
-  username: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-}
-
 export default function StrategicPlanPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<StrategicPlan[]>([]);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -48,9 +36,7 @@ export default function StrategicPlanPage() {
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
+    if (userStr) setUser(JSON.parse(userStr));
   }, []);
 
   useEffect(() => {
@@ -76,19 +62,13 @@ export default function StrategicPlanPage() {
 
   const addGoal = () => {
     if (newGoal.trim()) {
-      setFormData({
-        ...formData,
-        strategic_goals: [...formData.strategic_goals, newGoal.trim()]
-      });
+      setFormData({ ...formData, strategic_goals: [...formData.strategic_goals, newGoal.trim()] });
       setNewGoal('');
     }
   };
 
   const removeGoal = (index: number) => {
-    setFormData({
-      ...formData,
-      strategic_goals: formData.strategic_goals.filter((_, i) => i !== index)
-    });
+    setFormData({ ...formData, strategic_goals: formData.strategic_goals.filter((_, i) => i !== index) });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -219,17 +199,11 @@ export default function StrategicPlanPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">تاریخ شروع</label>
-                <JalaliDatePicker
-                  value={formData.start_date}
-                  onChange={(date) => setFormData({ ...formData, start_date: date })}
-                />
+                <input type="date" name="start_date" value={formData.start_date} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">تاریخ پایان</label>
-                <JalaliDatePicker
-                  value={formData.end_date}
-                  onChange={(date) => setFormData({ ...formData, end_date: date })}
-                />
+                <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
               </div>
             </div>
 

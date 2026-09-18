@@ -238,10 +238,7 @@ export default function NewDiscoveryFormPage() {
           <CardHeader><CardTitle>اطلاعات کلی</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-2 gap-4">
             <div className="col-span-2"><Label>شرکت</Label><Input name="company" value={formData.company} onChange={handleChange} /></div>
-            <div><Label>تاریخ</Label><JalaliDatePicker
-              value={formData.date}
-              onChange={(date) => setFormData({ ...formData, date: date })}
-            /></div>
+            <div><Label>تاریخ</Label><Input type="date" name="date" value={formData.date} onChange={handleChange} /></div>
             <div><Label>واحد/بخش</Label><Input name="department" value={formData.department} onChange={handleChange} /></div>
             <div className="col-span-2"><Label>مسئول تکمیل</Label><Input name="responsible_person" value={formData.responsible_person} onChange={handleChange} /></div>
           </CardContent>
@@ -346,24 +343,15 @@ export default function NewDiscoveryFormPage() {
           <CardContent className="grid grid-cols-3 gap-4">
             <div><Label>تهیه‌کننده</Label><Input name="prepared_by" value={formData.prepared_by} onChange={handleChange} /></div>
             <div><Label>امضاء</Label><Input name="prepared_signature" value={formData.prepared_signature} onChange={handleChange} /></div>
-            <div><Label>تاریخ</Label><JalaliDatePicker
-              value={formData.prepared_date}
-              onChange={(date) => setFormData({ ...formData, prepared_date: date })}
-            /></div>
+            <div><Label>تاریخ</Label><Input type="date" name="prepared_date" value={formData.prepared_date} onChange={handleChange} /></div>
             
             <div><Label>بررسی‌کننده</Label><Input name="reviewed_by" value={formData.reviewed_by} onChange={handleChange} /></div>
             <div><Label>امضاء</Label><Input name="reviewed_signature" value={formData.reviewed_signature} onChange={handleChange} /></div>
-            <div><Label>تاریخ</Label><JalaliDatePicker
-              value={formData.reviewed_date}
-              onChange={(date) => setFormData({ ...formData, reviewed_date: date })}
-            /></div>
+            <div><Label>تاریخ</Label><Input type="date" name="reviewed_date" value={formData.reviewed_date} onChange={handleChange} /></div>
             
             <div><Label>تأییدکننده</Label><Input name="approved_by" value={formData.approved_by} onChange={handleChange} /></div>
             <div><Label>امضاء</Label><Input name="approved_signature" value={formData.approved_signature} onChange={handleChange} /></div>
-            <div><Label>تاریخ</Label><JalaliDatePicker
-              value={formData.approved_date}
-              onChange={(date) => setFormData({ ...formData, approved_date: date })}
-            /></div>
+            <div><Label>تاریخ</Label><Input type="date" name="approved_date" value={formData.approved_date} onChange={handleChange} /></div>
           </CardContent>
         </Card>
         

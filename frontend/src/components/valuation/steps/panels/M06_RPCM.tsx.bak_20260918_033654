@@ -3,7 +3,6 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
 import { Plus, Trash2, Upload, X, Loader2, CheckCircle, AlertCircle, FileText } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
@@ -659,11 +658,12 @@ export function M06_RPCM({
       {/* 3. Last Review Date */}
       <div className="space-y-1">
         <Label className="text-sm font-medium">تاریخ آخرین بازنگری</Label>
-        <JalaliDatePicker
-                    value={formData.last_review_date || ''}
-                    onChange={(date) => handleChange('last_review_date', date)}
-                    className="focus:ring-2 focus:ring-rose-500"
-                  />
+        <Input
+          type="date"
+          value={formData.last_review_date || ''}
+          onChange={(e) => handleChange('last_review_date', e.target.value)}
+          className="focus:ring-2 focus:ring-rose-500"
+        />
       </div>
 
       {/* Summary Card */}

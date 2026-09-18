@@ -102,9 +102,7 @@ export default function Step5_Map({ id, data, profile, onComplete }: Step5MapPro
     );
   };
 
-  // 🔒 چک: تأیید نهایی شده یا همین الان ثبت شد؟
-  // isComplete رو از شرط حذف کردیم چون فقط یعنی stepها پر شدن
-  const wasApproved = data?.is_approved === true;
+  const isComplete = data && data.is_completed;
   const finalScore = profile.protection_score || Math.round((profile.legal_score + profile.technical_score) / 2);
 
   const getScoreStatus = (score: number) => {
@@ -116,7 +114,7 @@ export default function Step5_Map({ id, data, profile, onComplete }: Step5MapPro
 
   const scoreStatus = getScoreStatus(finalScore);
 
-  if (isSubmitted || wasApproved || isApproved) {
+  if (isComplete || isSubmitted) {
     return (
       <div className="space-y-6 font-vazir">
         <div>
