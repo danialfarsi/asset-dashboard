@@ -155,13 +155,15 @@ const ValuationSummaryCard = ({
                           confidence >= 0.70 ? 'text-yellow-400' : 'text-red-400';
 
   return (
-    <Card className="border-0 shadow-lg bg-gradient-to-br from-dark-green to-medium-green text-white overflow-hidden">
-      <div className="h-1 bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-400" />
+    <Card className="relative overflow-hidden rounded-[28px] border border-emerald-800/20 bg-gradient-to-br from-[#073f35] via-[#0b5b49] to-[#0d745a] text-white shadow-[0_24px_70px_-30px_rgba(6,78,59,.55)]">
+      <div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" />
+      <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-amber-300/10 blur-3xl" />
+      <div className="h-1 bg-gradient-to-r from-amber-300 via-yellow-200 to-emerald-300" />
       
-      <CardContent className="p-6">
+      <CardContent className="relative p-6 md:p-7">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-inner backdrop-blur">
               <TrendingUp className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -173,13 +175,13 @@ const ValuationSummaryCard = ({
               </p>
             </div>
           </div>
-          <Badge className="bg-white/20 text-white border-white/30 font-[family-name:var(--font-vazir)]">
+          <Badge className="rounded-xl border border-white/15 bg-white/10 px-3 py-1.5 text-white shadow-sm backdrop-blur font-[family-name:var(--font-vazir)]">
             {methodId}
           </Badge>
         </div>
 
-        <div className="text-center py-4">
-          <p className="text-4xl md:text-5xl font-bold font-[family-name:var(--font-vazir)] tracking-tight">
+        <div className="py-7 text-center">
+          <p className="text-4xl font-black tracking-tight md:text-6xl font-[family-name:var(--font-vazir)]">
             {displayValue}
           </p>
           <p className="text-sm opacity-70 mt-1 font-[family-name:var(--font-vazir)]">
@@ -194,8 +196,8 @@ const ValuationSummaryCard = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 mt-2">
-          <div className="text-center p-3 bg-white/10 rounded-xl">
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-center backdrop-blur">
             <p className="text-[10px] opacity-60 font-[family-name:var(--font-vazir)]">
               Confidence Level
             </p>
@@ -203,7 +205,7 @@ const ValuationSummaryCard = ({
               {displayConfidence}
             </p>
           </div>
-          <div className="text-center p-3 bg-white/10 rounded-xl">
+          <div className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-center backdrop-blur">
             <p className="text-[10px] opacity-60 font-[family-name:var(--font-vazir)]">
               Token Value
             </p>
@@ -211,7 +213,7 @@ const ValuationSummaryCard = ({
               {displayToken}
             </p>
           </div>
-          <div className="text-center p-3 bg-white/10 rounded-xl">
+          <div className="rounded-2xl border border-white/10 bg-white/[.08] p-4 text-center backdrop-blur">
             <p className="text-[10px] opacity-60 font-[family-name:var(--font-vazir)]">
               Method Used
             </p>
@@ -612,10 +614,10 @@ export function Step7_Report({
   const methodData = renderMethodSpecificData();
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="relative space-y-5 overflow-hidden rounded-[32px] bg-gradient-to-b from-slate-50/80 via-white to-emerald-50/20 p-1 md:p-2" dir="rtl" style={{ fontFamily: 'var(--font-vazir)' }}>
       {/* هدر */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span className="w-7 h-7 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold font-[family-name:var(--font-vazir)]">
+      <div className="flex items-center gap-2 px-2 text-sm text-slate-500">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-dark-green text-xs font-black text-white shadow-sm font-[family-name:var(--font-vazir)]">
           ۷
         </span>
         <span className="font-[family-name:var(--font-vazir)]">
@@ -623,9 +625,9 @@ export function Step7_Report({
         </span>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-[24px] border border-slate-200/80 bg-white/90 p-5 shadow-[0_10px_35px_-25px_rgba(15,23,42,.35)] backdrop-blur md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
+          <h2 className="text-2xl font-black tracking-tight text-slate-900 font-[family-name:var(--font-vazir)]">
             گزارش و تأیید نهایی
           </h2>
           <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">
@@ -639,7 +641,7 @@ export function Step7_Report({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-blue-100 text-blue-700 font-[family-name:var(--font-vazir)]">
+          <Badge className="rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-emerald-700 font-[family-name:var(--font-vazir)]">
             {methodId} - {methodLabel}
           </Badge>
         </div>
@@ -658,14 +660,14 @@ export function Step7_Report({
       />
 
       {/* B. گزارش اختصاصی روش */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">
+      <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+        <CardContent className="p-5 md:p-6">
+          <h3 className="mb-4 flex items-center gap-2 text-base font-black text-slate-800 font-[family-name:var(--font-vazir)]">
             📊 گزارش اختصاصی روش {methodId}
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
             {methodData.map((item) => (
-              <div key={item.key} className="p-2 bg-gray-50 rounded-lg border">
+              <div key={item.key} className="group rounded-2xl border border-slate-200/80 bg-gradient-to-b from-slate-50 to-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
                 <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">
                   {item.label}
                 </p>
@@ -679,8 +681,8 @@ export function Step7_Report({
       </Card>
 
       {/* C. گردش تأیید */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4">
+      <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+        <CardContent className="p-5 md:p-6">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
               <Users className="w-4 h-4 inline ml-1" />
@@ -697,14 +699,14 @@ export function Step7_Report({
             </Badge>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {approvals.map((approval) => (
               <div
                 key={approval.level}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-gradient-to-l from-slate-50/80 to-white p-4 transition-all hover:border-emerald-200 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-dark-green/10 flex items-center justify-center">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 ring-1 ring-emerald-100">
                     <span className="text-sm font-bold text-dark-green">{approval.level}</span>
                   </div>
                   <div>
@@ -771,12 +773,12 @@ export function Step7_Report({
           </div>
 
           {selectedApproval && (
-            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
               <Textarea
                 value={approvalComment}
                 onChange={(e) => setApprovalComment(e.target.value)}
                 placeholder="نظر خود را وارد کنید..."
-                className="min-h-[60px] text-sm font-[family-name:var(--font-vazir)]"
+                className="min-h-[90px] resize-none rounded-xl border-blue-100 bg-white text-sm shadow-inner focus-visible:ring-blue-200 font-[family-name:var(--font-vazir)]"
               />
             </div>
           )}
@@ -784,15 +786,15 @@ export function Step7_Report({
       </Card>
 
       {/* D. گواهی ارزش و تولید گزارش */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+          <CardContent className="p-5 md:p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-black text-slate-800 font-[family-name:var(--font-vazir)]">
               <Award className="w-4 h-4 inline ml-1" />
               گواهی ارزش
             </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+            <div className="space-y-2.5 text-sm">
+              <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   شماره گواهی:
                 </span>
@@ -800,7 +802,7 @@ export function Step7_Report({
                   {reportData?.certificate_no}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   ارزش منصفانه:
                 </span>
@@ -808,7 +810,7 @@ export function Step7_Report({
                   {formatCurrency(reportData?.final_value || 0)}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   تک توکن:
                 </span>
@@ -816,7 +818,7 @@ export function Step7_Report({
                   {formatCurrency(reportData?.token_value || 0)}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   تاریخ مبنا:
                 </span>
@@ -826,7 +828,7 @@ export function Step7_Report({
                     : '—'}
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5">
                 <span className="text-gray-500 font-[family-name:var(--font-vazir)]">
                   بازنگری بعدی:
                 </span>
@@ -840,13 +842,13 @@ export function Step7_Report({
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">
+        <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+          <CardContent className="p-5 md:p-6">
+            <h3 className="mb-4 flex items-center gap-2 text-base font-black text-slate-800 font-[family-name:var(--font-vazir)]">
               <FileText className="w-4 h-4 inline ml-1" />
               تولید گزارش
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <Button
                 variant={reportsGenerated.executive_summary ? 'default' : 'outline'}
                 className={`w-full justify-start font-[family-name:var(--font-vazir)] ${
@@ -899,14 +901,14 @@ export function Step7_Report({
       </div>
 
       {/* E. ثبت در سیستم */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">
+      <Card className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+        <CardContent className="p-5 md:p-6">
+          <h3 className="mb-4 flex items-center gap-2 text-base font-black text-slate-800 font-[family-name:var(--font-vazir)]">
             <Database className="w-4 h-4 inline ml-1" />
             ثبت در سیستم
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-3.5">
               {reportData?.registration_status.pushed_to_registry ? (
                 <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
@@ -916,7 +918,7 @@ export function Step7_Report({
                 ثبت در شناسنامه
               </span>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-3.5">
               {reportData?.registration_status.portfolio_updated ? (
                 <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
@@ -926,7 +928,7 @@ export function Step7_Report({
                 بروزرسانی پورتفولیو
               </span>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-3.5">
               {reportData?.registration_status.alerts_configured ? (
                 <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
@@ -936,7 +938,7 @@ export function Step7_Report({
                 هشدارهای نظارتی
               </span>
             </div>
-            <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 p-3.5">
               {reportData?.registration_status.archive_complete ? (
                 <CheckCircle className="w-4 h-4 text-green-600" />
               ) : (
@@ -951,7 +953,7 @@ export function Step7_Report({
       </Card>
 
       {/* دکمه‌ها */}
-      <div className="flex justify-between pt-4 border-t">
+      <div className="sticky bottom-3 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/90 p-3 shadow-[0_18px_55px_-25px_rgba(15,23,42,.45)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
         <Button
           variant="outline"
           onClick={onPrev}
@@ -961,7 +963,7 @@ export function Step7_Report({
           بازگشت به مرحله ۶
         </Button>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
@@ -997,7 +999,7 @@ export function Step7_Report({
       </div>
 
       {reportData?.case_status === 'REGISTERED' && (
-        <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+        <div className="rounded-[22px] border border-emerald-200 bg-gradient-to-l from-emerald-50 to-white p-5 text-center shadow-sm">
           <p className="text-sm text-green-700 font-bold font-[family-name:var(--font-vazir)]">
             ✅ ارزش‌گذاری با موفقیت ثبت شد!
           </p>

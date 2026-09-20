@@ -35,20 +35,11 @@ class RegisteredAssetsView(APIView):
         
         # 🎯 جمع‌آوری همه data در چند query (نه O(n²))
         
-        # ۱. همه cases — اولویت به completed
+        # ۱. همه cases
         cases = ValuationCase.objects.filter(
             asset_id__in=asset_ids
-        ).select_related('asset', 'created_by').order_by('asset_id', '-id')
-        
-        cases_map = {}
-        for c in cases:
-            existing = cases_map.get(c.asset_id)
-            # اولویت: completed > draft/other
-            if not existing:
-                cases_map[c.asset_id] = c
-            elif c.status == 'completed' and existing.status != 'completed':
-                cases_map[c.asset_id] = c
-            # اگه هر دو completed، جدیدتر رو نگه‌دار
+        ).select_related('asset', 'created_by')
+        cases_map = {c.asset_id: c for c in cases}
         
         # ۲. همه valuations (فقط completed)
         valuations = AssetValuation.objects.filter(
@@ -57,15 +48,12 @@ class RegisteredAssetsView(APIView):
         )
         valuations_map = {v.asset_id: v for v in valuations}
         
-        # ۳. همه step4 — فقط از completed cases
-        completed_case_ids = [c.id for c in cases_map.values()]
+        # ۳. همه step4
+        case_ids = [c.id for c in cases]
         step4s = ValuationStep4.objects.filter(
-            valuation_case_id__in=completed_case_ids
-        ).order_by('valuation_case_id', '-id')
-        step4_map = {}
-        for s in step4s:
-            if s.valuation_case_id not in step4_map:
-                step4_map[s.valuation_case_id] = s
+            valuation_case_id__in=case_ids
+        )
+        step4_map = {s.valuation_case_id: s for s in step4s}
         
         # 🎯 حالا لیست نهایی رو بساز
         result = []
@@ -78,10 +66,8 @@ class RegisteredAssetsView(APIView):
             if not valuation:
                 continue
             
-            # 🆕 is_registered: اگه case completed باشه و final_value داشته باشه
             is_registered = (
                 asset_case.status == 'REGISTERED' or
-                asset_case.status == 'completed' or
                 getattr(asset_case, 'certificate_no', None) is not None
             )
             

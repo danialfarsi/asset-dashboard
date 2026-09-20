@@ -122,28 +122,6 @@ export default function ValuationPage() {
           setSelectedMethod(firstAsset.valuation_method);
         }
         await createValuationCase(firstAsset.id);
-
-        // 🆕 fetch valuationData برای asset اول
-        try {
-          console.log('🔍 [fetchAssets] fetch asset-summary برای asset.id:', firstAsset.id);
-          const { data: summaryData } = await api.get(
-            `/intangible/valuation/asset-summary/${firstAsset.id}/`
-          );
-          console.log('📥 [fetchAssets] response:', summaryData);
-          console.log('   has_valuation:', summaryData.has_valuation);
-          
-          if (summaryData.has_valuation && summaryData.summary) {
-            setValuationData(summaryData.summary);
-            console.log('✅ [fetchAssets] valuationData set شد');
-            console.log('   strategic_score:', summaryData.summary.strategic_score);
-          } else {
-            setValuationData(null);
-            console.log('⚠️ [fetchAssets] valuationData null شد');
-          }
-        } catch (err: any) {
-          console.error('❌ [fetchAssets] Error:', err);
-          setValuationData(null);
-        }
       }
     } catch (error) {
       console.error('Error fetching assets:', error);

@@ -3,7 +3,21 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronRight } from 'lucide-react';
+import {
+  Loader2,
+  ChevronRight,
+  ChevronLeft,
+  Activity,
+  ArrowDownLeft,
+  ArrowUpRight,
+  BarChart3,
+  CircleDollarSign,
+  Gauge,
+  RefreshCw,
+  SlidersHorizontal,
+  Sparkles,
+  TriangleAlert,
+} from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -256,6 +270,17 @@ export function Step6_Sensitivity({
     return toPersianNumber(num) + '%';
   };
 
+  const changeFromOriginalBase = (value: number) => {
+    const originalBase = originalBaseRef.current;
+    if (!originalBase) return '۰%';
+
+    const change = ((value - originalBase) / originalBase) * 100;
+    const rounded = Math.round(change);
+    const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '';
+
+    return `${sign}${toPersianNumber(Math.abs(rounded))}%`;
+  };
+
   const tornadoData = useMemo(() => {
     if (!drivers || drivers.length === 0) return [];
     const sorted = [...drivers].sort((a, b) => (b.impact_percent || 0) - (a.impact_percent || 0));
@@ -286,72 +311,110 @@ export function Step6_Sensitivity({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div dir="rtl" className="flex min-h-[420px] items-center justify-center rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/70 to-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600 shadow-lg shadow-emerald-200">
+            <Loader2 className="h-8 w-8 animate-spin text-white" />
+          </div>
+          <div className="text-center">
+            <p className="text-base font-bold text-slate-800">در حال آماده‌سازی تحلیل حساسیت</p>
+            <p className="mt-1 text-sm text-slate-500">اطلاعات و سناریوهای مالی در حال پردازش هستند</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <CardContent className="pt-6">
-          <p className="text-red-700">{error}</p>
+      <Card dir="rtl" className="overflow-hidden rounded-2xl border-red-200 bg-red-50/80 shadow-sm">
+        <CardContent className="flex items-start gap-3 p-5">
+          <div className="rounded-xl bg-red-100 p-2.5 text-red-600">
+            <TriangleAlert className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-bold text-red-800">بارگذاری اطلاعات با خطا مواجه شد</p>
+            <p className="mt-1 text-sm leading-6 text-red-700">{error}</p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6 p-4" dir="rtl" style={{ fontFamily: 'var(--font-vazir)' }}>
+    <div className="relative space-y-6 overflow-hidden rounded-[28px] bg-slate-50/70 p-4 sm:p-6 lg:p-8" dir="rtl" style={{ fontFamily: 'var(--font-vazir)' }}>
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-emerald-100/50 blur-3xl" />
+      <div className="pointer-events-none absolute -left-28 top-72 h-64 w-64 rounded-full bg-teal-100/40 blur-3xl" />
+
       {calculating && (
-        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 text-sm">
-          <Loader2 className="h-4 w-4 inline-block ml-2 animate-spin" />
-          در حال بروزرسانی...
+        <div className="fixed left-1/2 top-5 z-50 flex -translate-x-1/2 items-center gap-3 rounded-2xl border border-emerald-400/30 bg-slate-900/95 px-5 py-3 text-sm font-medium text-white shadow-2xl shadow-slate-400/30 backdrop-blur-xl">
+          <RefreshCw className="h-4 w-4 animate-spin text-emerald-400" />
+          در حال به‌روزرسانی محاسبات
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">تحلیل حساسیت و سناریو</h2>
-          <p className="text-sm text-muted-foreground">روش: {methodId} | شناسه مورد: {valuationCaseId}</p>
-        </div>
-        <Button onClick={onNext}>مرحله بعد <ChevronRight className="mr-2 h-4 w-4" /></Button>
-      </div>
-
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">پیش‌بینی مالی</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-6 bg-red-50 rounded-xl border border-red-200">
-              <p className="text-xs text-red-600 font-medium">بدبینانه</p>
-              <p className="text-3xl font-bold text-red-700">{formatCurrency(pessimisticValue)}</p>
-              <p className="text-sm text-red-500">{toPersianNumber((baseValue ? ((pessimisticValue - baseValue) / baseValue * 100) : 0))}%</p>
-            </div>
-            <div className="text-center p-6 bg-blue-50 rounded-xl border border-blue-200">
-              <p className="text-xs text-blue-600 font-medium">مبنا</p>
-              <p className="text-3xl font-bold text-blue-700">{formatCurrency(baseValue)}</p>
-              <p className="text-sm text-blue-500">بر اساس مفروضات فعلی</p>
-            </div>
-            <div className="text-center p-6 bg-green-50 rounded-xl border border-green-200">
-              <p className="text-xs text-green-600 font-medium">خوش‌بینانه</p>
-              <p className="text-3xl font-bold text-green-700">{formatCurrency(optimisticValue)}</p>
-              <p className="text-sm text-green-500">+{toPersianNumber((baseValue ? ((optimisticValue - baseValue) / baseValue * 100) : 0))}%</p>
+      <Card className="relative overflow-hidden rounded-3xl border-slate-200/80 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><CircleDollarSign className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-lg font-extrabold text-slate-800">چشم‌انداز ارزش‌گذاری</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">مقایسه ارزش تخمینی در سه سناریوی اصلی</p>
             </div>
           </div>
-          <div className="mt-4 text-center text-sm text-gray-500">دامنه تغییرات: {formatCurrency(optimisticValue - pessimisticValue)}</div>
+        </CardHeader>
+        <CardContent className="p-5 sm:p-7">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="group relative overflow-hidden rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+              <div className="mb-7 flex items-center justify-between">
+                <span className="font-bold text-rose-700">سناریوی بدبینانه</span>
+                <span className="rounded-xl bg-rose-100 p-2 text-rose-600"><ArrowDownLeft className="h-5 w-5" /></span>
+              </div>
+              <p className="text-3xl font-black tracking-tight text-slate-900">{formatCurrency(pessimisticValue)}</p>
+              <p className="mt-2 text-sm font-semibold text-rose-600">{changeFromOriginalBase(pessimisticValue)} نسبت به مبنا</p>
+            </div>
+            <div className="group relative overflow-hidden rounded-2xl border border-emerald-500 bg-gradient-to-br from-emerald-700 to-emerald-950 p-5 text-white shadow-lg shadow-emerald-900/15 transition-all hover:-translate-y-0.5">
+              <div className="absolute -left-8 -top-8 h-28 w-28 rounded-full bg-white/5" />
+              <div className="relative mb-7 flex items-center justify-between">
+                <span className="font-bold text-emerald-50">سناریوی مبنا</span>
+                <span className="rounded-xl bg-white/10 p-2 text-emerald-200"><Gauge className="h-5 w-5" /></span>
+              </div>
+              <p className="relative text-3xl font-black tracking-tight">{formatCurrency(baseValue)}</p>
+              <p className="relative mt-2 text-sm font-medium text-emerald-200">بر اساس مفروضات فعلی</p>
+            </div>
+            <div className="group relative overflow-hidden rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-5 transition-all hover:-translate-y-0.5 hover:shadow-md">
+              <div className="mb-7 flex items-center justify-between">
+                <span className="font-bold text-teal-700">سناریوی خوش‌بینانه</span>
+                <span className="rounded-xl bg-teal-100 p-2 text-teal-600"><ArrowUpRight className="h-5 w-5" /></span>
+              </div>
+              <p className="text-3xl font-black tracking-tight text-slate-900">{formatCurrency(optimisticValue)}</p>
+              <p className="mt-2 text-sm font-semibold text-teal-600">{changeFromOriginalBase(optimisticValue)} نسبت به مبنا</p>
+            </div>
+          </div>
+          <div className="mt-5 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+            <span className="text-slate-500">دامنه کل تغییرات</span>
+            <span className="font-extrabold text-slate-800">{formatCurrency(optimisticValue - pessimisticValue)}</span>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">انتخاب متغیرهای کلیدی</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-3 gap-12">
+      <Card className="rounded-3xl border-slate-200/80 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><SlidersHorizontal className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-lg font-extrabold text-slate-800">تنظیم متغیرهای کلیدی</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">برای مشاهده اثر هر متغیر، مقدار آن را در بازه مجاز تغییر دهید</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 sm:p-7">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {drivers.map((driver, index) => (
-              <div key={driver.id} className="space-y-3">
+              <div key={driver.id} className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/50 p-5 transition-colors hover:border-emerald-200 hover:bg-emerald-50/30">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">{driver.name_fa}</span>
-                  <span className="text-sm font-bold text-blue-600">{displayPercent(driver.current_value)}</span>
+                  <span className="font-bold text-slate-800">{driver.name_fa}</span>
+                  <span className="rounded-lg bg-emerald-100 px-2.5 py-1 text-sm font-extrabold text-emerald-700">{displayPercent(driver.current_value)}</span>
                 </div>
                 <input 
                   type="range" 
@@ -360,44 +423,67 @@ export function Step6_Sensitivity({
                   step={(driver.high - driver.low) * 100 / 50} 
                   value={driver.current_value * 100} 
                   onChange={(e) => handleDriverChange(index, parseFloat(e.target.value) / 100)} 
-                  className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600" 
+                  aria-label={driver.name_fa}
+                  className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-emerald-600" 
                 />
-                <div className="flex justify-between text-xs text-gray-400">
+                <div className="flex justify-between text-xs font-medium text-slate-400">
                   <span>{displayPercent(driver.low)}</span>
-                  <span className="text-blue-600 font-medium">{displayPercent(driver.current_value)}</span>
+                  <span className="text-emerald-700">مقدار فعلی</span>
                   <span>{displayPercent(driver.high)}</span>
                 </div>
-                {/* 🔥 اصلاح: استفاده از displayPercent به جای toPersianNumber */}
-                <div className="text-xs text-gray-500">تأثیر: {displayPercent(driver.impact_percent)}%</div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle className="text-sm font-medium text-muted-foreground">تأثیر متغیرهای کلیدی بر ارزش پایه</CardTitle></CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {impactTableData.map((item, index) => (
-              <div key={index} className="relative">
-                <div className="flex items-center justify-between">
-                  <div className="text-right w-[30%]"><span className="text-red-600 font-medium">{formatCurrency(item.lowValue)}</span><span className="text-red-500 text-sm mr-1">({toPersianNumber(parseFloat(item.lowPercent))}%)</span></div>
-                  <div className="text-center w-[40%]"><span className="text-sm font-medium text-gray-700 border-b-2 border-gray-300 px-4 py-1">{item.name}</span></div>
-                  <div className="text-left w-[30%]"><span className="text-green-600 font-medium">{formatCurrency(item.highValue)}</span><span className="text-green-500 text-sm mr-1">(+{toPersianNumber(parseFloat(item.highPercent))}%)</span></div>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-xs">
+                  <span className="text-slate-500">میزان تأثیرگذاری</span>
+                  <span className="font-bold text-slate-700">{displayPercent(driver.impact_percent)}</span>
                 </div>
-                {index < impactTableData.length - 1 && <div className="border-b border-gray-100 mt-3" />}
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-muted-foreground">نمودار تورنادو</CardTitle>
+      <Card className="rounded-3xl border-slate-200/80 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><BarChart3 className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-lg font-extrabold text-slate-800">اثر متغیرها بر ارزش پایه</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">بازه تغییر ارزش در کمینه و بیشینه هر عامل</p>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-5 sm:p-7">
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="hidden grid-cols-[1fr_1.15fr_1fr] bg-slate-50 px-5 py-3 text-xs font-bold text-slate-500 sm:grid">
+              <span>کمینه ارزش</span><span className="text-center">متغیر کلیدی</span><span className="text-left">بیشینه ارزش</span>
+            </div>
+            {impactTableData.map((item, index) => (
+              <div key={index} className={`grid grid-cols-1 gap-3 px-5 py-4 sm:grid-cols-[1fr_1.15fr_1fr] sm:items-center ${index < impactTableData.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                  <div className="flex items-center justify-between sm:block">
+                    <span className="text-xs text-slate-400 sm:hidden">کمینه</span>
+                    <span className="font-extrabold text-rose-600">{formatCurrency(item.lowValue)} <small className="font-semibold">({toPersianNumber(parseFloat(item.lowPercent))}%)</small></span>
+                  </div>
+                  <div className="order-first rounded-lg bg-slate-50 px-3 py-2 text-center font-bold text-slate-700 sm:order-none sm:bg-transparent">{item.name}</div>
+                  <div className="flex items-center justify-between sm:block sm:text-left">
+                    <span className="text-xs text-slate-400 sm:hidden">بیشینه</span>
+                    <span className="font-extrabold text-emerald-600">{formatCurrency(item.highValue)} <small className="font-semibold">(+{toPersianNumber(parseFloat(item.highPercent))}%)</small></span>
+                  </div>
+                </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl border-slate-200/80 bg-white shadow-sm">
+        <CardHeader className="border-b border-slate-100 px-5 py-5 sm:px-7">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><BarChart3 className="h-5 w-5" /></div>
+            <div>
+              <CardTitle className="text-lg font-extrabold text-slate-800">نمودار تورنادو</CardTitle>
+              <p className="mt-1 text-sm text-slate-500">رتبه‌بندی عوامل بر اساس شدت اثرگذاری</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-5 sm:p-7">
           <TornadoChart data={tornadoData} key={JSON.stringify(tornadoData.map(d => d.impact))} />
         </CardContent>
       </Card>
@@ -413,11 +499,13 @@ export function Step6_Sensitivity({
 
       <MatrixTable drivers={drivers} baseValue={baseValue} methodId={methodId} />
 
-      <div className="flex justify-between items-center pt-4 border-t">
-        <div className="text-sm text-muted-foreground">شناسه مورد: {valuationCaseId}</div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => window.history.back()}>بازگشت</Button>
-          {onNext && <Button onClick={onNext}>ادامه به مرحله ۷ <ChevronRight className="mr-2 h-4 w-4" /></Button>}
+      <div className="relative flex flex-col-reverse gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-slate-500">شناسه پرونده: <span className="font-bold text-slate-700">{toPersianNumber(valuationCaseId)}</span></div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => window.history.back()} className="h-11 flex-1 rounded-xl border-slate-200 px-5 font-bold text-slate-700 sm:flex-none">
+            <ChevronRight className="ml-2 h-4 w-4" /> بازگشت
+          </Button>
+          {onNext && <Button onClick={onNext} className="h-11 flex-1 rounded-xl bg-emerald-700 px-5 font-bold text-white shadow-md shadow-emerald-200 hover:bg-emerald-800 sm:flex-none">ادامه به مرحله ۷ <ChevronLeft className="mr-2 h-4 w-4" /></Button>}
         </div>
       </div>
     </div>

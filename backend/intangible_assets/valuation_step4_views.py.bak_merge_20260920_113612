@@ -35,55 +35,10 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            # 🔥 ادغام مقادیر از دو منبع:
-            # ۱. ValuationCase (مقادیر عمومی از STEP 2)
-            # ۲. step3.method_inputs (پارامترهای خاص روش از STEP 3)
-            
-            case_inputs = {
-                'discount_rate': float(valuation_case.discount_rate or 18),       # %
-                'tax_rate': float(valuation_case.tax_rate or 25),                 # %
-                'forecast_horizon': int(valuation_case.forecast_horizon or 5),   # سال
-                'current_revenue': float(valuation_case.current_revenue or 0),    # ریال
-                'terminal_growth_rate': float(valuation_case.terminal_growth_rate or 5),  # %
-                'useful_life': int(valuation_case.useful_life or 5),
-                'currency': valuation_case.currency or 'IRR',
-                'inflation_basis': valuation_case.inflation_basis or 'cost',
-                'source_reliability': valuation_case.source_reliability or 'high',
-                'overlap_risk_level': valuation_case.overlap_risk_level or 'medium',
-                'overlap_type': valuation_case.overlap_type or 'revenue',
-                'review_status': valuation_case.review_status or 'pending',
-                'expert_note': valuation_case.expert_note or '',
-            }
-            
-            method_inputs = step3.method_inputs or {}
-            
-            # 🔥 step3.method_inputs اولویت داره (چون خاص روشه)
-            inputs = {**case_inputs, **method_inputs}
+            inputs = step3.method_inputs or {}
             method_id = step3.method_id
             
-            # 🔥 چک کردن مقادیر صفر
-            if inputs.get('discount_rate', 0) <= 0:
-                inputs['discount_rate'] = 18  # پیش‌فرض
-            if inputs.get('terminal_growth_rate', 0) <= 0:
-                inputs['terminal_growth_rate'] = 5  # پیش‌فرض
-            if inputs.get('tax_rate', 0) <= 0:
-                inputs['tax_rate'] = 25  # پیش‌فرض
-            if inputs.get('forecast_horizon', 0) <= 0:
-                inputs['forecast_horizon'] = 5  # پیش‌فرض
-            if inputs.get('current_revenue', 0) <= 0:
-                inputs['current_revenue'] = 500000000000  # پیش‌فرض
-            
-            # 🔥 چک منطقی: نرخ رشد نهایی باید کمتر از نرخ تنزیل باشه
-            if inputs.get('terminal_growth_rate', 0) >= inputs.get('discount_rate', 0):
-                inputs['terminal_growth_rate'] = inputs['discount_rate'] * 0.5  # نصف نرخ تنزیل
-            
-            print(f'📥 case_inputs: {case_inputs}')
-            print(f'📥 method_inputs: {method_inputs}')
-            print(f'📥 inputs نهایی: {inputs}')
-            
-            print(f'📥 case_inputs: {case_inputs}')
-            print(f'📥 method_inputs: {method_inputs}')
-            print(f'📥 inputs نهایی: {inputs}')
+            print(f'🔍 محاسبه برای روش: {method_id}')
             
             if method_id == 'M-01':
                 result = self.calculate_m01(inputs)
@@ -180,14 +135,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             })
         
         last_after_tax = yearly_data[-1]['after_tax']
-        
-        # 🔥 محافظت از تقسیم بر صفر
-        if abs(discount_rate - terminal_growth_rate) < 0.001:
-            # اگه نرخ تنزیل و رشد نهایی برابر باشن، terminal_value = 0
-            terminal_value = 0
-        else:
-            terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
-        
+        terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
         pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
         value_before_quality = total_pv + pv_terminal
         final_value = value_before_quality * quality_multiplier

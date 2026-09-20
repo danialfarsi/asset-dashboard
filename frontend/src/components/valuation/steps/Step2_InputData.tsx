@@ -10,7 +10,7 @@ import {
   Upload, Download, X, Eye, PieChart, TrendingUp, Target, Shield,
   BarChart3, Activity, Award, AlertCircle, CheckCircle, Clock,
   Layers, FolderOpen, DollarSign, Percent, Calendar as CalendarIcon,
-  Link as LinkIcon, Tag, FileCheck, AlertTriangle, Save, Loader2
+  Link as LinkIcon, Tag, FileCheck, AlertTriangle, Save, Loader2, Info
 } from 'lucide-react';
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -772,10 +772,10 @@ export function Step2_InputData({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-7 rounded-[32px] bg-gradient-to-b from-[#f7fbfa] via-white to-[#f8faf9] p-4 md:p-7" dir="rtl">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-md ${
+        <div className={`fixed top-5 right-5 z-50 p-4 rounded-2xl shadow-2xl max-w-md border border-white/30 backdrop-blur-xl ${
           toastMessage.type === 'success' ? 'bg-green-500 text-white' :
           toastMessage.type === 'error' ? 'bg-red-500 text-white' :
           'bg-blue-500 text-white'
@@ -791,7 +791,7 @@ export function Step2_InputData({
 
       {/* Upload Progress */}
       {uploadProgress && (
-        <div className="fixed bottom-4 right-4 z-50 p-4 bg-white rounded-lg shadow-lg border border-gray-200 max-w-md">
+        <div className="fixed bottom-5 right-5 z-50 p-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 max-w-md">
           <p className="text-sm font-medium">در حال آپلود...</p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
             <div 
@@ -804,9 +804,9 @@ export function Step2_InputData({
       )}
 
       {/* هدر با وضعیت ذخیره */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span className="w-7 h-7 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold">۲</span>
+      <div className="flex flex-col gap-4 rounded-[24px] border border-emerald-900/10 bg-white/90 p-5 shadow-[0_12px_40px_rgba(1,83,69,0.07)] backdrop-blur md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3 text-sm text-gray-500">
+          <span className="w-10 h-10 rounded-2xl bg-dark-green text-white flex items-center justify-center text-sm font-black shadow-lg shadow-emerald-950/15">۲</span>
           <span>مرحله ۲ از ۷</span>
         </div>
         <div className="flex items-center gap-2 text-xs">
@@ -829,10 +829,10 @@ export function Step2_InputData({
         </div>
       </div>
       
-      <h2 className="text-xl font-bold text-dark-green">داده پایه</h2>
+      <div className="px-1"><p className="text-xs font-bold tracking-[0.18em] text-emerald-700/60">VALUATION INPUT CENTER</p><h2 className="mt-1 text-2xl md:text-3xl font-black text-dark-green">داده‌های پایه ارزش‌گذاری</h2><p className="mt-2 text-sm text-gray-500">اطلاعات مالی، کیفی، شواهد و فرضیات این پرونده را در یک نمای یکپارچه مدیریت کنید.</p></div>
 
       {valuationMethod && (
-        <div className="bg-dark-green/5 p-4 rounded-lg border border-dark-green/20">
+        <div className="bg-gradient-to-l from-emerald-50 to-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
           <div className="flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-dark-green" />
             <span className="text-sm font-medium text-dark-green">روش ارزش‌گذاری انتخاب شده:</span>
@@ -842,43 +842,43 @@ export function Step2_InputData({
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
         {/* ======================================== */}
         {/* بلاک ۱: اطلاعات پایه (A) */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-dark-green to-dark-green/80 px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#08705f] to-[#0a8a72] px-5 py-4">
             <div className="flex items-center gap-2">
               <Building2 className="w-4 h-4 text-white/80" />
               <h3 className="text-sm font-bold text-white">پروفایل اطلاعات پایه محصول</h3>
             </div>
           </div>
-          <CardContent className="p-5">
+          <CardContent className="p-5 md:p-6">
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">شناسه مورد</p>
                 <p className="text-base font-bold text-dark-green">{formData.assetId || '—'}</p>
               </div>
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">صنعت</p>
                 <p className="text-base font-medium text-gray-700">فناوری / نرم‌افزار</p>
               </div>
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">تاریخ ارزش‌گذاری</p>
                 <p className="text-base font-medium text-gray-700">{new Date().toLocaleDateString('fa-IR')}</p>
               </div>
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">وضعیت</p>
                 <span className="inline-flex items-center gap-1 text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium">
                   <Clock className="w-3.5 h-3.5" />
                   در حال انجام
                 </span>
               </div>
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100 col-span-2">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all col-span-2">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">نام دارایی</p>
                 <p className="text-base font-medium text-gray-700">{formData.name || 'نامشخص'}</p>
               </div>
-              <div className="bg-gray-50/80 p-3 rounded-lg border border-gray-100 col-span-2">
+              <div className="bg-gradient-to-br from-gray-50 to-white p-3.5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all col-span-2">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">مالک</p>
                 <p className="text-base font-medium text-gray-700">{selectedAsset?.created_by_name || 'نامشخص'}</p>
               </div>
@@ -889,14 +889,14 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۲: امتیازات کیفی (B) */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg overflow-hidden">
-          <div className="bg-dark-green px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#076958] to-[#0b806b] px-5 py-4">
             <div className="flex items-center gap-2">
               <PieChart className="w-4 h-4 text-white" />
               <h3 className="text-sm font-bold text-white">امتیازات کیفی</h3>
             </div>
           </div>
-          <CardContent className="p-5">
+          <CardContent className="p-5 md:p-6">
             {radarData.length > 0 ? (
               <div className="space-y-4">
                 <div className="h-[200px] w-full">
@@ -979,7 +979,7 @@ export function Step2_InputData({
                     value={valuationForm.quality_override_reason}
                     onChange={(e) => handleValuationChange('quality_override_reason', e.target.value)}
                     placeholder="در صورت عدم تطابق امتیاز موتور، دلیل را وارد کنید..."
-                    className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green min-h-[60px]"
+                    className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5 min-h-[60px]"
                   />
                 </div>
               </div>
@@ -996,14 +996,14 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۳: ورودی‌های پایه (C) */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg lg:col-span-2 overflow-hidden">
-          <div className="bg-dark-green px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] lg:col-span-2 overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#076958] to-[#0b806b] px-5 py-4">
             <div className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-white" />
               <h3 className="text-sm font-bold text-white">ورودی‌های پایه</h3>
             </div>
           </div>
-          <CardContent className="p-5">
+          <CardContent className="p-5 md:p-6">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               <div className="space-y-1">
                 <Label className="text-xs font-medium flex items-center gap-1">
@@ -1012,7 +1012,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.currency}
                   onChange={(e) => handleValuationChange('currency', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {CURRENCY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1025,7 +1025,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.inflation_basis}
                   onChange={(e) => handleValuationChange('inflation_basis', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {INFLATION_BASIS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1037,12 +1037,12 @@ export function Step2_InputData({
                 <Label className="text-xs font-medium flex items-center gap-1">
                   نرخ مالیات <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="h-11 rounded-xl flex items-center gap-2">
                   <Input
                     type="number"
                     value={valuationForm.tax_rate}
                     onChange={(e) => handleValuationChange('tax_rate', parseFloat(e.target.value))}
-                    className="w-full text-sm focus:ring-2 focus:ring-dark-green"
+                    className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                     min={0}
                     max={50}
                   />
@@ -1054,12 +1054,12 @@ export function Step2_InputData({
                 <Label className="text-xs font-medium flex items-center gap-1">
                   نرخ تنزیل <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="h-11 rounded-xl flex items-center gap-2">
                   <Input
                     type="number"
                     value={valuationForm.discount_rate}
                     onChange={(e) => handleValuationChange('discount_rate', parseFloat(e.target.value))}
-                    className="w-full text-sm focus:ring-2 focus:ring-dark-green"
+                    className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                     min={10}
                     max={35}
                   />
@@ -1071,12 +1071,12 @@ export function Step2_InputData({
                 <Label className="text-xs font-medium flex items-center gap-1">
                   افق پیش‌بینی <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="h-11 rounded-xl flex items-center gap-2">
                   <Input
                     type="number"
                     value={valuationForm.forecast_horizon}
                     onChange={(e) => handleValuationChange('forecast_horizon', parseInt(e.target.value))}
-                    className="w-full text-sm focus:ring-2 focus:ring-dark-green"
+                    className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                     min={3}
                     max={10}
                   />
@@ -1088,12 +1088,12 @@ export function Step2_InputData({
                 <Label className="text-xs font-medium flex items-center gap-1">
                   نرخ رشد نهایی <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex items-center gap-1">
+                <div className="h-11 rounded-xl flex items-center gap-2">
                   <Input
                     type="number"
                     value={valuationForm.terminal_growth_rate}
                     onChange={(e) => handleValuationChange('terminal_growth_rate', parseFloat(e.target.value))}
-                    className="w-full text-sm focus:ring-2 focus:ring-dark-green"
+                    className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                   />
                   <span className="text-sm text-gray-400">%</span>
                 </div>
@@ -1112,7 +1112,7 @@ export function Step2_InputData({
                     const num = parseInt(val) || 0;
                     handleValuationChange('current_revenue', num);
                   }}
-                  className="w-full text-sm focus:ring-2 focus:ring-dark-green font-mono"
+                  className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5 font-mono"
                 />
                 <p className="text-[10px] text-gray-400">ریال - حداقل: ۰</p>
               </div>
@@ -1123,7 +1123,7 @@ export function Step2_InputData({
                   type="number"
                   value={valuationForm.useful_life}
                   onChange={(e) => handleValuationChange('useful_life', parseInt(e.target.value))}
-                  className="w-full text-sm focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 rounded-xl border-gray-200 bg-white text-sm transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                   min={1}
                 />
               </div>
@@ -1135,7 +1135,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.source_reliability}
                   onChange={(e) => handleValuationChange('source_reliability', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {SOURCE_RELIABILITY_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1150,8 +1150,8 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۴: شواهد و پیوست‌ها (D) - با تگ‌ها */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg lg:col-span-2 overflow-hidden">
-          <div className="bg-dark-green px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] lg:col-span-2 overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#076958] to-[#0b806b] px-5 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-white" />
@@ -1166,7 +1166,7 @@ export function Step2_InputData({
           </div>
           <CardContent className="p-5 space-y-4">
             {/* راهنمای تگ‌ها */}
-            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div className="bg-sky-50/70 p-4 rounded-2xl border border-sky-100">
               <p className="text-xs font-medium text-blue-700 mb-1">📌 نحوه استفاده از تگ‌ها:</p>
               <p className="text-xs text-blue-600">
                 ۱. روی تگ مورد نظر کلیک کنید تا انتخاب شود
@@ -1217,8 +1217,8 @@ export function Step2_InputData({
             </div>
 
             <div
-              className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                dragActive ? 'border-dark-green bg-dark-green/5' : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+              className={`border-2 border-dashed rounded-[22px] p-8 text-center transition-all ${
+                dragActive ? 'border-dark-green bg-emerald-50 shadow-inner' : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30 bg-gray-50/50'
               }`}
               onDragEnter={handleDrag}
               onDragLeave={handleDrag}
@@ -1274,7 +1274,7 @@ export function Step2_InputData({
                       const isUploaded = file.is_uploaded !== false;
                       
                       return (
-                        <div key={String(file.id)} className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-all group">
+                        <div key={String(file.id)} className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-gray-100 hover:border-emerald-100 hover:shadow-lg transition-all group">
                           <div className="flex items-center gap-3 min-w-0">
                             <div className={`p-2 rounded-lg ${fileType.bg} flex-shrink-0`}>
                               <FileIcon className={`w-4 h-4 ${fileType.color}`} />
@@ -1282,7 +1282,7 @@ export function Step2_InputData({
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
                               <div className="flex items-center gap-2 text-xs text-gray-400">
-                                <span className="flex items-center gap-1">
+                                <span className="h-11 rounded-xl flex items-center gap-2">
                                   {isUploaded ? (
                                     <CheckCircle className="w-3 h-3 text-green-500" />
                                   ) : (
@@ -1341,14 +1341,14 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۵: وابستگی‌ها (E) */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg lg:col-span-2 overflow-hidden">
-          <div className="bg-dark-green px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] lg:col-span-2 overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#076958] to-[#0b806b] px-5 py-4">
             <div className="flex items-center gap-2">
               <LinkIcon className="w-4 h-4 text-white" />
               <h3 className="text-sm font-bold text-white">وابستگی‌ها</h3>
             </div>
           </div>
-          <CardContent className="p-5">
+          <CardContent className="p-5 md:p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2 col-span-1">
                 <Label className="text-sm font-medium flex items-center gap-1">
@@ -1383,7 +1383,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.overlap_risk_level}
                   onChange={(e) => handleValuationChange('overlap_risk_level', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {OVERLAP_RISK_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1398,7 +1398,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.overlap_type}
                   onChange={(e) => handleValuationChange('overlap_type', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {OVERLAP_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1415,7 +1415,7 @@ export function Step2_InputData({
                 <select
                   value={valuationForm.review_status}
                   onChange={(e) => handleValuationChange('review_status', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {REVIEW_STATUS_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1429,7 +1429,7 @@ export function Step2_InputData({
                   value={valuationForm.expert_note}
                   onChange={(e) => handleValuationChange('expert_note', e.target.value)}
                   placeholder="یادداشت‌های کارشناسی..."
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green min-h-[60px]"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5 min-h-[60px]"
                 />
               </div>
             </div>
@@ -1439,8 +1439,8 @@ export function Step2_InputData({
         {/* ======================================== */}
         {/* بلاک ۶: فرضیات (F) */}
         {/* ======================================== */}
-        <Card className="border-2 border-gray-200 shadow-lg lg:col-span-2 overflow-hidden">
-          <div className="bg-dark-green px-5 py-3">
+        <Card className="border border-emerald-950/10 shadow-[0_14px_45px_rgba(15,23,42,0.06)] rounded-[24px] lg:col-span-2 overflow-hidden bg-white/95">
+          <div className="bg-gradient-to-l from-[#015345] via-[#076958] to-[#0b806b] px-5 py-4">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-white" />
               <h3 className="text-sm font-bold text-white">فرضیات</h3>
@@ -1467,7 +1467,7 @@ export function Step2_InputData({
                 <select
                   value={newAssumption.tag}
                   onChange={(e) => setNewAssumption(prev => ({ ...prev, tag: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-dark-green"
+                  className="w-full h-11 border border-gray-200 bg-white rounded-xl px-3 text-sm outline-none transition-all focus:border-emerald-600 focus:ring-4 focus:ring-emerald-900/5"
                 >
                   {ASSUMPTION_TAG_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1535,8 +1535,8 @@ export function Step2_InputData({
       {/* ======================================== */}
       {/* دکمه‌های ناوبری */}
       {/* ======================================== */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button variant="outline" onClick={onPrev} className="flex items-center gap-1">
+      <div className="sticky bottom-3 z-30 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between rounded-[22px] border border-gray-200/80 bg-white/90 p-3.5 shadow-[0_16px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl">
+        <Button variant="outline" onClick={onPrev} className="h-11 rounded-xl flex items-center gap-2">
           <ChevronLeft className="w-4 h-4" />
           قبلی
         </Button>
@@ -1545,12 +1545,12 @@ export function Step2_InputData({
             variant="outline"
             onClick={() => saveFormData()}
             disabled={savingToDb}
-            className="flex items-center gap-1"
+            className="h-11 rounded-xl flex items-center gap-2"
           >
             <Save className="w-4 h-4" />
             {savingToDb ? 'در حال ذخیره...' : 'ذخیره'}
           </Button>
-          <Button className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1" onClick={handleNext}>
+          <Button className="h-11 rounded-xl bg-dark-green px-6 hover:bg-[#01483c] shadow-lg shadow-emerald-950/15 flex items-center gap-2" onClick={handleNext}>
             ادامه
             <ChevronRight className="w-4 h-4" />
           </Button>

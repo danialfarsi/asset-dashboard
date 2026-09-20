@@ -163,29 +163,41 @@ export function M01_RfR_Engine({
   // ============================================
   if (!hasData && !calculating) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📊</div>
-        <h3 className="text-xl font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">محاسبه ارزش دارایی (M-01 RfR)</h3>
-        <p className="text-gray-500 max-w-md mx-auto font-[family-name:var(--font-vazir)]">
-          برای محاسبه ارزش دارایی با روش حق‌الامتیاز (Relief-from-Royalty)، دکمه زیر را بزنید.
-        </p>
-        <Button
-          className="mt-6 bg-dark-green hover:bg-dark-green/90 text-white px-8 py-3 text-lg font-[family-name:var(--font-vazir)]"
-          onClick={onCalculate}
-          disabled={calculating}
-        >
-          {calculating ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin ml-2" />
-              در حال محاسبه...
-            </>
-          ) : (
-            'شروع ارزش‌گذاری 🚀'
-          )}
-        </Button>
-        {error && (
-          <p className="mt-4 text-sm text-red-500 font-[family-name:var(--font-vazir)]">{error}</p>
-        )}
+      <div dir="rtl" className="font-[family-name:var(--font-vazir)]">
+        <div className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white px-6 py-14 text-center shadow-[0_16px_50px_rgba(15,23,42,0.06)] sm:px-10">
+          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-dark-green/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-28 -left-20 h-64 w-64 rounded-full bg-blue-100/70 blur-3xl" />
+          <div className="relative mx-auto max-w-xl">
+            <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[26px] border border-dark-green/10 bg-dark-green/[0.06] text-dark-green shadow-sm">
+              <FileText className="h-8 w-8" />
+            </div>
+            <span className="inline-flex rounded-full bg-dark-green/10 px-3 py-1 text-[11px] font-black text-dark-green">M-01 • Relief-from-Royalty</span>
+            <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">محاسبه ارزش دارایی</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-7 text-slate-500">
+              برای محاسبه ارزش دارایی بر مبنای صرفه‌جویی ناشی از عدم پرداخت حق‌الامتیاز، فرآیند ارزش‌گذاری را آغاز کنید.
+            </p>
+            <Button
+              className="mt-7 h-12 rounded-2xl bg-dark-green px-8 text-sm font-bold text-white shadow-lg shadow-emerald-950/10 transition-all hover:-translate-y-0.5 hover:bg-dark-green/90 hover:shadow-xl"
+              onClick={onCalculate}
+              disabled={calculating}
+            >
+              {calculating ? (
+                <>
+                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  در حال محاسبه...
+                </>
+              ) : (
+                'شروع ارزش‌گذاری'
+              )}
+            </Button>
+            {error && (
+              <div className="mx-auto mt-5 flex max-w-md items-center justify-center gap-2 rounded-xl border border-rose-100 bg-rose-50 px-4 py-3 text-xs font-bold text-rose-600">
+                <AlertCircle className="h-4 w-4" />
+                {error}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -194,195 +206,189 @@ export function M01_RfR_Engine({
   const displayQcScore = qcScore || 82;
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]" dir="rtl">
+      {/* Executive header */}
+      <section className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.055)] sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-dark-green/10 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-blue-100/50 blur-3xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dark-green text-white shadow-lg shadow-emerald-950/10">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-dark-green/10 px-2.5 py-1 text-[10px] font-black text-dark-green">M-01</span>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">Relief-from-Royalty</span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 sm:text-2xl">نتایج ارزش‌گذاری روش حق‌الامتیاز</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500 sm:text-sm">
+                ارزش دارایی بر اساس صرفه‌جویی ناشی از عدم پرداخت حق‌الامتیاز و تنزیل جریان‌های مالی محاسبه شده است.
+              </p>
+            </div>
+          </div>
 
-      {/* توضیحات روش */}
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <p className="text-sm text-blue-700 font-[family-name:var(--font-vazir)]">
-          🔹 روش حق‌الامتیاز (RfR) - ارزش دارایی را بر اساس صرفه‌جویی ناشی از عدم پرداخت حق‌الامتیاز محاسبه می‌کند.
-          <span className="inline-block mr-2 px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs font-medium">
-            ⭐ روش هزینه
-          </span>
-        </p>
+          <Button
+            variant="outline"
+            onClick={exportExcel}
+            className="h-11 self-start rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green hover:bg-dark-green/10 lg:self-auto"
+          >
+            <Download className="ml-2 h-4 w-4" />
+            خروجی Excel
+          </Button>
+        </div>
+      </section>
+
+      {/* Main result + compact KPIs */}
+      <div>
+        <section className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <div className="mb-4">
+            <h3 className="text-sm font-black text-slate-800">پارامترهای کلیدی مدل</h3>
+            <p className="mt-1 text-[10px] text-slate-400">خلاصه ورودی‌های مؤثر در محاسبه</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              ['نرخ حق‌الامتیاز', formatPercent(summary?.royalty_rate || 0)],
+              ['تخصیص درآمد', formatPercent(summary?.revenue_attribution || 0)],
+              ['نرخ مؤثر', formatPercent(summary?.effective_rate || 0)],
+              ['نرخ تنزیل', formatPercent(summary?.discount_rate || 0)],
+              ['نرخ مالیات', formatPercent(summary?.tax_rate || 0)],
+              ['ضریب کیفیت', toPersianDigit((summary?.quality_multiplier || 0).toFixed(2))],
+              ['افق پیش‌بینی', `${toPersianDigit(summary?.forecast_horizon || 0)} سال`],
+              ['درآمد پایه', formatRial(summary?.current_revenue || 0)],
+            ].map(([label, value], index) => (
+              <div key={index} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5 transition-colors hover:border-dark-green/10 hover:bg-dark-green/[0.025]">
+                <p className="text-[9px] font-bold text-slate-400">{label}</p>
+                <p className={`mt-1 text-xs font-black ${index === 2 ? 'text-blue-600' : 'text-dark-green'}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
 
-      {/* پارامترهای ورودی - اعداد فارسی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ حق‌الامتیاز</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.royalty_rate || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">تخصیص درآمد</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.revenue_attribution || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ مؤثر</p>
-          <p className="text-sm font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.effective_rate || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ تنزیل</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.discount_rate || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ مالیات</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.tax_rate || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ضریب کیفیت</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {toPersianDigit((summary?.quality_multiplier || 0).toFixed(2))}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">افق پیش‌بینی</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {toPersianDigit(summary?.forecast_horizon || 0)} سال
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">درآمد پایه</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatRial(summary?.current_revenue || 0)}
-          </p>
-        </div>
-      </div>
-
-      {/* نمودار - به حالت اولیه (ComposedChart) */}
+      {/* Chart */}
       {yearlyData.length > 0 && (
-        <Card className="border-blue-200 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">📈 جریان‌های نقدی و ارزش فعلی</h4>
-              <div className="flex items-center gap-4 text-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-blue-600" />
-                  <span className="text-gray-600 font-[family-name:var(--font-vazir)]">حق‌الامتیاز ناخالص</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span className="text-gray-600 font-[family-name:var(--font-vazir)]">پس از مالیات</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <span className="text-gray-600 font-[family-name:var(--font-vazir)]">ارزش فعلی (PV)</span>
-                </div>
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-0">
+            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h4 className="text-sm font-black text-slate-800">جریان‌های نقدی و ارزش فعلی</h4>
+                <p className="mt-1 text-[10px] text-slate-400">مقایسه حق‌الامتیاز، جریان پس از مالیات و PV در افق پیش‌بینی</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-slate-500">
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-blue-700" />حق‌الامتیاز ناخالص</span>
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />پس از مالیات</span>
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-rose-400" />ارزش فعلی</span>
               </div>
             </div>
-            
-            <div style={{ width: '100%', height: 320 }} dir="ltr">
-              <ResponsiveContainer>
-                <ComposedChart
-                  data={yearlyData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="year" 
-                    tick={{ fontSize: 11, fill: '#6b7280', fontFamily: 'var(--font-vazir)' }}
-                  />
-                  <YAxis 
-                    tick={{ fontSize: 10, fill: '#6b7280', fontFamily: 'var(--font-vazir)' }}
-                    tickFormatter={(value) => formatMillions(value)}
-                  />
-                  <Tooltip 
-                    formatter={(value: any) => formatRial(value)}
-                    contentStyle={{ fontFamily: 'var(--font-vazir)' }}
-                  />
-                  <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
-                  <Bar dataKey="gross_royalty" name="حق‌الامتیاز ناخالص" fill="#1e40af" />
-                  <Bar dataKey="after_tax" name="پس از مالیات" fill="#22c55e" />
-                  <Line type="monotone" dataKey="pv" name="ارزش فعلی (PV)" stroke="#ef4444" strokeWidth={2.5} />
-                </ComposedChart>
-              </ResponsiveContainer>
+            <div className="p-4 sm:p-6">
+              <div style={{ width: '100%', height: 340 }} dir="ltr">
+                <ResponsiveContainer>
+                  <ComposedChart data={yearlyData} margin={{ top: 20, right: 20, left: 10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                    <XAxis
+                      dataKey="year"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'var(--font-vazir)' }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'var(--font-vazir)' }}
+                      tickFormatter={(value) => formatMillions(value)}
+                    />
+                    <Tooltip
+                      formatter={(value: any) => formatRial(value)}
+                      contentStyle={{
+                        fontFamily: 'var(--font-vazir)',
+                        borderRadius: 16,
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 12px 30px rgba(15,23,42,.08)'
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 11 }} />
+                    <Bar dataKey="gross_royalty" name="حق‌الامتیاز ناخالص" fill="#1d4ed8" radius={[5, 5, 0, 0]} />
+                    <Bar dataKey="after_tax" name="پس از مالیات" fill="#10b981" radius={[5, 5, 0, 0]} />
+                    <Line type="monotone" dataKey="pv" name="ارزش فعلی (PV)" stroke="#fb7185" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* جدول محاسبات سالانه */}
+      {/* Yearly table */}
       {yearlyData.length > 0 && (
-        <Card className="border-blue-200">
-          <CardContent className="p-4">
-            <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📊 جدول محاسبات سالانه</h4>
-            <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-blue-50">
-                    <th className="border p-2 text-center">سال</th>
-                    <th className="border p-2 text-right">درآمد</th>
-                    <th className="border p-2 text-right">حق‌الامتیاز ناخالص</th>
-                    <th className="border p-2 text-right">پس از مالیات</th>
-                    <th className="border p-2 text-right">ارزش فعلی (PV)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {yearlyData.map((row: any, index: number) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">{toPersianDigit(row.year)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.revenue)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.gross_royalty)}</td>
-                      <td className="border p-2 text-right font-bold text-green-600 font-[family-name:var(--font-vazir)]">
-                        {formatRial(row.after_tax)}
-                      </td>
-                      <td className="border p-2 text-right font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
-                        {formatRial(row.pv)}
-                      </td>
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-0">
+            <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+              <h4 className="text-sm font-black text-slate-800">جدول محاسبات سالانه</h4>
+              <p className="mt-1 text-[10px] text-slate-400">جزئیات محاسبات مالی برای هر سال از دوره پیش‌بینی</p>
+            </div>
+            <div className="overflow-x-auto p-4 sm:p-5">
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <table className="w-full min-w-[760px] border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                      <th className="p-3 text-center">سال</th>
+                      <th className="p-3 text-right">درآمد</th>
+                      <th className="p-3 text-right">حق‌الامتیاز ناخالص</th>
+                      <th className="p-3 text-right">پس از مالیات</th>
+                      <th className="p-3 text-right">ارزش فعلی (PV)</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {yearlyData.map((row: any, index: number) => (
+                      <tr key={index} className="bg-white transition-colors hover:bg-slate-50/70">
+                        <td className="p-3 text-center font-black text-slate-600">{toPersianDigit(row.year)}</td>
+                        <td className="p-3 text-right text-slate-600">{formatRial(row.revenue)}</td>
+                        <td className="p-3 text-right text-slate-600">{formatRial(row.gross_royalty)}</td>
+                        <td className="p-3 text-right font-bold text-emerald-600">{formatRial(row.after_tax)}</td>
+                        <td className="p-3 text-right font-black text-blue-600">{formatRial(row.pv)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی دارایی</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatRial(displayFinal)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
-          </CardContent>
-        </Card>
-        {/* 🔥 کارت تک توکن - جایگزین سطح اطمینان */}
-        <Card className="bg-gradient-to-br from-blue-100 to-white border-blue-300">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-            <p className="text-3xl font-bold text-blue-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Final valuation — intentionally placed at the end for stronger visual hierarchy */}
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
 
-      {/* دکمه خروجی Excel (PDF حذف شد) */}
-      <div className="flex justify-end">
-        <Button 
-          variant="outline" 
-          onClick={exportExcel}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)] hover:bg-green-50 hover:border-green-300"
-        >
-          <Download className="w-4 h-4" /> خروجی Excel
-        </Button>
-      </div>
+        <div className="relative">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+                <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+              </div>
+              <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+              <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{formatRial(displayFinal)}</p>
+              <p className="mt-2 text-[10px] text-emerald-100/60">پس از اعمال ضریب کیفیت</p>
+            </div>
+
+            <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+                <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+                <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+                <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+                <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+                <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

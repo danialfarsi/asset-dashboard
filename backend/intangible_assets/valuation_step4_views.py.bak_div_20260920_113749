@@ -61,26 +61,6 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             inputs = {**case_inputs, **method_inputs}
             method_id = step3.method_id
             
-            # 🔥 چک کردن مقادیر صفر
-            if inputs.get('discount_rate', 0) <= 0:
-                inputs['discount_rate'] = 18  # پیش‌فرض
-            if inputs.get('terminal_growth_rate', 0) <= 0:
-                inputs['terminal_growth_rate'] = 5  # پیش‌فرض
-            if inputs.get('tax_rate', 0) <= 0:
-                inputs['tax_rate'] = 25  # پیش‌فرض
-            if inputs.get('forecast_horizon', 0) <= 0:
-                inputs['forecast_horizon'] = 5  # پیش‌فرض
-            if inputs.get('current_revenue', 0) <= 0:
-                inputs['current_revenue'] = 500000000000  # پیش‌فرض
-            
-            # 🔥 چک منطقی: نرخ رشد نهایی باید کمتر از نرخ تنزیل باشه
-            if inputs.get('terminal_growth_rate', 0) >= inputs.get('discount_rate', 0):
-                inputs['terminal_growth_rate'] = inputs['discount_rate'] * 0.5  # نصف نرخ تنزیل
-            
-            print(f'📥 case_inputs: {case_inputs}')
-            print(f'📥 method_inputs: {method_inputs}')
-            print(f'📥 inputs نهایی: {inputs}')
-            
             print(f'📥 case_inputs: {case_inputs}')
             print(f'📥 method_inputs: {method_inputs}')
             print(f'📥 inputs نهایی: {inputs}')
@@ -180,14 +160,7 @@ class ValuationStep4ViewSet(viewsets.ModelViewSet):
             })
         
         last_after_tax = yearly_data[-1]['after_tax']
-        
-        # 🔥 محافظت از تقسیم بر صفر
-        if abs(discount_rate - terminal_growth_rate) < 0.001:
-            # اگه نرخ تنزیل و رشد نهایی برابر باشن، terminal_value = 0
-            terminal_value = 0
-        else:
-            terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
-        
+        terminal_value = (last_after_tax * (1 + terminal_growth_rate)) / (discount_rate - terminal_growth_rate)
         pv_terminal = terminal_value / ((1 + discount_rate) ** forecast_horizon)
         value_before_quality = total_pv + pv_terminal
         final_value = value_before_quality * quality_multiplier

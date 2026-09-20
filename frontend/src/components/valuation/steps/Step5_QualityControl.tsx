@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle, AlertCircle, XCircle, Loader2, ShieldCheck, RefreshCw, ClipboardCheck, CircleCheckBig, TriangleAlert, CircleX, Save, MessageSquareText, Sparkles, FileCheck2, Gauge, ArrowUpLeft, Info, Activity } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -746,243 +746,185 @@ export function Step5_QualityControl({
     : summary.errors === 0;
   const hasWarnings = summary.warnings > 0;
 
+  const scoreTone = summary.completeness_score >= 80
+    ? { ring: '#059669', soft: 'bg-emerald-50', text: 'text-emerald-700', label: 'مطلوب' }
+    : summary.completeness_score >= 60
+      ? { ring: '#d97706', soft: 'bg-amber-50', text: 'text-amber-700', label: 'نیازمند بررسی' }
+      : { ring: '#dc2626', soft: 'bg-red-50', text: 'text-red-700', label: 'نیازمند اصلاح' };
+
+  const scoreDegrees = Math.min(Math.max(summary.completeness_score, 0), 100) * 3.6;
+
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* هدر */}
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <span className="w-7 h-7 rounded-full bg-dark-green text-white flex items-center justify-center text-xs font-bold font-[family-name:var(--font-vazir)]">۵</span>
-        <span className="font-[family-name:var(--font-vazir)]">مرحله ۵ از ۷ - کنترل کیفیت (QC)</span>
+    <div
+      dir="rtl"
+      className="relative space-y-6 overflow-hidden rounded-[28px] bg-[#f7f9f8] p-3 font-[family-name:var(--font-vazir)] sm:p-5 lg:p-7"
+    >
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-72 overflow-hidden">
+        <div className="absolute -right-24 -top-28 h-72 w-72 rounded-full bg-emerald-200/20 blur-3xl" />
+        <div className="absolute left-0 top-4 h-64 w-64 rounded-full bg-teal-100/30 blur-3xl" />
       </div>
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">کنترل کیفیت</h2>
-          <p className="text-sm text-gray-500 font-[family-name:var(--font-vazir)]">
-            روش: <span className="font-medium text-dark-green">{actualMethodId}</span>
-            {assetDetails && (
-              <span className="mr-2 text-xs text-gray-400 font-[family-name:var(--font-vazir)]">
-                دارایی: {assetDetails.asset_name}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">امتیاز QC</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-              {toPersianNumber(summary.completeness_score)}/{toPersianNumber(100)}
-            </p>
+      {/* Top command panel */}
+      <section className="relative overflow-hidden rounded-[26px] border border-emerald-900/10 bg-white/95 shadow-[0_18px_55px_-35px_rgba(6,78,59,0.45)] backdrop-blur-xl">
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-emerald-700 via-emerald-500 to-teal-400" />
+        <div className="flex flex-col gap-5 p-5 lg:flex-row lg:items-center lg:justify-between lg:p-7">
+          <div className="flex items-start gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-950 text-white shadow-lg shadow-emerald-950/15">
+              <ShieldCheck className="h-7 w-7" />
+            </div>
+            <div>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700">مرحله ۵ از ۷</span>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-semibold text-slate-500">روش {actualMethodId}</span>
+              </div>
+              <h2 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl">کنترل کیفیت و اعتبارسنجی پرونده</h2>
+              <p className="mt-1.5 max-w-2xl text-sm leading-7 text-slate-500">
+                کنترل یکپارچگی داده‌ها، شواهد و الزامات روش ارزش‌گذاری
+                {assetDetails?.asset_name && <span className="font-bold text-slate-700"> · {assetDetails.asset_name}</span>}
+              </p>
+            </div>
           </div>
-          <Button
-            onClick={runQCChecks}
-            disabled={isRunning}
-            className="bg-dark-green hover:bg-dark-green/90 text-white font-[family-name:var(--font-vazir)]"
-          >
-            {isRunning ? (
-              <>
-                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
-                در حال بررسی...
-              </>
-            ) : (
-              'اجرای QC'
-            )}
-          </Button>
+
+          <div className="flex items-center gap-3 self-stretch sm:self-auto">
+            <div className="hidden min-w-[112px] rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-2.5 text-center sm:block">
+              <p className="text-[10px] font-bold text-slate-400">امتیاز فعلی</p>
+              <p className="mt-0.5 text-xl font-black text-emerald-800">{toPersianNumber(summary.completeness_score)}<span className="text-xs text-slate-400"> / ۱۰۰</span></p>
+            </div>
+            <Button
+              onClick={runQCChecks}
+              disabled={isRunning}
+              className="h-12 flex-1 rounded-2xl bg-emerald-800 px-5 font-bold text-white shadow-lg shadow-emerald-900/10 transition-all hover:-translate-y-0.5 hover:bg-emerald-900 hover:shadow-xl sm:flex-none"
+            >
+              {isRunning ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <RefreshCw className="ml-2 h-4 w-4" />}
+              {isRunning ? 'در حال بررسی...' : 'اجرای مجدد QC'}
+            </Button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* 🆕 کارت چک‌لیست Backend Validation */}
-      {backendValidation && (
-        <Card className={`border-2 ${
-          backendValidation.decision === 'APPROVE' ? 'border-emerald-300 bg-emerald-50/30' :
-          backendValidation.decision === 'CONDITIONAL' ? 'border-amber-300 bg-amber-50/30' :
-          'border-red-300 bg-red-50/30'
-        }`}>
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-                📋 چک‌لیست کامل پرونده (کنترل Backend)
-              </h3>
-              <Badge className={`${
-                backendValidation.decision === 'APPROVE' ? 'bg-emerald-500' :
-                backendValidation.decision === 'CONDITIONAL' ? 'bg-amber-500' :
-                'bg-red-500'
-              } text-white font-[family-name:var(--font-vazir)]`}>
-                {backendValidation.decision === 'APPROVE' ? '✅ تأیید' :
-                 backendValidation.decision === 'CONDITIONAL' ? '⚠️ مشروط' : '❌ نیاز به تکمیل'}
-              </Badge>
-            </div>
-
-            {/* نمره کامل بودن */}
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-1 font-[family-name:var(--font-vazir)]">
-                <span className="font-bold">{toPersianNumber(backendValidation.completeness_score)}٪</span>
-              </div>
-              <Progress value={backendValidation.completeness_score} className="h-2" />
-            </div>
-
-            {/* موارد موفق */}
-            {backendValidation.passed?.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-emerald-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
-                  ✅ {toPersianNumber(backendValidation.passed.length)} مورد تأیید شده
-                </p>
-                <div className="space-y-1">
-                  {backendValidation.passed.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-gray-600 font-[family-name:var(--font-vazir)]">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                      <span>{p.label}</span>
-                      <span className="text-gray-400">— {p.message}</span>
-                    </div>
-                  ))}
+      {/* Score + KPI */}
+      <section className="relative grid gap-4 xl:grid-cols-[1.25fr_2fr]">
+        <Card className="overflow-hidden rounded-[26px] border-0 bg-gradient-to-br from-[#063d32] via-[#075b49] to-[#087f5b] text-white shadow-[0_20px_50px_-28px_rgba(6,78,59,0.75)]">
+          <CardContent className="relative p-6">
+            <div className="absolute -left-10 -top-14 h-40 w-40 rounded-full border border-white/10" />
+            <div className="absolute -left-2 -top-4 h-24 w-24 rounded-full border border-white/10" />
+            <div className="relative flex items-center justify-between gap-5">
+              <div>
+                <div className="mb-3 flex items-center gap-2 text-emerald-100">
+                  <Gauge className="h-4 w-4" />
+                  <span className="text-xs font-bold">امتیاز کنترل کیفیت</span>
+                </div>
+                <p className="text-4xl font-black sm:text-5xl">{toPersianNumber(summary.completeness_score)}<span className="mr-1 text-lg font-semibold text-white/45">از ۱۰۰</span></p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold backdrop-blur">{toPersianNumber(summary.total_rules)} قانون بررسی‌شده</span>
+                  <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold backdrop-blur">وضعیت: {scoreTone.label}</span>
                 </div>
               </div>
-            )}
-
-            {/* موارد ناقص */}
-            {backendValidation.issues?.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-red-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
-                  ❌ {toPersianNumber(backendValidation.issues.length)} مورد نیاز به تکمیل
-                </p>
-                <div className="space-y-2">
-                  {backendValidation.issues.map((issue, i) => (
-                    <div key={i} className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs font-[family-name:var(--font-vazir)]">
-                      <div className="flex items-center gap-2 font-semibold text-red-700">
-                        <XCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>{issue.label}</span>
-                      </div>
-                      <p className="text-red-600 mt-1 mr-5">{issue.message}</p>
-                      {issue.hint && <p className="text-gray-600 mt-1 mr-5">💡 {issue.hint}</p>}
-                    </div>
-                  ))}
+              <div
+                className="relative grid h-28 w-28 shrink-0 place-items-center rounded-full p-[8px] shadow-2xl"
+                style={{ background: `conic-gradient(#ffffff ${scoreDegrees}deg, rgba(255,255,255,.15) ${scoreDegrees}deg)` }}
+              >
+                <div className="grid h-full w-full place-items-center rounded-full bg-[#075746] shadow-inner">
+                  <div className="text-center"><span className="text-3xl font-black">{toPersianNumber(summary.completeness_score)}</span><span className="text-sm text-white/60">٪</span><p className="mt-0.5 text-[9px] font-bold text-emerald-100/70">QUALITY</p></div>
                 </div>
               </div>
-            )}
+            </div>
+          </CardContent>
+        </Card>
 
-            {/* هشدارها */}
-            {backendValidation.warnings?.length > 0 && (
-              <div className="mb-3">
-                <p className="text-xs text-amber-700 font-semibold mb-2 font-[family-name:var(--font-vazir)]">
-                  ⚠️ {toPersianNumber(backendValidation.warnings.length)} هشدار
-                </p>
-                {backendValidation.warnings.map((w, i) => (
-                  <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs mb-1 font-[family-name:var(--font-vazir)]">
-                    <div className="flex items-center gap-2 font-semibold text-amber-700">
-                      <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{w.label}</span>
-                    </div>
-                    <p className="text-amber-600 mt-1 mr-5">{w.message}</p>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            { label: 'کل قوانین', value: summary.total_rules, icon: ClipboardCheck, cls: 'text-slate-700 bg-slate-100', dot: 'bg-slate-400' },
+            { label: 'تأیید شده', value: summary.passed, icon: CircleCheckBig, cls: 'text-emerald-700 bg-emerald-50', dot: 'bg-emerald-500' },
+            { label: 'هشدار', value: summary.warnings, icon: TriangleAlert, cls: 'text-amber-700 bg-amber-50', dot: 'bg-amber-500' },
+            { label: 'خطا', value: summary.errors, icon: CircleX, cls: 'text-red-700 bg-red-50', dot: 'bg-red-500' },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.label} className="group rounded-[22px] border border-slate-200/70 bg-white shadow-[0_12px_30px_-24px_rgba(15,23,42,.35)] transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="mb-5 flex items-center justify-between">
+                    <div className={`grid h-10 w-10 place-items-center rounded-xl ${item.cls}`}><Icon className="h-5 w-5" /></div>
+                    <span className={`h-2 w-2 rounded-full ${item.dot}`} />
                   </div>
-                ))}
+                  <p className="text-2xl font-black text-slate-900">{toPersianNumber(item.value)}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-400">{item.label}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Backend validation */}
+      {backendValidation && (
+        <Card className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[0_16px_45px_-32px_rgba(15,23,42,.35)]">
+          <CardContent className="p-0">
+            <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between lg:p-6">
+              <div className="flex items-center gap-3">
+                <div className={`grid h-11 w-11 place-items-center rounded-2xl ${backendValidation.decision === 'APPROVE' ? 'bg-emerald-50 text-emerald-700' : backendValidation.decision === 'CONDITIONAL' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+                  <FileCheck2 className="h-5 w-5" />
+                </div>
+                <div><h3 className="font-black text-slate-900">اعتبارسنجی کامل پرونده</h3><p className="mt-1 text-xs text-slate-400">نتیجه کنترل سمت سرور و وضعیت آمادگی پرونده</p></div>
               </div>
-            )}
+              <div className="flex items-center gap-3">
+                <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${backendValidation.decision === 'APPROVE' ? 'bg-emerald-50 text-emerald-700' : backendValidation.decision === 'CONDITIONAL' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700'}`}>
+                  {backendValidation.decision === 'APPROVE' ? 'تأیید نهایی' : backendValidation.decision === 'CONDITIONAL' ? 'تأیید مشروط' : 'نیازمند تکمیل'}
+                </span>
+                <span className="text-2xl font-black text-slate-900">{toPersianNumber(backendValidation.completeness_score)}٪</span>
+              </div>
+            </div>
+
+            <div className="px-5 pt-5 lg:px-6">
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-l from-emerald-700 to-emerald-400 transition-all duration-700" style={{ width: `${Math.min(backendValidation.completeness_score, 100)}%` }} /></div>
+            </div>
+
+            <div className="grid gap-4 p-5 lg:grid-cols-3 lg:p-6">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/40 p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-black text-emerald-800"><CircleCheckBig className="h-4 w-4" /> موارد تأیید شده</span><span className="rounded-lg bg-white px-2 py-1 text-xs font-black text-emerald-700 shadow-sm">{toPersianNumber(backendValidation.passed?.length || 0)}</span></div>
+                <div className="max-h-56 space-y-2 overflow-y-auto pl-1">
+                  {backendValidation.passed?.length ? backendValidation.passed.map((p, i) => <div key={i} className="rounded-xl bg-white/80 p-3 text-xs shadow-sm ring-1 ring-emerald-100/60"><p className="font-bold text-slate-700">{p.label}</p><p className="mt-1 leading-5 text-slate-400">{p.message}</p></div>) : <p className="py-6 text-center text-xs text-slate-400">موردی ثبت نشده است</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/40 p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-black text-amber-800"><TriangleAlert className="h-4 w-4" /> هشدارها</span><span className="rounded-lg bg-white px-2 py-1 text-xs font-black text-amber-700 shadow-sm">{toPersianNumber(backendValidation.warnings?.length || 0)}</span></div>
+                <div className="max-h-56 space-y-2 overflow-y-auto pl-1">
+                  {backendValidation.warnings?.length ? backendValidation.warnings.map((w, i) => <div key={i} className="rounded-xl bg-white/80 p-3 text-xs shadow-sm ring-1 ring-amber-100/60"><p className="font-bold text-slate-700">{w.label}</p><p className="mt-1 leading-5 text-slate-400">{w.message}</p></div>) : <p className="py-6 text-center text-xs text-slate-400">هشداری وجود ندارد</p>}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-red-100 bg-red-50/40 p-4">
+                <div className="mb-3 flex items-center justify-between"><span className="flex items-center gap-2 text-sm font-black text-red-800"><CircleX className="h-4 w-4" /> موارد ناقص</span><span className="rounded-lg bg-white px-2 py-1 text-xs font-black text-red-700 shadow-sm">{toPersianNumber(backendValidation.issues?.length || 0)}</span></div>
+                <div className="max-h-56 space-y-2 overflow-y-auto pl-1">
+                  {backendValidation.issues?.length ? backendValidation.issues.map((issue, i) => <div key={i} className="rounded-xl bg-white/80 p-3 text-xs shadow-sm ring-1 ring-red-100/60"><p className="font-bold text-slate-700">{issue.label}</p><p className="mt-1 leading-5 text-slate-500">{issue.message}</p>{issue.hint && <p className="mt-2 flex gap-1.5 rounded-lg bg-slate-50 p-2 leading-5 text-slate-500"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />{issue.hint}</p>}</div>) : <p className="py-6 text-center text-xs text-slate-400">مورد ناقصی وجود ندارد</p>}
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* کارت امتیاز QC */}
-      <Card className="border-0 shadow-sm bg-gradient-to-r from-dark-green to-medium-green text-white">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-80 font-[family-name:var(--font-vazir)]">امتیاز کنترل کیفیت</p>
-              <p className="text-4xl font-bold font-[family-name:var(--font-vazir)]">
-                {toPersianNumber(summary.completeness_score)}<span className="text-2xl opacity-60">/{toPersianNumber(100)}</span>
-              </p>
-              <div className="flex items-center gap-3 mt-2">
-                <Badge className="bg-green-500/30 text-white border-green-400 font-[family-name:var(--font-vazir)]">
-                  ✅ {toPersianNumber(summary.passed)} قبول
-                </Badge>
-                <Badge className="bg-yellow-500/30 text-white border-yellow-400 font-[family-name:var(--font-vazir)]">
-                  ⚠️ {toPersianNumber(summary.warnings)} هشدار
-                </Badge>
-                <Badge className="bg-red-500/30 text-white border-red-400 font-[family-name:var(--font-vazir)]">
-                  ❌ {toPersianNumber(summary.errors)} خطا
-                </Badge>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30">
-                <span className="text-3xl font-bold font-[family-name:var(--font-vazir)]">
-                  {toPersianNumber(summary.completeness_score)}%
-                </span>
-              </div>
-              <p className="text-xs opacity-70 mt-1 font-[family-name:var(--font-vazir)]">وضعیت کلی</p>
-            </div>
+      {/* Rules */}
+      <Card className="overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[0_16px_45px_-32px_rgba(15,23,42,.35)]">
+        <CardContent className="p-0">
+          <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+            <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700"><ClipboardCheck className="h-5 w-5" /></div><div><h3 className="font-black text-slate-900">قوانین کنترل کیفیت</h3><p className="mt-0.5 text-xs text-slate-400">جزئیات وضعیت هر قانون و شواهد مرتبط</p></div></div>
+            <span className="w-fit rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-500">{toPersianNumber(summary.total_rules)} قانون</span>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* خلاصه QC */}
-      <div className="grid grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">قوانین بررسی شده</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-              {toPersianNumber(summary.total_rules)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-green-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تأیید شده</p>
-            <p className="text-2xl font-bold text-green-600 font-[family-name:var(--font-vazir)]">
-              {toPersianNumber(summary.passed)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-yellow-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">هشدار</p>
-            <p className="text-2xl font-bold text-yellow-600 font-[family-name:var(--font-vazir)]">
-              {toPersianNumber(summary.warnings)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-red-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">خطا</p>
-            <p className="text-2xl font-bold text-red-600 font-[family-name:var(--font-vazir)]">
-              {toPersianNumber(summary.errors)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* پیشرفت QC */}
-      <div>
-        <div className="flex justify-between text-sm mb-1 font-[family-name:var(--font-vazir)]">
-          <span>پیشرفت QC</span>
-          <span>{toPersianNumber(summary.completeness_score)}%</span>
-        </div>
-        <Progress value={summary.completeness_score} className="h-2" />
-      </div>
-
-      {/* لیست قوانین */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📋 QC لیست قوانین </h3>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse font-[family-name:var(--font-vazir)]">
-              <thead>
-                <tr className="bg-gray-50">
-                  <th className="border p-2 text-right">شناسه</th>
-                  <th className="border p-2 text-right">قانون</th>
-                  <th className="border p-2 text-center">وضعیت</th>
-                  <th className="border p-2 text-center">اولویت</th>
-                  <th className="border p-2 text-right">شاهد</th>
-                  <th className="border p-2 text-right">توضیح</th>
-                </tr>
-              </thead>
-              <tbody>
+            <table className="w-full min-w-[900px] text-sm">
+              <thead><tr className="bg-slate-50/80 text-[11px] font-bold text-slate-400"><th className="px-5 py-3.5 text-right">شناسه</th><th className="px-5 py-3.5 text-right">قانون</th><th className="px-5 py-3.5 text-center">وضعیت</th><th className="px-5 py-3.5 text-center">اولویت</th><th className="px-5 py-3.5 text-center">شاهد</th><th className="px-5 py-3.5 text-right">توضیح</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
                 {qcRules.map((rule) => (
-                  <tr key={rule.id} className="hover:bg-gray-50">
-                    <td className="border p-2 text-center font-mono text-xs">{rule.id}</td>
-                    <td className="border p-2 font-[family-name:var(--font-vazir)]">{getRuleNameInPersian(rule.id, rule.name)}</td>
-                    <td className="border p-2 text-center">{getStatusBadge(rule.status)}</td>
-                    <td className="border p-2 text-center">{getPriorityBadge(rule.priority)}</td>
-                    <td className="border p-2 text-center text-xs font-[family-name:var(--font-vazir)]">{rule.evidence}</td>
-                    <td className="border p-2 text-xs text-gray-500 font-[family-name:var(--font-vazir)]">{rule.description}</td>
+                  <tr key={rule.id} className="group transition-colors hover:bg-slate-50/70">
+                    <td className="px-5 py-4"><span className="rounded-lg bg-slate-100 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-500">{rule.id}</span></td>
+                    <td className="px-5 py-4 font-bold text-slate-700">{getRuleNameInPersian(rule.id, rule.name)}</td>
+                    <td className="px-5 py-4 text-center">{getStatusBadge(rule.status)}</td>
+                    <td className="px-5 py-4 text-center">{getPriorityBadge(rule.priority)}</td>
+                    <td className="px-5 py-4 text-center text-xs font-semibold text-slate-500">{rule.evidence}</td>
+                    <td className="max-w-[300px] px-5 py-4 text-xs leading-6 text-slate-400">{rule.description}</td>
                   </tr>
                 ))}
               </tbody>
@@ -991,114 +933,42 @@ export function Step5_QualityControl({
         </CardContent>
       </Card>
 
-      {/* تصمیم‌گیری */}
-      <Card className="border-0 shadow-sm border-t-4 border-t-dark-green">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">🎯  QCتصمیم  </h3>
-          <div className="flex gap-4">
-            <Button
-              variant={decision === 'APPROVE' ? 'default' : 'outline'}
-              className={decision === 'APPROVE' ? 'bg-green-600 hover:bg-green-700' : ''}
-              onClick={() => setDecision('APPROVE')}
-            >
-              <CheckCircle className="w-4 h-4 ml-2" />
-              <span className="font-[family-name:var(--font-vazir)]">تأیید</span>
-            </Button>
-            <Button
-              variant={decision === 'CONDITIONAL' ? 'default' : 'outline'}
-              className={decision === 'CONDITIONAL' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-              onClick={() => setDecision('CONDITIONAL')}
-            >
-              <AlertCircle className="w-4 h-4 ml-2" />
-              <span className="font-[family-name:var(--font-vazir)]">مشروط</span>
-            </Button>
-            <Button
-              variant={decision === 'RETURN' ? 'default' : 'outline'}
-              className={decision === 'RETURN' ? 'bg-red-600 hover:bg-red-700' : ''}
-              onClick={() => setDecision('RETURN')}
-            >
-              <XCircle className="w-4 h-4 ml-2" />
-              <span className="font-[family-name:var(--font-vazir)]">بازگشت</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Decision + reviewer */}
+      <div className="grid gap-4 lg:grid-cols-[1.05fr_1.4fr]">
+        <Card className="rounded-[26px] border border-slate-200/80 bg-white shadow-[0_16px_45px_-32px_rgba(15,23,42,.35)]">
+          <CardContent className="p-5 lg:p-6">
+            <div className="mb-5 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-violet-50 text-violet-700"><Activity className="h-5 w-5" /></div><div><h3 className="font-black text-slate-900">تصمیم QC</h3><p className="mt-0.5 text-xs text-slate-400">نتیجه بررسی را انتخاب کنید</p></div></div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+              {[
+                { value: 'APPROVE' as const, label: 'تأیید', desc: 'قابل ادامه', icon: CheckCircle, active: 'border-emerald-500 bg-emerald-50 text-emerald-800', iconCls: 'bg-emerald-100 text-emerald-700' },
+                { value: 'CONDITIONAL' as const, label: 'مشروط', desc: 'با ملاحظات', icon: AlertCircle, active: 'border-amber-500 bg-amber-50 text-amber-800', iconCls: 'bg-amber-100 text-amber-700' },
+                { value: 'RETURN' as const, label: 'بازگشت', desc: 'نیاز به اصلاح', icon: XCircle, active: 'border-red-500 bg-red-50 text-red-800', iconCls: 'bg-red-100 text-red-700' },
+              ].map((item) => { const Icon = item.icon; const selected = decision === item.value; return <button key={item.value} type="button" onClick={() => setDecision(item.value)} className={`rounded-2xl border p-3.5 text-right transition-all hover:-translate-y-0.5 ${selected ? `${item.active} shadow-sm` : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'}`}><div className="flex items-center gap-3"><div className={`grid h-9 w-9 place-items-center rounded-xl ${item.iconCls}`}><Icon className="h-4 w-4" /></div><div><p className="text-sm font-black">{item.label}</p><p className="mt-0.5 text-[10px] opacity-60">{item.desc}</p></div></div></button>; })}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* نظرات بازبین */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">✏️ نظرات بازبین</h3>
-          <Textarea
-            value={reviewerComment}
-            onChange={(e) => setReviewerComment(e.target.value)}
-            placeholder="نظرات خود را در مورد هشدارها و شرایط وارد کنید..."
-            className="min-h-[80px] font-[family-name:var(--font-vazir)]"
-          />
-        </CardContent>
-      </Card>
-
-      {/* دکمه‌ها */}
-      <div className="flex justify-between pt-4 border-t">
-        <Button variant="outline" onClick={onPrev} className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-          <ChevronLeft className="w-4 h-4" />
-          قبلی
-        </Button>
-        
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-1 font-[family-name:var(--font-vazir)]"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                در حال ذخیره...
-              </>
-            ) : (
-              'ذخیره'
-            )}
-          </Button>
-          
-          <Button
-            className="bg-dark-green hover:bg-dark-green/90 flex items-center gap-1 font-[family-name:var(--font-vazir)]"
-            onClick={handleProceedWithWarnings}
-            disabled={!canProceed}
-          >
-            ادامه به مرحله ۶
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-        </div>
+        <Card className="rounded-[26px] border border-slate-200/80 bg-white shadow-[0_16px_45px_-32px_rgba(15,23,42,.35)]">
+          <CardContent className="p-5 lg:p-6">
+            <div className="mb-4 flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-blue-700"><MessageSquareText className="h-5 w-5" /></div><div><h3 className="font-black text-slate-900">یادداشت بازبین</h3><p className="mt-0.5 text-xs text-slate-400">ملاحظات، شروط یا توضیحات تکمیلی</p></div></div>
+            <Textarea value={reviewerComment} onChange={(e) => setReviewerComment(e.target.value)} placeholder="نظرات خود را درباره هشدارها، خطاها و شرایط پرونده وارد کنید..." className="min-h-[128px] resize-none rounded-2xl border-slate-200 bg-slate-50/60 p-4 leading-7 text-slate-700 outline-none transition-all placeholder:text-slate-300 focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-500/10" />
+          </CardContent>
+        </Card>
       </div>
 
-      {/* 🆕 پیام عدم امکان ادامه */}
-      {!canProceed && backendValidation?.issues_count > 0 && (
-        <p className="text-sm text-red-500 text-center font-[family-name:var(--font-vazir)]">
-          ❌ {toPersianNumber(backendValidation.issues_count)} مورد ناقص باید قبل از ادامه تکمیل شود
-        </p>
-      )}
+      {/* Contextual message */}
+      {!canProceed && backendValidation?.issues_count > 0 && <div className="flex items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700"><CircleX className="h-4 w-4" />{toPersianNumber(backendValidation.issues_count)} مورد ناقص باید قبل از ادامه تکمیل شود</div>}
+      {summary.errors === 0 && hasWarnings && canProceed && <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 sm:flex-row"><p className="flex items-center gap-2 text-sm font-semibold text-amber-700"><TriangleAlert className="h-4 w-4" />{toPersianNumber(summary.warnings)} هشدار وجود دارد؛ امکان ادامه با تأیید شما وجود دارد.</p><Button variant="outline" className="rounded-xl border-amber-200 bg-white text-amber-700 hover:bg-amber-100" onClick={onNext}>ادامه با هشدارها</Button></div>}
+      {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && canProceed && <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700"><Sparkles className="h-4 w-4" />همه قوانین با موفقیت تأیید شده‌اند.</div>}
 
-      {summary.errors === 0 && hasWarnings && canProceed && (
-        <div className="flex flex-col items-center gap-2 mt-4">
-          <p className="text-sm text-yellow-600 text-center font-[family-name:var(--font-vazir)]">
-            ⚠️ {toPersianNumber(summary.warnings)} هشدار وجود دارد. در صورت تایید، می‌توانید ادامه دهید.
-          </p>
-          <Button
-            variant="outline"
-            className="border-yellow-400 text-yellow-700 hover:bg-yellow-50 font-[family-name:var(--font-vazir)]"
-            onClick={onNext}
-          >
-            ادامه با وجود هشدارها
-          </Button>
+      {/* Sticky-like action footer */}
+      <div className="relative flex flex-col-reverse gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_18px_50px_-35px_rgba(15,23,42,.45)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" onClick={onPrev} className="h-11 rounded-xl px-4 font-bold text-slate-500 hover:bg-slate-100 hover:text-slate-800"><ChevronLeft className="ml-1 h-4 w-4" />مرحله قبل</Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button variant="outline" onClick={handleSave} disabled={saving} className="h-11 rounded-xl border-slate-200 px-5 font-bold text-slate-600 hover:bg-slate-50">{saving ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}{saving ? 'در حال ذخیره...' : 'ذخیره تغییرات'}</Button>
+          <Button onClick={handleProceedWithWarnings} disabled={!canProceed} className="h-11 rounded-xl bg-emerald-800 px-6 font-bold text-white shadow-lg shadow-emerald-900/10 hover:bg-emerald-900 disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none">ادامه به مرحله ۶<ArrowUpLeft className="mr-2 h-4 w-4" /></Button>
         </div>
-      )}
-
-      {summary.errors === 0 && !hasWarnings && summary.completeness_score === 100 && canProceed && (
-        <p className="text-sm text-green-500 text-center font-[family-name:var(--font-vazir)]">
-          ✅ همه قوانین با موفقیت پاس شده‌اند!
-        </p>
-      )}
+      </div>
     </div>
   );
 }
