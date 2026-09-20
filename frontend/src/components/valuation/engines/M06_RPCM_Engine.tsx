@@ -160,245 +160,334 @@ export function M06_RPCM_Engine({
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* توضیحات روش */}
-      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-        <p className="text-sm text-purple-700 font-[family-name:var(--font-vazir)]">
-          🔹 روش هزینه بازتولید (RPCM) - ارزش‌گذاری بر اساس هزینه بازتولید دقیق دارایی.
-          <span className="inline-block mr-2 px-2 py-0.5 bg-purple-200 text-purple-800 rounded-full text-xs font-medium">
-          </span>
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]" dir="rtl">
+
+      {/* Executive Header */}
+      <section className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.055)] sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-purple-100/60 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-emerald-100/45 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dark-green text-white shadow-lg shadow-emerald-950/10">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-purple-50 px-2.5 py-1 text-[10px] font-black text-purple-700">M-06</span>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">Reproduction Cost Method</span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">روش هزینه</span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 sm:text-2xl">نتایج ارزش‌گذاری روش RPCM</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500 sm:text-sm">
+                ارزش دارایی بر مبنای هزینه بازتولید دقیق و پس از اعمال سربار هماهنگی، استهلاک محتوایی، عامل سن و استهلاک فیزیکی محاسبه شده است.
+              </p>
+            </div>
+          </div>
+
           {hasData && (
-            <span className="inline-block mr-2 px-2 py-0.5 bg-purple-300 text-purple-800 rounded-full text-xs font-medium">
-              📥 داده از دیتابیس
+            <span className="inline-flex self-start rounded-full border border-purple-100 bg-purple-50 px-3.5 py-2 text-xs font-bold text-purple-700 lg:self-auto">
+              داده از دیتابیس
             </span>
           )}
-        </p>
-      </div>
+        </div>
+      </section>
 
       {!data && (
-        <Card className="border-2 border-dashed border-gray-300">
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-500 font-[family-name:var(--font-vazir)]">برای شروع محاسبه، روی دکمه زیر کلیک کنید</p>
-            <Button
-              className="mt-4 bg-dark-green hover:bg-dark-green/90 font-[family-name:var(--font-vazir)]"
-              onClick={onCalculate}
-              disabled={calculating}
-            >
-              {calculating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin ml-2" />
-                  در حال محاسبه...
-                </>
-              ) : (
-                'شروع محاسبه'
-              )}
-            </Button>
-            {error && (
-              <p className="mt-3 text-sm text-red-500 flex items-center justify-center gap-1 font-[family-name:var(--font-vazir)]">
-                <AlertCircle className="w-4 h-4" />
-                {error}
-              </p>
+        <section className="relative overflow-hidden rounded-[28px] border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-[0_8px_30px_rgba(15,23,42,0.035)]">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-50 text-purple-700">
+            <Users className="h-7 w-7" />
+          </div>
+          <h3 className="mt-4 text-base font-black text-slate-800">آماده محاسبه هزینه بازتولید</h3>
+          <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">
+            برای دریافت داده‌ها و اجرای مدل RPCM، فرآیند محاسبه را آغاز کنید.
+          </p>
+          <Button
+            className="mt-5 h-11 rounded-xl bg-dark-green px-6 font-bold text-white hover:bg-dark-green/90"
+            onClick={onCalculate}
+            disabled={calculating}
+          >
+            {calculating ? (
+              <>
+                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                در حال محاسبه...
+              </>
+            ) : (
+              'شروع محاسبه'
             )}
-          </CardContent>
-        </Card>
+          </Button>
+          {error && (
+            <p className="mt-3 flex items-center justify-center gap-1 text-xs font-bold text-rose-600">
+              <AlertCircle className="h-4 w-4" />
+              {error}
+            </p>
+          )}
+        </section>
       )}
 
       {data && (
         <>
-          {/* جزئیات نیروی کار */}
-          <Card className="border-purple-200">
-            <CardContent className="p-4">
-              <h4 className="text-sm font-bold text-dark-green mb-3 flex items-center gap-2 font-[family-name:var(--font-vazir)]">
-                <Users className="w-4 h-4" />
-                جزئیات نیروی کار (نفر-روز)
-              </h4>
-              <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-purple-50">
-                      <th className="border p-2 text-right">نقش</th>
-                      <th className="border p-2 text-right">نفر-روز</th>
-                      <th className="border p-2 text-right">نرخ روزانه</th>
-                      <th className="border p-2 text-right">هزینه</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {laborDetails.map((item: any, index: number) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="border p-2">{item.role}</td>
-                        <td className="border p-2 text-center">{item.person_days}</td>
-                        <td className="border p-2 font-[family-name:var(--font-vazir)]">{formatNumber(item.daily_rate)}</td>
-                        <td className="border p-2 font-[family-name:var(--font-vazir)]">{formatNumber(item.person_days * item.daily_rate)}</td>
+          {/* Labor Details */}
+          <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+            <CardContent className="p-0">
+              <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5 sm:px-6">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+                  <Users className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-800">جزئیات نیروی کار</h4>
+                  <p className="mt-0.5 text-[10px] text-slate-400">نفر-روز، نرخ روزانه و هزینه مستقیم بازتولید</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto p-4 sm:p-5">
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <table className="w-full min-w-[620px] border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                        <th className="p-3 text-right">نقش</th>
+                        <th className="p-3 text-center">نفر-روز</th>
+                        <th className="p-3 text-right">نرخ روزانه</th>
+                        <th className="p-3 text-right">هزینه</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* نمودار آبشار */}
-          <Card className="border-purple-200 shadow-md">
-            <CardContent className="p-4">
-              <div style={{ width: '100%', height: 400 }} dir="ltr">
-                <ResponsiveContainer>
-                  <BarChart
-                    data={chartData}
-                    margin={{ top: 40, right: 30, left: 20, bottom: 30 }}
-                    barGap={8}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis 
-                      dataKey="name" 
-                      tick={{ fontSize: 11, fontFamily: 'var(--font-vazir)' }} 
-                      axisLine={{ stroke: '#e5e7eb' }} 
-                      tickLine={false} 
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 10, fontFamily: 'var(--font-vazir)' }} 
-                      tickFormatter={(value) => formatNumber(value)} 
-                      axisLine={false} 
-                      tickLine={false} 
-                    />
-                    <Tooltip 
-                      formatter={(value: any) => formatNumber(value)} 
-                      contentStyle={{ fontFamily: 'var(--font-vazir)' }}
-                    />
-                    <Legend 
-                      content={() => (
-                        <div className="flex justify-center gap-8 mt-4 font-[family-name:var(--font-vazir)]" dir="rtl">
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded" style={{ backgroundColor: '#22c55e' }}></span>
-                            <span className="text-gray-700 text-sm">افزایش (+)</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded" style={{ backgroundColor: '#ef4444' }}></span>
-                            <span className="text-gray-700 text-sm">کاهش (-)</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded" style={{ backgroundColor: '#14b8a6' }}></span>
-                            <span className="text-gray-700 text-sm font-medium">ارزش نهایی</span>
-                          </div>
-                        </div>
-                      )} 
-                    />
-                    <Bar dataKey="value" radius={[2, 2, 0, 0]} barSize={50}>
-                      {chartData.map((entry: any, index: number) => (
-                        <Cell key={`cell-${index}`} fill={getColor(entry)} opacity={entry.isFinal ? 1 : 0.85} />
-                      ))}
-                      <LabelList content={<CustomLabel />} />
-                    </Bar>
-                    <ReferenceLine y={0} stroke="#e5e7eb" strokeWidth={1} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* جدول مراحل */}
-          <Card className="border-purple-200">
-            <CardContent className="p-4">
-              <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📋 مراحل محاسبه</h4>
-              <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-purple-50">
-                      <th className="border p-2 text-center">مرحله</th>
-                      <th className="border p-2 text-right">شرح</th>
-                      <th className="border p-2 text-right">ورودی / تعدیل</th>
-                      <th className="border p-2 text-right">ارزش تجمعی</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {waterfallData.map((item: any, index: number) => {
-                      const isFinal = item.is_final;
-                      const isDecrease = item.type === 'decrease';
-                      const isIncrease = item.type === 'increase';
-                      
-                      let rowColor = 'hover:bg-gray-50';
-                      let valueColor = 'text-gray-700';
-                      if (isFinal) {
-                        rowColor = 'bg-teal-50';
-                        valueColor = 'text-teal-700 font-bold';
-                      } else if (isDecrease) {
-                        rowColor = 'bg-red-50';
-                        valueColor = 'text-red-600';
-                      } else if (isIncrease) {
-                        rowColor = 'bg-green-50';
-                        valueColor = 'text-green-600';
-                      }
-                      
-                      const displayAmount = item.amount > 0 ? `+ ${formatNumber(item.amount)}` : 
-                                           item.amount < 0 ? `- ${formatNumber(Math.abs(item.amount))}` :
-                                           formatNumber(item.amount);
-                      
-                      return (
-                        <tr key={index} className={`${rowColor} transition-colors`}>
-                          <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">{item.step}</td>
-                          <td className="border p-2">{item.title}</td>
-                          <td className={`border p-2 font-[family-name:var(--font-vazir)] ${valueColor}`}>{displayAmount}</td>
-                          <td className={`border p-2 font-[family-name:var(--font-vazir)] ${isFinal ? 'text-teal-700 font-bold text-base' : ''}`}>
-                            {formatNumber(item.cumulative)}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {laborDetails.map((item: any, index: number) => (
+                        <tr key={index} className="bg-white transition-colors hover:bg-slate-50/70">
+                          <td className="p-3 font-bold text-slate-700">{item.role}</td>
+                          <td className="p-3 text-center font-black text-slate-600">{item.person_days}</td>
+                          <td className="p-3 text-right text-slate-600">{formatNumber(item.daily_rate)}</td>
+                          <td className="p-3 text-right font-black text-dark-green">
+                            {formatNumber(item.person_days * item.daily_rate)}
                           </td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* فرمول */}
-          <Card className="border-gray-200 bg-gray-50">
-            <CardContent className="p-4">
-              <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
-              <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
-                <span className="text-dark-green font-bold">ارزش = [(هزینه نیروی کار + هزینه بازتولید) × (۱ + سربار هماهنگی)] × (۱ - استهلاک محتوایی) × (۱ - عامل سن) × (۱ - استهلاک فیزیکی)</span>
-                <br />
-                <span className="text-gray-400 text-xs">با استفاده از داده‌های STEP 2 و STEP 3</span>
-                <br />
-                <span className="text-teal-700 font-bold text-base">= {formatNumber(displayFinal)} ریال</span>
-                <br />
-                <span className="text-purple-600 font-bold text-base">
-                  = {formatNumber(displayToken)} تک توکن
-                </span>
+          {/* Waterfall */}
+          <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+            <CardContent className="p-0">
+              <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div>
+                  <h4 className="text-sm font-black text-slate-800">آبشار هزینه بازتولید</h4>
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    اثر هزینه‌های بازتولید و تعدیلات استهلاک بر ارزش تجمعی دارایی
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <i className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                    افزایش
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <i className="h-2.5 w-2.5 rounded-full bg-red-500" />
+                    کاهش
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <i className="h-2.5 w-2.5 rounded-full bg-teal-500" />
+                    ارزش نهایی
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 sm:p-6">
+                <div style={{ width: '100%', height: 410 }} dir="ltr">
+                  <ResponsiveContainer>
+                    <BarChart
+                      data={chartData}
+                      margin={{ top: 48, right: 25, left: 10, bottom: 25 }}
+                      barGap={8}
+                    >
+                      <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="name"
+                        tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'var(--font-vazir)' }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'var(--font-vazir)' }}
+                        tickFormatter={(value) => formatNumber(value)}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        formatter={(value: any) => formatNumber(value)}
+                        contentStyle={{
+                          fontFamily: 'var(--font-vazir)',
+                          borderRadius: 16,
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 12px 30px rgba(15,23,42,.08)'
+                        }}
+                      />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={48}>
+                        {chartData.map((entry: any, index: number) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={getColor(entry)}
+                            opacity={entry.isFinal ? 1 : 0.86}
+                          />
+                        ))}
+                        <LabelList content={<CustomLabel />} />
+                      </Bar>
+                      <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش برآوردی</p>
-                <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatNumber(displayFinal)}</p>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ریال</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-purple-100 to-white border-purple-300">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-                <p className="text-3xl font-bold text-purple-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-              <CardContent className="p-4 text-center">
-                <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-                <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-                <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Calculation Steps */}
+          <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+            <CardContent className="p-0">
+              <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+                <h4 className="text-sm font-black text-slate-800">مراحل محاسبه</h4>
+                <p className="mt-1 text-[10px] text-slate-400">
+                  مسیر تبدیل هزینه مستقیم بازتولید به ارزش نهایی دارایی
+                </p>
+              </div>
 
-          {/* دکمه خروجی */}
+              <div className="overflow-x-auto p-4 sm:p-5">
+                <div className="overflow-hidden rounded-2xl border border-slate-200">
+                  <table className="w-full min-w-[760px] border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                        <th className="p-3 text-center">مرحله</th>
+                        <th className="p-3 text-right">شرح</th>
+                        <th className="p-3 text-right">ورودی / تعدیل</th>
+                        <th className="p-3 text-right">ارزش تجمعی</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {waterfallData.map((item: any, index: number) => {
+                        const isFinal = item.is_final;
+                        const isDecrease = item.type === 'decrease';
+                        const isIncrease = item.type === 'increase';
+
+                        const displayAmount = item.amount > 0
+                          ? `+ ${formatNumber(item.amount)}`
+                          : item.amount < 0
+                            ? `- ${formatNumber(Math.abs(item.amount))}`
+                            : formatNumber(item.amount);
+
+                        return (
+                          <tr
+                            key={index}
+                            className={`transition-colors ${
+                              isFinal ? 'bg-teal-50/60' : 'bg-white hover:bg-slate-50/70'
+                            }`}
+                          >
+                            <td className="p-3 text-center font-black text-slate-600">{item.step}</td>
+                            <td className="p-3 font-bold text-slate-700">{item.title}</td>
+                            <td
+                              className={`p-3 font-black ${
+                                isFinal
+                                  ? 'text-teal-700'
+                                  : isDecrease
+                                    ? 'text-red-600'
+                                    : isIncrease
+                                      ? 'text-green-600'
+                                      : 'text-slate-600'
+                              }`}
+                            >
+                              {displayAmount}
+                            </td>
+                            <td
+                              className={`p-3 ${
+                                isFinal
+                                  ? 'text-base font-black text-teal-700'
+                                  : 'font-bold text-slate-600'
+                              }`}
+                            >
+                              {formatNumber(item.cumulative)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Formula */}
+          <section className="rounded-[26px] border border-slate-200/80 bg-white p-5 shadow-[0_8px_28px_rgba(15,23,42,0.04)] sm:p-6">
+            <div className="mb-4">
+              <h4 className="text-sm font-black text-slate-800">منطق محاسبه RPCM</h4>
+              <p className="mt-1 text-[10px] text-slate-400">
+                ساختار تعدیلات اعمال‌شده بر هزینه بازتولید دقیق دارایی
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50/70 px-5 py-5 text-center">
+              <p className="text-sm font-black leading-8 text-dark-green">
+                ارزش = [(هزینه نیروی کار + هزینه بازتولید) × (۱ + سربار هماهنگی)] ×
+                (۱ - استهلاک محتوایی) × (۱ - عامل سن) × (۱ - استهلاک فیزیکی)
+              </p>
+              <p className="mt-2 text-[10px] text-slate-400">با استفاده از داده‌های STEP 2 و STEP 3</p>
+            </div>
+          </section>
+
+          {/* Final valuation — deliberately at bottom */}
+          <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+            <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
+
+            <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+                  <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+                </div>
+                <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+                <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
+                  {formatNumber(displayFinal)}
+                  <span className="mr-2 text-base font-bold text-emerald-100/70">ریال</span>
+                </p>
+                <p className="mt-2 text-[10px] text-emerald-100/60">
+                  ارزش نهایی پس از اعمال تعدیلات بازتولید و استهلاک
+                </p>
+              </div>
+
+              <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+                  <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+                  <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+                  <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+                  <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+                  <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+                  <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Existing output actions preserved */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              <Download className="w-4 h-4" /> خروجی Excel
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green hover:bg-dark-green/10"
+            >
+              <Download className="ml-2 h-4 w-4" />
+              خروجی Excel
             </Button>
-            <Button variant="outline" className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-              <FileText className="w-4 h-4" /> خروجی PDF
+            <Button
+              variant="outline"
+              className="h-11 rounded-xl border-slate-200 px-4 font-bold text-slate-600 hover:bg-slate-50"
+            >
+              <FileText className="ml-2 h-4 w-4" />
+              خروجی PDF
             </Button>
           </div>
         </>

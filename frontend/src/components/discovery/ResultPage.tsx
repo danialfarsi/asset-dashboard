@@ -99,13 +99,13 @@ export function ResultPage({
   // اگر دارایی ثبت شده، پیام موفقیت نشون بده
   if (isRegistered && generatedCode) {
     return (
-      <div className="text-center py-12">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+      <div dir="rtl" className="rounded-[30px] border border-emerald-100 bg-gradient-to-b from-emerald-50/70 via-white to-white px-5 py-12 text-center font-vazir shadow-[0_14px_45px_rgba(15,23,42,.055)]">
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[24px] bg-emerald-100 text-emerald-700 shadow-lg shadow-emerald-950/10">
           <CheckCircle className="w-10 h-10 text-green-600" />
         </div>
         <h3 className="text-2xl font-bold text-green-800 mt-4">✅ دارایی با موفقیت ثبت شد!</h3>
         <p className="text-gray-600 mt-2">دارایی شما با کد زیر در سیستم ثبت گردید:</p>
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg inline-flex items-center gap-3">
+        <div className="mt-5 inline-flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
           <span className="font-mono text-lg font-bold text-dark-green">{generatedCode}</span>
           <button
             onClick={handleCopyCode}
@@ -149,15 +149,15 @@ export function ResultPage({
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-7 rounded-[32px] bg-gradient-to-b from-[#f7fbfa] via-white to-[#f8faf9] p-4 font-vazir md:p-7" dir="rtl">
       {/* هدر */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-gradient-to-l from-emerald-50/80 via-white to-white p-5 shadow-[0_12px_38px_rgba(15,23,42,.05)] md:p-7 flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-xl font-bold text-dark-green flex items-center gap-2">
+          <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2">
             🔍 نتیجه ارزیابی دارایی نامشهود
           </h2>
           <div className="flex items-center gap-3 mt-1">
-            <span className="text-lg font-semibold">{assetData?.asset_name || 'نامشخص'}</span>
+            <span className="text-lg font-black text-slate-700">{assetData?.asset_name || 'نامشخص'}</span>
             {generatedCode && (
               <Badge variant="outline" className="font-mono bg-gray-50 flex items-center gap-1">
                 {generatedCode}
@@ -179,8 +179,8 @@ export function ResultPage({
       </div>
 
       {/* وضعیت نهایی */}
-      <Card className={cn("border-2", statusColors[status] || statusColors.REJECTED)}>
-        <CardContent className="p-4 flex items-center gap-3">
+      <Card className={cn("overflow-hidden rounded-[24px] border shadow-[0_8px_28px_rgba(15,23,42,.045)]", statusColors[status] || statusColors.REJECTED)}>
+        <CardContent className="p-5 md:p-6 flex items-center gap-4">
           {statusIcons[status] || statusIcons.REJECTED}
           <div>
             <p className="font-medium">{statusDesc[status] || statusDesc.REJECTED}</p>
@@ -189,15 +189,15 @@ export function ResultPage({
       </Card>
 
       {/* ۴ شرط اصلی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { key: 'n', label: 'غیرفیزیکی بودن', score: result?.n_score || 0, total: result?.n_total || 6, status: result?.n_status || 'FAIL' },
           { key: 'i', label: 'شناسایی‌پذیری', score: result?.i_score || 0, total: result?.i_total || 7, status: result?.i_status || 'FAIL' },
           { key: 'c', label: 'کنترل منافع', score: result?.c_score || 0, total: result?.c_total || 7, status: result?.c_status || 'FAIL' },
           { key: 'v', label: 'ارزش‌آفرینی', score: result?.v_score || 0, total: result?.v_total || 9, status: result?.v_status || 'FAIL' }
         ].map((item) => (
-          <Card key={item.key} className="border-0 shadow-sm bg-gray-50">
-            <CardContent className="p-4 text-center">
+          <Card key={item.key} className="rounded-[22px] border border-slate-200/80 bg-white shadow-[0_8px_24px_rgba(15,23,42,.04)] transition-all hover:-translate-y-0.5 hover:shadow-md">
+            <CardContent className="p-5 text-center">
               <p className="text-sm text-gray-600">{item.label}</p>
               <p className={cn(
                 "text-2xl font-bold",
@@ -217,8 +217,8 @@ export function ResultPage({
       </div>
 
       {/* مولفه‌های احراز شده */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="rounded-[26px] border border-slate-200/80 shadow-[0_8px_28px_rgba(15,23,42,.045)]">
+        <CardContent className="p-5 md:p-6">
           <h4 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             مولفه‌های احراز شده
@@ -230,7 +230,7 @@ export function ResultPage({
               { label: 'کنترل', items: result?.c_details || [] },
               { label: 'ارزش', items: result?.v_details || [] }
             ].map((group) => (
-              <div key={group.label} className="bg-gray-50 rounded-lg p-3">
+              <div key={group.label} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                 <p className="text-xs text-gray-500 mb-1">{group.label}</p>
                 <div className="flex flex-wrap gap-1">
                   {group.items && group.items.length > 0 ? (
@@ -251,21 +251,21 @@ export function ResultPage({
 
       {/* پیشنهاد قالب */}
       {suggestion && (
-        <div className="space-y-4 mt-6 border-t pt-6">
+        <div className="space-y-5 mt-7 border-t border-slate-100 pt-7">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-primary" />
-            <h3 className="text-lg font-bold text-dark-green">🎯 پیشنهاد قالب دارایی</h3>
+            <h3 className="text-xl font-black text-slate-900">🎯 پیشنهاد قالب دارایی</h3>
           </div>
 
           {/* بهترین تطابق */}
           <Card className={cn(
-            "border-2",
+            "rounded-[26px] overflow-hidden shadow-[0_10px_32px_rgba(15,23,42,.05)] border",
             suggestion.best_template?.match_percentage >= 80 
               ? "border-green-300 bg-green-50" 
               : "border-primary/20 bg-primary/5"
           )}>
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between flex-wrap gap-4">
+            <CardContent className="p-5 md:p-6">
+              <div className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-gradient-to-l from-emerald-50/80 via-white to-white p-5 shadow-[0_12px_38px_rgba(15,23,42,.05)] md:p-7 flex items-start justify-between flex-wrap gap-4">
                 <div className="flex-1 min-w-[200px]">
                   <div className="flex items-center gap-2 flex-wrap">
                     <Badge className={cn(
@@ -378,7 +378,7 @@ export function ResultPage({
 
           {/* خطا */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
               ❌ {error}
             </div>
           )}
@@ -387,11 +387,11 @@ export function ResultPage({
               دکمه‌های اقدام
               ============================================ */}
           {!isRegistered && (
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+            <div className="sticky bottom-4 z-20 flex flex-col gap-3 rounded-[22px] border border-slate-200/80 bg-white/95 p-3 shadow-[0_16px_45px_rgba(15,23,42,.12)] backdrop-blur-xl sm:flex-row">
               {/* دکمه اصلی: ثبت نهایی */}
               <Button 
                 className={cn(
-                  "flex-1 bg-primary hover:bg-primary-dark text-white",
+                  "flex-1 h-12 rounded-xl bg-dark-green hover:bg-dark-green/90 text-white font-black shadow-lg shadow-emerald-950/10",
                   "transition-all duration-200"
                 )}
                 onClick={onRegister}
@@ -418,7 +418,7 @@ export function ResultPage({
               {/* دکمه کمکی: انتخاب قالب دیگر */}
               <Button 
                 variant="outline"
-                className="flex-1 border-gray-300 hover:bg-gray-50"
+                className="flex-1 h-12 rounded-xl border-slate-200 hover:bg-slate-50 font-bold"
                 onClick={onSelectAlternative}
                 disabled={loading || !suggestion?.alternative}
               >
@@ -434,7 +434,7 @@ export function ResultPage({
               {/* دکمه کمکی: بازگشت و ویرایش */}
               <Button 
                 variant="ghost"
-                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                className="h-12 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100"
                 onClick={onBack}
                 disabled={loading}
               >
@@ -474,7 +474,7 @@ export function ResultPage({
           دیالوگ برای کاربران لاگین نشده
           ============================================ */}
       <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-[28px] border-slate-200 p-6 font-vazir">
           <DialogHeader>
             <DialogTitle className="text-center text-xl text-dark-green">
               🚀 برای ارزش‌گذاری دارایی خود وارد شوید

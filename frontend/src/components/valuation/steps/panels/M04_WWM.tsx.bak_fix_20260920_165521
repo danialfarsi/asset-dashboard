@@ -62,10 +62,9 @@ export function M04_WWM({
   const [uploadType, setUploadType] = useState<'with' | 'without' | null>(null);
 
   // تبدیل عدد به فارسی
-  const toPersianNumber = (num: any) => {
-    if (num === undefined || num === null || num === '') return '۰';
+  const toPersianNumber = (num: number) => {
     const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
-    return String(num).replace(/\d/g, (d) => persianDigits[parseInt(d)]);
+    return num.toString().replace(/\d/g, (d) => persianDigits[parseInt(d)]);
   };
 
   useEffect(() => {
@@ -489,10 +488,10 @@ export function M04_WWM({
       <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs font-[family-name:var(--font-vazir)]">
         <p className="font-medium text-blue-700 mb-1">📥 داده‌های ورودی از STEP 2:</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-1">
-          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate ?? 0}%</span></div>
-          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate ?? 0}%</span></div>
-          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon ?? 0)} سال</span></div>
-          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{toPersianNumber((data.current_revenue ?? 0).toLocaleString())}</span></div>
+          <div><span className="text-gray-500">نرخ مالیات:</span> <span className="font-bold">{data.tax_rate}%</span></div>
+          <div><span className="text-gray-500">نرخ تنزیل:</span> <span className="font-bold">{data.discount_rate}%</span></div>
+          <div><span className="text-gray-500">افق پیش‌بینی:</span> <span className="font-bold">{toPersianNumber(data.forecast_horizon)} سال</span></div>
+          <div><span className="text-gray-500">درآمد جاری:</span> <span className="font-bold">{toPersianNumber(data.current_revenue?.toLocaleString())}</span></div>
         </div>
       </div>
     );

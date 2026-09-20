@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileText, AlertCircle, Loader2 } from 'lucide-react';
+import { Download, FileText, AlertCircle, Loader2, ArrowUpRight, ArrowDownRight, Sigma } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -146,11 +146,11 @@ export function M04_WWM_Engine({
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-xl shadow-xl border border-gray-100 font-[family-name:var(--font-vazir)]">
-          <p className="font-bold text-dark-green text-sm">{label}</p>
-          {payload.map((item: any, index: number) => (
-            <p key={index} className="text-xs" style={{ color: item.color }}>
-              {item.name}: {formatRial(item.value)}
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-lg font-[family-name:var(--font-vazir)]" dir="rtl">
+          <p className="mb-2 text-xs font-bold text-slate-700">{`سال ${label}`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-xs" style={{ color: entry.color }}>
+              {entry.name}: {formatRial(entry.value)}
             </p>
           ))}
         </div>
@@ -160,192 +160,194 @@ export function M04_WWM_Engine({
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
-      {/* توضیحات روش */}
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <p className="text-sm text-blue-700 font-[family-name:var(--font-vazir)]">
-          🔹 روش با و بدون دارایی (WWM) 
-          <span className="inline-block mr-2 px-2 py-0.5 bg-blue-200 text-blue-800 rounded-full text-xs font-medium">
-            
-          </span>
-          <span className="inline-block mr-2 px-2 py-0.5 bg-blue-300 text-blue-800 rounded-full text-xs font-medium">
-            📥 داده از دیتابیس
-          </span>
-        </p>
-      </div>
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]" dir="rtl">
 
-      {/* نمودار FCF */}
-      <Card className="border-blue-200 shadow-md">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">📈 جریان نقدی آزاد (FCF)</h4>
-            <div className="flex items-center gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-blue-600" />
-                <span className="text-gray-600 font-[family-name:var(--font-vazir)]">با دارایی</span>
+      {/* Executive Header */}
+      <section className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.055)] sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-blue-100/60 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-amber-100/40 blur-3xl" />
+
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dark-green text-white shadow-lg shadow-emerald-950/10">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-blue-700">M-04</span>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">With & Without Method</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">روش درآمد</span>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded-full bg-amber-500" />
-                <span className="text-gray-600 font-[family-name:var(--font-vazir)]">بدون دارایی</span>
-              </div>
+              <h2 className="text-xl font-black text-slate-900 sm:text-2xl">نتایج ارزش‌گذاری روش WWM</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500 sm:text-sm">
+                ارزش دارایی از تفاوت جریان نقدی آزاد در سناریوی «با دارایی» و «بدون دارایی» و تنزیل جریان تفاضلی استخراج شده است.
+              </p>
             </div>
           </div>
-          
-          <div style={{ width: '100%', height: 320 }} dir="ltr">
-            <ResponsiveContainer>
-              <LineChart
-                data={fcfData}
-                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="year" 
-                  tick={{ fontSize: 11, fill: '#6b7280', fontFamily: 'var(--font-vazir)' }}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  tick={{ fontSize: 10, fill: '#6b7280', fontFamily: 'var(--font-vazir)' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => formatMillions(value)}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)' }} />
-                <Line
-                  type="monotone"
-                  dataKey="withFCF"
-                  name="با دارایی"
-                  stroke="#1e40af"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#1e40af', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="withoutFCF"
-                  name="بدون دارایی"
-                  stroke="#f59e0b"
-                  strokeWidth={2.5}
-                  dot={{ fill: '#f59e0b', r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <ReferenceLine y={0} stroke="#9ca3af" strokeWidth={1} />
-              </LineChart>
-            </ResponsiveContainer>
+
+          <span className="inline-flex self-start items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-500 lg:self-auto">
+            داده از دیتابیس
+          </span>
+        </div>
+      </section>
+
+      {/* Scenario summary */}
+      <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="rounded-[22px] border border-blue-100 bg-blue-50/50 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <ArrowUpRight className="h-4 w-4" />
+            </div>
+            <p className="text-[10px] font-bold text-slate-400">جمع FCF با دارایی</p>
+          </div>
+          <p className="mt-3 text-base font-black text-blue-700">{formatRial(totalWith)}</p>
+        </div>
+
+        <div className="rounded-[22px] border border-amber-100 bg-amber-50/50 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <ArrowDownRight className="h-4 w-4" />
+            </div>
+            <p className="text-[10px] font-bold text-slate-400">جمع FCF بدون دارایی</p>
+          </div>
+          <p className="mt-3 text-base font-black text-amber-600">{formatRial(totalWithout)}</p>
+        </div>
+
+        <div className="rounded-[22px] border border-emerald-100 bg-emerald-50/50 p-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+              <Sigma className="h-4 w-4" />
+            </div>
+            <p className="text-[10px] font-bold text-slate-400">تفاضل کل (Δ)</p>
+          </div>
+          <p className="mt-3 text-base font-black text-emerald-700">{formatRial(totalDelta)}</p>
+        </div>
+      </section>
+
+      {/* FCF Chart */}
+      <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+        <CardContent className="p-0">
+          <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h4 className="text-sm font-black text-slate-800">جریان نقدی آزاد (FCF)</h4>
+              <p className="mt-1 text-[10px] text-slate-400">مقایسه روند جریان نقدی در دو سناریوی با دارایی و بدون دارایی</p>
+            </div>
+            <div className="flex items-center gap-4 text-[10px] font-bold text-slate-500">
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-blue-700" />با دارایی</span>
+              <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-amber-500" />بدون دارایی</span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t">
-            <div className="text-center">
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">جمع با دارایی</p>
-              <p className="text-sm font-bold text-blue-600 font-[family-name:var(--font-vazir)]">{formatRial(totalWith)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">جمع بدون دارایی</p>
-              <p className="text-sm font-bold text-amber-500 font-[family-name:var(--font-vazir)]">{formatRial(totalWithout)}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تفاضل (Δ)</p>
-              <p className="text-sm font-bold text-emerald-600 font-[family-name:var(--font-vazir)]">{formatRial(totalDelta)}</p>
+          <div className="p-4 sm:p-6">
+            <div style={{ width: '100%', height: 340 }} dir="ltr">
+              <ResponsiveContainer>
+                <LineChart data={fcfData} margin={{ top: 20, right: 25, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                  <XAxis
+                    dataKey="year"
+                    tick={{ fontSize: 11, fill: '#64748b', fontFamily: 'var(--font-vazir)' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'var(--font-vazir)' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => formatMillions(value)}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 11 }} />
+                  <Line type="monotone" dataKey="withFCF" name="با دارایی" stroke="#1d4ed8" strokeWidth={3} dot={{ fill: '#1d4ed8', r: 3 }} activeDot={{ r: 5 }} />
+                  <Line type="monotone" dataKey="withoutFCF" name="بدون دارایی" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', r: 3 }} activeDot={{ r: 5 }} />
+                  <ReferenceLine y={0} stroke="#cbd5e1" strokeWidth={1} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* جدول Differential Calculation */}
-      <Card className="border-blue-200">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📊 جدول محاسبه تفاضلی</h4>
-          <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-blue-50">
-                  <th className="border p-2 text-center">سال</th>
-                  <th className="border p-2 text-right">FCF با دارایی</th>
-                  <th className="border p-2 text-right">FCF بدون دارایی</th>
-                  <th className="border p-2 text-right">Δ</th>
-                  <th className="border p-2 text-right">پس از مالیات</th>
-                  <th className="border p-2 text-right">PV</th>
-                </tr>
-              </thead>
-              <tbody>
-                {differentialData.map((row: any, index: number) => {
-                  const isEven = index % 2 === 0;
-                  return (
-                    <tr key={index} className={isEven ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">{row.year}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.withFCF)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.withoutFCF)}</td>
-                      <td className="border p-2 text-right font-bold text-blue-600 font-[family-name:var(--font-vazir)]">
-                        {formatRial(row.delta)}
-                      </td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.afterTax)}</td>
-                      <td className="border p-2 text-right font-[family-name:var(--font-vazir)]">{formatRial(row.pv)}</td>
+      {/* Differential Calculation */}
+      <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+        <CardContent className="p-0">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <h4 className="text-sm font-black text-slate-800">جدول محاسبه تفاضلی</h4>
+            <p className="mt-1 text-[10px] text-slate-400">جزئیات اختلاف جریان نقدی، اثر مالیات و ارزش فعلی هر سال</p>
+          </div>
+
+          <div className="overflow-x-auto p-4 sm:p-5">
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <table className="w-full min-w-[850px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                    <th className="p-3 text-center">سال</th>
+                    <th className="p-3 text-right">FCF با دارایی</th>
+                    <th className="p-3 text-right">FCF بدون دارایی</th>
+                    <th className="p-3 text-right">Δ</th>
+                    <th className="p-3 text-right">پس از مالیات</th>
+                    <th className="p-3 text-right">PV</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {differentialData.map((row: any, index: number) => (
+                    <tr key={index} className="bg-white transition-colors hover:bg-slate-50/70">
+                      <td className="p-3 text-center font-black text-slate-600">{row.year}</td>
+                      <td className="p-3 text-right text-blue-700">{formatRial(row.withFCF)}</td>
+                      <td className="p-3 text-right text-amber-600">{formatRial(row.withoutFCF)}</td>
+                      <td className="p-3 text-right font-black text-slate-700">{formatRial(row.delta)}</td>
+                      <td className="p-3 text-right text-slate-600">{formatRial(row.afterTax)}</td>
+                      <td className="p-3 text-right font-black text-emerald-700">{formatRial(row.pv)}</td>
                     </tr>
-                  );
-                })}
-                <tr className="bg-blue-50 font-bold">
-                  <td className="border p-2 text-center font-[family-name:var(--font-vazir)]">مجموع PV</td>
-                  <td className="border p-2 text-right" colSpan={5}>
-                    {formatRial(totalPV)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                  ))}
+                  <tr className="bg-emerald-50/60">
+                    <td className="p-3 text-center text-xs font-black text-emerald-800">مجموع PV</td>
+                    <td className="p-3 text-right font-black text-emerald-800" colSpan={5}>{formatRial(totalPV)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* فرمول */}
-      <Card className="border-gray-200 bg-gray-50">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">🧮 فرمول محاسبه</h4>
-          <div className="bg-white p-4 rounded border border-gray-200 text-sm text-center font-[family-name:var(--font-vazir)]" dir="rtl">
-            <span className="text-dark-green font-bold">Δₜ = (FCF_with - FCF_without) × (۱ - نرخ مالیات)</span>
-            <br />
-            <span className="text-dark-green font-bold">ارزش = Σ PV (با نرخ تنزیل)</span>
-            <br />
-            <span className="text-gray-400 text-xs">ارزش = تفاضل جریان نقدی × (۱ - نرخ مالیات) × ضریب تنزیل</span>
-            <br />
-            <span className="text-emerald-600 font-bold text-base">
-              = {formatNumber(displayToken)} تک توکن
-            </span>
+      {/* Final valuation at bottom */}
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+              <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+            </div>
+            <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+            <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{formatRial(displayFinal)}</p>
+            <p className="mt-2 text-[10px] text-emerald-100/60">ارزش خالص فعلی (NPV)</p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش برآوردی</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatRial(displayFinal)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">ارزش خالص فعلی (NPV)</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-emerald-100 to-white border-emerald-300">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-            <p className="text-3xl font-bold text-emerald-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-          </CardContent>
-        </Card>
-      </div>
+          <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+              <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+              <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      {/* دکمه‌های خروجی */}
+      {/* Existing output actions intentionally preserved */}
       <div className="flex justify-end gap-2">
-        <Button variant="outline" className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-          <Download className="w-4 h-4" /> خروجی Excel
+        <Button variant="outline" className="h-11 rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green hover:bg-dark-green/10">
+          <Download className="ml-2 h-4 w-4" /> خروجی Excel
         </Button>
-        <Button variant="outline" className="flex items-center gap-1 font-[family-name:var(--font-vazir)]">
-          <FileText className="w-4 h-4" /> خروجی PDF
+        <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-4 font-bold text-slate-600 hover:bg-slate-50">
+          <FileText className="ml-2 h-4 w-4" /> خروجی PDF
         </Button>
       </div>
     </div>

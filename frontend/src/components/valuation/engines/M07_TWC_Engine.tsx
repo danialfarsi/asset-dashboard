@@ -248,166 +248,222 @@ export function M07_TWC_Engine({
   }
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]" dir="rtl">
 
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 flex-1">
-          <p className="text-sm text-orange-700 flex items-center gap-2 font-[family-name:var(--font-vazir)]">
-            <span className="font-bold">📊 M-07: هزینه نیروی کار آموزش‌دیده (TWC)</span>
-            <span className="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full">روش هزینه</span>
-          </p>
-        </div>
-      </div>
+      {/* Executive Header */}
+      <section className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.055)] sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-orange-100/55 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-emerald-100/45 blur-3xl" />
 
-      {/* پارامترهای ورودی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">تعداد کل تیم</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {toPersianDigit(totalHeadcount)} نفر
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ تنزیل</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.discount_rate || 0.18)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ضریب کیفیت</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ مالیات</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent(summary?.tax_rate || 0.25)}
-          </p>
-        </div>
-      </div>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dark-green text-white shadow-lg shadow-emerald-950/10">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-black text-orange-700">M-07</span>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">Trained Workforce Cost</span>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">روش هزینه</span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 sm:text-2xl">نتایج ارزش‌گذاری روش TWC</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500 sm:text-sm">
+                ارزش نیروی کار آموزش‌دیده بر مبنای هزینه جذب، آموزش و زیان بهره‌وری در دوره رسیدن اعضای تیم به ظرفیت عملیاتی محاسبه شده است.
+              </p>
+            </div>
+          </div>
 
-      {/* جدول هر نقش */}
-      <Card className="border-orange-200">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">👥 ترکیب تیم</h4>
-          <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-orange-50">
-                  <th className="border p-2 text-right">نقش</th>
-                  <th className="border p-2 text-center">تعداد</th>
-                  <th className="border p-2 text-right">هزینه جذب</th>
-                  <th className="border p-2 text-right">هزینه آموزش</th>
-                  <th className="border p-2 text-right">کاهش بهره‌وری</th>
-                  <th className="border p-2 text-right font-bold">مجموع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row: any, index: number) => (
-                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                    <td className="border p-2">{row.role}</td>
-                    <td className="border p-2 text-center">{toPersianDigit(row.headcount)}</td>
-                    <td className="border p-2 text-right">{formatRial(row.recruitCost)}</td>
-                    <td className="border p-2 text-right">{formatRial(row.trainCost)}</td>
-                    <td className="border p-2 text-right">{formatRial(row.rampUpLoss)}</td>
-                    <td className="border p-2 text-right font-bold text-orange-600">{formatRial(row.total)}</td>
+          <Button
+            variant="outline"
+            onClick={exportExcel}
+            className="h-11 self-start rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green hover:bg-dark-green/10 lg:self-auto"
+          >
+            <Download className="ml-2 h-4 w-4" />
+            خروجی Excel
+          </Button>
+        </div>
+      </section>
+
+      {/* Key parameters */}
+      <section className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.045)] sm:p-6">
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-800">پارامترهای کلیدی مدل</h3>
+            <p className="mt-1 text-[10px] text-slate-400">خلاصه ورودی‌های مؤثر در ارزش‌گذاری نیروی کار آموزش‌دیده</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-bold text-slate-500">M-07 Engine</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">تعداد کل تیم</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{toPersianDigit(totalHeadcount)} نفر</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">نرخ تنزیل</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{formatPercent(summary?.discount_rate || 0.18)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">ضریب کیفیت</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">نرخ مالیات</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{formatPercent(summary?.tax_rate || 0.25)}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Team composition */}
+      <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+        <CardContent className="p-0">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <h4 className="text-sm font-black text-slate-800">ترکیب تیم</h4>
+            <p className="mt-1 text-[10px] text-slate-400">هزینه‌های جذب، آموزش و کاهش بهره‌وری به تفکیک نقش سازمانی</p>
+          </div>
+
+          <div className="overflow-x-auto p-4 sm:p-5">
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
+              <table className="w-full min-w-[920px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                    <th className="p-3 text-right">نقش</th>
+                    <th className="p-3 text-center">تعداد</th>
+                    <th className="p-3 text-right">هزینه جذب</th>
+                    <th className="p-3 text-right">هزینه آموزش</th>
+                    <th className="p-3 text-right">کاهش بهره‌وری</th>
+                    <th className="p-3 text-right">مجموع</th>
                   </tr>
-                ))}
-                <tr className="bg-orange-100 font-bold">
-                  <td className="border p-2">مجموع</td>
-                  <td className="border p-2 text-center">{toPersianDigit(totalHeadcount)}</td>
-                  <td className="border p-2 text-right text-orange-600">{formatRial(totalRecruit)}</td>
-                  <td className="border p-2 text-right text-orange-600">{formatRial(totalTrain)}</td>
-                  <td className="border p-2 text-right text-orange-600">{formatRial(totalRampUp)}</td>
-                  <td className="border p-2 text-right text-orange-700">{formatRial(totalAll)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* نمودار میله‌ای */}
-      <Card className="border-orange-200">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📊 ترکیب هزینه‌ها بر اساس نقش</h4>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="role" tick={{ fontSize: 11 }} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v: any) => formatNumber(v)} />
-              <Tooltip formatter={(value: any) => formatRial(value)} />
-              <Legend />
-              <Bar dataKey="recruitCost" name="هزینه جذب" fill="#015345" stackId="stack" />
-              <Bar dataKey="trainCost" name="هزینه آموزش" fill="#8ECFAF" stackId="stack" />
-              <Bar dataKey="rampUpLoss" name="کاهش بهره‌وری" fill="#D4A547" stackId="stack" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* خلاصه هزینه‌ها */}
-      <Card className="border-orange-200">
-        <CardContent className="p-4">
-          <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">💰 تفکیک هزینه‌ها</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-gray-600">هزینه جذب</span>
-              <span className="text-sm font-bold text-dark-green">{formatRial(totalRecruit)}</span>
-            </div>
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-gray-600">هزینه آموزش</span>
-              <span className="text-sm font-bold text-dark-green">{formatRial(totalTrain)}</span>
-            </div>
-            <div className="flex justify-between items-center border-b pb-2">
-              <span className="text-sm text-gray-600">کاهش بهره‌وری</span>
-              <span className="text-sm font-bold text-dark-green">{formatRial(totalRampUp)}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2 border-t-2 border-orange-200">
-              <span className="text-sm font-bold text-dark-green">هزینه کل بازسازی</span>
-              <span className="text-lg font-bold text-orange-700">{formatRial(totalAll)}</span>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {tableData.map((row: any, index: number) => (
+                    <tr key={index} className="bg-white transition-colors hover:bg-slate-50/70">
+                      <td className="p-3 font-bold text-slate-700">{row.role}</td>
+                      <td className="p-3 text-center font-black text-slate-600">{toPersianDigit(row.headcount)}</td>
+                      <td className="p-3 text-right text-slate-600">{formatRial(row.recruitCost)}</td>
+                      <td className="p-3 text-right text-slate-600">{formatRial(row.trainCost)}</td>
+                      <td className="p-3 text-right text-slate-600">{formatRial(row.rampUpLoss)}</td>
+                      <td className="p-3 text-right font-black text-orange-600">{formatRial(row.total)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-orange-50/70">
+                    <td className="p-3 font-black text-slate-800">مجموع</td>
+                    <td className="p-3 text-center font-black text-slate-800">{toPersianDigit(totalHeadcount)}</td>
+                    <td className="p-3 text-right font-black text-orange-700">{formatRial(totalRecruit)}</td>
+                    <td className="p-3 text-right font-black text-orange-700">{formatRial(totalTrain)}</td>
+                    <td className="p-3 text-right font-black text-orange-700">{formatRial(totalRampUp)}</td>
+                    <td className="p-3 text-right font-black text-dark-green">{formatRial(totalAll)}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی دارایی</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatRial(displayFinal)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-100 to-white border-orange-300">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-            <p className="text-3xl font-bold text-orange-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Cost composition chart */}
+      <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+        <CardContent className="p-0">
+          <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+            <h4 className="text-sm font-black text-slate-800">ترکیب هزینه‌ها بر اساس نقش</h4>
+            <p className="mt-1 text-[10px] text-slate-400">مقایسه سهم هزینه جذب، آموزش و افت بهره‌وری برای هر نقش</p>
+          </div>
 
-      {/* دکمه خروجی Excel */}
-      <div className="flex justify-end">
-        <Button 
-          variant="outline" 
-          onClick={exportExcel}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)] hover:bg-green-50 hover:border-green-300"
-        >
-          <Download className="w-4 h-4" /> خروجی Excel
-        </Button>
-      </div>
+          <div className="p-4 sm:p-6">
+            <div style={{ width: '100%', height: 330 }} dir="ltr">
+              <ResponsiveContainer>
+                <BarChart data={barData} margin={{ top: 20, right: 25, left: 10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                  <XAxis
+                    dataKey="role"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'var(--font-vazir)' }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'var(--font-vazir)' }}
+                    tickFormatter={(v: any) => formatNumber(v)}
+                  />
+                  <Tooltip
+                    formatter={(value: any) => formatRial(value)}
+                    contentStyle={{
+                      fontFamily: 'var(--font-vazir)',
+                      borderRadius: 16,
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 12px 30px rgba(15,23,42,.08)'
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontFamily: 'var(--font-vazir)', fontSize: 11 }} />
+                  <Bar dataKey="recruitCost" name="هزینه جذب" fill="#015345" stackId="stack" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="trainCost" name="هزینه آموزش" fill="#8ECFAF" stackId="stack" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="rampUpLoss" name="کاهش بهره‌وری" fill="#D4A547" stackId="stack" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cost breakdown */}
+      <section className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.045)] sm:p-6">
+        <div className="mb-5">
+          <h4 className="text-sm font-black text-slate-800">تفکیک هزینه‌ها</h4>
+          <p className="mt-1 text-[10px] text-slate-400">ساختار هزینه کل بازسازی نیروی کار آموزش‌دیده</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[10px] font-bold text-slate-400">هزینه جذب</p>
+            <p className="mt-1.5 text-base font-black text-dark-green">{formatRial(totalRecruit)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[10px] font-bold text-slate-400">هزینه آموزش</p>
+            <p className="mt-1.5 text-base font-black text-dark-green">{formatRial(totalTrain)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[10px] font-bold text-slate-400">کاهش بهره‌وری</p>
+            <p className="mt-1.5 text-base font-black text-dark-green">{formatRial(totalRampUp)}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-orange-100 bg-orange-50/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-xs font-black text-slate-700">هزینه کل بازسازی</span>
+          <span className="text-lg font-black text-orange-700">{formatRial(totalAll)}</span>
+        </div>
+      </section>
+
+      {/* Final valuation at bottom */}
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
+
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+              <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+            </div>
+            <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+            <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{formatRial(displayFinal)}</p>
+            <p className="mt-2 text-[10px] text-emerald-100/60">پس از اعمال ضریب کیفیت</p>
+          </div>
+
+          <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+              <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+              <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

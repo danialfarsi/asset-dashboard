@@ -240,36 +240,36 @@ const stageNavItems = [
     icon: Lightbulb,
     id: 'stage5',
   },
-  // {
-  //   label: 'مرحله ۶: تجاری سازی',
-  //   href: '/dashboard/intangible/stage6',
-  //   icon: Share2,
-  //   id: 'stage6',
-  // },
-  // {
-  //   label: 'مرحله ۷: پایش و حکمرانی',
-  //   href: '/dashboard/intangible/stage7',
-  //   icon: ShoppingCart,
-  //   id: 'stage7',
-  // },
-  // {
-  //   label: 'مرحله ۸: هم افزایی و ارتباطات',
-  //   href: '/dashboard/intangible/stage8',
-  //   icon: Eye,
-  //   id: 'stage8',
-  // },
-  // {
-  //   label: 'مرحله ۹: مدیریت و بهینه سازی',
-  //   href: '/dashboard/intangible/stage9',
-  //   icon: TrendingUp,
-  //   id: 'stage9',
-  // },
-  // {
-  //   label: 'مرحله ۱۰: تحلیل پیش بین',
-  //   href: '/dashboard/intangible/stage10',
-  //   icon: FileText,
-  //   id: 'stage10',
-  // },
+  {
+    label: 'مرحله ۶: تجاری سازی',
+    href: '/dashboard/intangible/stage6',
+    icon: Share2,
+    id: 'stage6',
+  },
+  {
+    label: 'مرحله ۷: پایش و حکمرانی',
+    href: '/dashboard/intangible/stage7',
+    icon: ShoppingCart,
+    id: 'stage7',
+  },
+  {
+    label: 'مرحله ۸: هم افزایی و ارتباطات',
+    href: '/dashboard/intangible/stage8',
+    icon: Eye,
+    id: 'stage8',
+  },
+  {
+    label: 'مرحله ۹: مدیریت و بهینه سازی',
+    href: '/dashboard/intangible/stage9',
+    icon: TrendingUp,
+    id: 'stage9',
+  },
+  {
+    label: 'مرحله ۱۰: تحلیل پیش بین',
+    href: '/dashboard/intangible/stage10',
+    icon: FileText,
+    id: 'stage10',
+  },
 ]
 
 // ============================================================

@@ -175,8 +175,8 @@ export function M02_MEEM_Engine({
   // ============================================
   if (!hasData && !calculating) {
     return (
-      <div className="text-center py-16">
-        <div className="text-6xl mb-4">📊</div>
+      <div className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white px-6 py-16 text-center shadow-[0_16px_50px_rgba(15,23,42,0.06)] font-[family-name:var(--font-vazir)]">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-[26px] bg-violet-50 text-violet-700"><FileText className="h-8 w-8" /></div>
         <h3 className="text-xl font-bold text-dark-green mb-2 font-[family-name:var(--font-vazir)]">محاسبه ارزش دارایی (M-02 MEEM)</h3>
         <p className="text-gray-500 max-w-md mx-auto font-[family-name:var(--font-vazir)]">
           برای محاسبه ارزش دارایی با روش سود مازاد چند دوره‌ای (MEEM)، دکمه زیر را بزنید.
@@ -206,8 +206,8 @@ export function M02_MEEM_Engine({
     <div className="space-y-6" dir="rtl">
 
       {/* توضیحات روش */}
-      <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-        <p className="text-sm text-purple-700 font-[family-name:var(--font-vazir)]">
+      <div className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-white p-6 shadow-[0_12px_40px_rgba(15,23,42,0.05)]">
+        <p className="text-sm leading-7 text-slate-600 font-[family-name:var(--font-vazir)]">
           🔹 روش سود مازاد چند دوره‌ای (MEEM) - ارزش دارایی را بر اساس سود مازاد پس از کسر هزینه دارایی‌های مشارکت‌کننده محاسبه می‌کند.
           <span className="inline-block mr-2 px-2 py-0.5 bg-purple-200 text-purple-800 rounded-full text-xs font-medium">
             ⭐ روش درآمد
@@ -216,38 +216,38 @@ export function M02_MEEM_Engine({
       </div>
 
       {/* پارامترهای ورودی - اعداد فارسی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+      <div className="grid grid-cols-2 gap-3 rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.045)] md:grid-cols-3 xl:grid-cols-6">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">EBIT منتسب</p>
           <p className="text-sm font-bold text-purple-600 font-[family-name:var(--font-vazir)]">
             {formatRial(summary?.ebit_attributable || 0)}
           </p>
         </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ ریزش مشتری</p>
           <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
             {formatPercent((summary?.attrition_rate || 0) * 100)}
           </p>
         </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">نرخ تنزیل</p>
           <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
             {formatPercent((summary?.discount_rate || 0) * 100)}
           </p>
         </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ضریب کیفیت</p>
           <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
             {toPersianDigit((summary?.quality_multiplier || 0).toFixed(2))}
           </p>
         </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">افق پیش‌بینی</p>
           <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
             {toPersianDigit(summary?.forecast_horizon || 0)} سال
           </p>
         </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-white hover:shadow-md">
           <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">مجموع هزینه CAC</p>
           <p className="text-sm font-bold text-amber-600 font-[family-name:var(--font-vazir)]">
             {formatRial(summary?.total_cac_charge || 0)}
@@ -257,8 +257,8 @@ export function M02_MEEM_Engine({
 
       {/* نمودار ترکیبی */}
       {yearlyData.length > 0 && (
-        <Card className="border-purple-200 shadow-md">
-          <CardContent className="p-4">
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-5 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">📈 جریان‌های نقدی سود مازاد</h4>
               <div className="flex items-center gap-4 text-xs">
@@ -304,17 +304,17 @@ export function M02_MEEM_Engine({
 
       {/* جدول محاسبات سالانه */}
       {yearlyData.length > 0 && (
-        <Card className="border-purple-200">
-          <CardContent className="p-4">
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-5 sm:p-6">
             <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📊 جدول محاسبات سالانه</h4>
             <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="bg-purple-50">
-                    <th className="border p-2 text-center">سال</th>
-                    <th className="border p-2 text-right">نرخ بقا</th>
-                    <th className="border p-2 text-right">سود مازاد پس از مالیات</th>
-                    <th className="border p-2 text-right">ارزش فعلی (PV)</th>
+                  <tr className="bg-slate-50 text-slate-500">
+                    <th className="border-b border-slate-100 p-3 text-center">سال</th>
+                    <th className="border-b border-slate-100 p-3 text-right">نرخ بقا</th>
+                    <th className="border-b border-slate-100 p-3 text-right">سود مازاد پس از مالیات</th>
+                    <th className="border-b border-slate-100 p-3 text-right">ارزش فعلی (PV)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -337,37 +337,41 @@ export function M02_MEEM_Engine({
         </Card>
       )}
 
-      {/* 🔥 خلاصه نتایج - جایگزین کارت سطح اطمینان با تک توکن */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی دارایی</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatRial(displayFinal)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-emerald-100 to-white border-emerald-300">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-            <p className="text-3xl font-bold text-emerald-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* نتیجه نهایی - در انتهای صفحه */}
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+              <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+            </div>
+            <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+            <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{formatRial(displayFinal)}</p>
+            <p className="mt-2 text-[10px] text-emerald-100/60">پس از اعمال ضریب کیفیت</p>
+          </div>
+          <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+              <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+              <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* دکمه خروجی Excel */}
       <div className="flex justify-end">
         <Button 
           variant="outline" 
           onClick={exportExcel}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)] hover:bg-green-50 hover:border-green-300"
+          className="h-11 rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green font-[family-name:var(--font-vazir)] hover:bg-dark-green/10"
         >
           <Download className="w-4 h-4" /> خروجی Excel
         </Button>

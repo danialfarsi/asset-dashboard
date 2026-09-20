@@ -189,210 +189,218 @@ export function M09_MMM_Engine({
   const displayQcScore = qcScore || 82;
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6 font-[family-name:var(--font-vazir)]" dir="rtl">
 
-      {/* توضیحات روش */}
-      <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-        <p className="text-sm text-amber-700 font-[family-name:var(--font-vazir)]">
-           روش ضریب بازار (MMM) 
-          <span className="inline-block mr-2 px-2 py-0.5 bg-amber-200 text-amber-800 rounded-full text-xs font-medium">
-             روش بازار
-          </span>
-        </p>
-      </div>
+      {/* Executive Header */}
+      <section className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-white p-5 shadow-[0_14px_45px_rgba(15,23,42,0.055)] sm:p-7">
+        <div className="pointer-events-none absolute -right-24 -top-28 h-64 w-64 rounded-full bg-amber-100/60 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-48 w-48 rounded-full bg-emerald-100/45 blur-3xl" />
 
-      {/* پارامترهای ورودی */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gray-50 rounded-lg border">
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">شاخص پایه</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {summary?.base_metric || 'درآمد'}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ضریب بازار</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {summary?.market_multiple || 0}x
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">صرف کنترل</p>
-          <p className="text-sm font-bold text-green-600 font-[family-name:var(--font-vazir)]">
-            {formatPercent((summary?.control_premium_percent || 0) * 100)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">تخفیف بازارپذیری</p>
-          <p className="text-sm font-bold text-red-600 font-[family-name:var(--font-vazir)]">
-            {formatPercent((summary?.marketability_discount_percent || 0) * 100)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">سهم دارایی نامشهود</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatPercent((summary?.intangible_share_percent || 0) * 100)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ضریب کیفیت</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ارزش شرکت (EV)</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatRial(summary?.enterprise_value || 0)}
-          </p>
-        </div>
-        <div className="text-center p-2 bg-white rounded-lg shadow-sm">
-          <p className="text-[10px] text-gray-400 font-[family-name:var(--font-vazir)]">ارزش نهایی</p>
-          <p className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">
-            {formatRial(displayFinal)}
-          </p>
-        </div>
-      </div>
-
-      {/* نمودار آبشار */}
-      {summary && (
-        <Card className="border-amber-200 shadow-md">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-dark-green font-[family-name:var(--font-vazir)]">📊 نمودار آبشار ارزش</h4>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-dark-green text-white shadow-lg shadow-emerald-950/10">
+              <FileText className="h-5 w-5" />
             </div>
-            
-            <div style={{ width: '100%', height: 320 }} dir="ltr">
-              <ResponsiveContainer>
-                <ComposedChart
-                  data={[
-                    { 
-                      step: 'ارزش شرکت', 
-                      value: summary?.enterprise_value || 0,
-                      color: '#015345'
-                    },
-                    { 
-                      step: 'صرف کنترل', 
-                      value: (summary?.enterprise_value_after_premium || 0) - (summary?.enterprise_value || 0),
-                      color: '#22c55e'
-                    },
-                    { 
-                      step: 'تخفیف بازارپذیری', 
-                      value: (summary?.enterprise_value_after_premium || 0) - (summary?.enterprise_value_after_discount || 0),
-                      color: '#ef4444'
-                    },
-                    { 
-                      step: 'سهم دارایی', 
-                      value: (summary?.intangible_value_before_quality || 0) - (summary?.enterprise_value_after_discount || 0),
-                      color: '#8b5cf6'
-                    },
-                    { 
-                      step: 'ضریب کیفیت', 
-                      value: (summary?.final_value || 0) - (summary?.intangible_value_before_quality || 0),
-                      color: '#f59e0b'
-                    },
-                    { 
-                      step: 'ارزش نهایی', 
-                      value: summary?.final_value || 0,
-                      color: '#015345'
-                    },
-                  ]}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="step" tick={{ fontSize: 10, fill: '#6b7280' }} />
-                  <YAxis tick={{ fontSize: 10, fill: '#6b7280' }} tickFormatter={(value) => formatMillions(value)} />
-                  <Tooltip formatter={(value: any) => formatRial(value)} contentStyle={{ fontFamily: 'var(--font-vazir)' }} />
-                  <Bar dataKey="value" fill="#015345" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="value" stroke="#D4A547" strokeWidth={2} />
-                </ComposedChart>
-              </ResponsiveContainer>
+            <div>
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black text-amber-700">M-09</span>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-slate-500">Market Multiple Method</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">روش بازار</span>
+              </div>
+              <h2 className="text-xl font-black text-slate-900 sm:text-2xl">نتایج ارزش‌گذاری روش MMM</h2>
+              <p className="mt-1 max-w-2xl text-xs leading-6 text-slate-500 sm:text-sm">
+                ارزش دارایی با اعمال ضریب بازار بر شاخص پایه و سپس تعدیلات صرف کنترل، بازارپذیری، سهم دارایی نامشهود و ضریب کیفیت محاسبه شده است.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={exportExcel}
+            className="h-11 self-start rounded-xl border-dark-green/20 bg-dark-green/[0.03] px-4 font-bold text-dark-green hover:bg-dark-green/10 lg:self-auto"
+          >
+            <Download className="ml-2 h-4 w-4" />
+            خروجی Excel
+          </Button>
+        </div>
+      </section>
+
+      {/* Key Parameters */}
+      <section className="rounded-[28px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.045)] sm:p-6">
+        <div className="mb-5 flex items-end justify-between">
+          <div>
+            <h3 className="text-sm font-black text-slate-800">پارامترهای کلیدی مدل</h3>
+            <p className="mt-1 text-[10px] text-slate-400">ورودی‌ها و تعدیلات اصلی مورد استفاده در مدل ضریب بازار</p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-bold text-slate-500">M-09 Engine</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">شاخص پایه</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{summary?.base_metric || 'درآمد'}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">ضریب بازار</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{summary?.market_multiple || 0}x</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+            <p className="text-[9px] font-bold text-slate-400">صرف کنترل</p>
+            <p className="mt-1.5 text-sm font-black text-emerald-700">{formatPercent((summary?.control_premium_percent || 0) * 100)}</p>
+          </div>
+          <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
+            <p className="text-[9px] font-bold text-slate-400">تخفیف بازارپذیری</p>
+            <p className="mt-1.5 text-sm font-black text-rose-600">{formatPercent((summary?.marketability_discount_percent || 0) * 100)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">سهم دارایی نامشهود</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{formatPercent((summary?.intangible_share_percent || 0) * 100)}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">ضریب کیفیت</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+            <p className="text-[9px] font-bold text-slate-400">ارزش شرکت (EV)</p>
+            <p className="mt-1.5 text-sm font-black text-dark-green">{formatRial(summary?.enterprise_value || 0)}</p>
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4">
+            <p className="text-[9px] font-bold text-slate-400">مقدار شاخص پایه</p>
+            <p className="mt-1.5 text-sm font-black text-amber-700">{formatRial(summary?.base_metric_value || 0)}</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Waterfall */}
+      {summary && (
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-0">
+            <div className="flex flex-col gap-4 border-b border-slate-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h4 className="text-sm font-black text-slate-800">مسیر تعدیل ارزش</h4>
+                <p className="mt-1 text-[10px] text-slate-400">نمایش اثر مرحله‌ای ضریب بازار، صرف کنترل، بازارپذیری، سهم دارایی و کیفیت</p>
+              </div>
+              <div className="flex flex-wrap gap-3 text-[10px] font-bold text-slate-500">
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />افزایش</span>
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-rose-500" />کاهش</span>
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-amber-500" />تعدیل</span>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              <div style={{ width: '100%', height: 350 }} dir="ltr">
+                <ResponsiveContainer>
+                  <ComposedChart
+                    data={[
+                      { step: 'ارزش شرکت', value: summary?.enterprise_value || 0, color: '#015345' },
+                      { step: 'صرف کنترل', value: (summary?.enterprise_value_after_premium || 0) - (summary?.enterprise_value || 0), color: '#22c55e' },
+                      { step: 'تخفیف بازارپذیری', value: (summary?.enterprise_value_after_premium || 0) - (summary?.enterprise_value_after_discount || 0), color: '#ef4444' },
+                      { step: 'سهم دارایی', value: (summary?.intangible_value_before_quality || 0) - (summary?.enterprise_value_after_discount || 0), color: '#8b5cf6' },
+                      { step: 'ضریب کیفیت', value: (summary?.final_value || 0) - (summary?.intangible_value_before_quality || 0), color: '#f59e0b' },
+                      { step: 'ارزش نهایی', value: summary?.final_value || 0, color: '#015345' },
+                    ]}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="4 4" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="step" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'var(--font-vazir)' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'var(--font-vazir)' }} tickFormatter={(value) => formatMillions(value)} />
+                    <Tooltip
+                      formatter={(value: any) => formatRial(value)}
+                      contentStyle={{ fontFamily: 'var(--font-vazir)', borderRadius: 16, border: '1px solid #e2e8f0', boxShadow: '0 12px 30px rgba(15,23,42,.08)' }}
+                    />
+                    <Bar dataKey="value" fill="#015345" radius={[6, 6, 0, 0]} barSize={46} />
+                    <Line type="monotone" dataKey="value" stroke="#D4A547" strokeWidth={2.5} dot={{ r: 4, fill: '#D4A547' }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* جدول محاسبه گام‌به‌گام */}
+      {/* Step-by-step calculation */}
       {summary && (
-        <Card className="border-amber-200">
-          <CardContent className="p-4">
-            <h4 className="text-sm font-bold text-dark-green mb-3 font-[family-name:var(--font-vazir)]">📊 محاسبه گام‌به‌گام</h4>
-            <div className="overflow-x-auto font-[family-name:var(--font-vazir)]">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-amber-50">
-                    <th className="border p-2 text-right">مرحله</th>
-                    <th className="border p-2 text-right">شرح</th>
-                    <th className="border p-2 text-right">مقدار</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="bg-white">
-                    <td className="border p-2 text-center">۱</td>
-                    <td className="border p-2">ضریب بازار × مقدار شاخص پایه</td>
-                    <td className="border p-2 text-right font-bold text-green-600">{formatRial(summary?.enterprise_value || 0)}</td>
-                  </tr>
-                  <tr className="bg-gray-50/50">
-                    <td className="border p-2 text-center">۲</td>
-                    <td className="border p-2">+ صرف کنترل ({formatPercent((summary?.control_premium_percent || 0) * 100)})</td>
-                    <td className="border p-2 text-right font-bold text-green-600">{formatRial(summary?.enterprise_value_after_premium || 0)}</td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="border p-2 text-center">۳</td>
-                    <td className="border p-2">- تخفیف بازارپذیری ({formatPercent((summary?.marketability_discount_percent || 0) * 100)})</td>
-                    <td className="border p-2 text-right font-bold text-green-600">{formatRial(summary?.enterprise_value_after_discount || 0)}</td>
-                  </tr>
-                  <tr className="bg-gray-50/50">
-                    <td className="border p-2 text-center">۴</td>
-                    <td className="border p-2">× سهم دارایی نامشهود ({formatPercent((summary?.intangible_share_percent || 0) * 100)})</td>
-                    <td className="border p-2 text-right font-bold text-green-600">{formatRial(summary?.intangible_value_before_quality || 0)}</td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="border p-2 text-center">۵</td>
-                    <td className="border p-2">× ضریب کیفیت ({summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'})</td>
-                    <td className="border p-2 text-right font-bold text-green-600">{formatRial(summary?.final_value || 0)}</td>
-                  </tr>
-                </tbody>
-              </table>
+        <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_10px_35px_rgba(15,23,42,0.045)]">
+          <CardContent className="p-0">
+            <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
+              <h4 className="text-sm font-black text-slate-800">محاسبه گام‌به‌گام</h4>
+              <p className="mt-1 text-[10px] text-slate-400">ردیابی تبدیل شاخص پایه به ارزش نهایی دارایی</p>
+            </div>
+
+            <div className="overflow-x-auto p-4 sm:p-5">
+              <div className="overflow-hidden rounded-2xl border border-slate-200">
+                <table className="w-full min-w-[720px] border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-bold text-slate-500">
+                      <th className="p-3 text-center">مرحله</th>
+                      <th className="p-3 text-right">شرح</th>
+                      <th className="p-3 text-right">مقدار</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    <tr className="bg-white hover:bg-slate-50/70">
+                      <td className="p-3 text-center font-black text-slate-500">۱</td>
+                      <td className="p-3 font-bold text-slate-700">ضریب بازار × مقدار شاخص پایه</td>
+                      <td className="p-3 text-right font-black text-dark-green">{formatRial(summary?.enterprise_value || 0)}</td>
+                    </tr>
+                    <tr className="bg-white hover:bg-slate-50/70">
+                      <td className="p-3 text-center font-black text-slate-500">۲</td>
+                      <td className="p-3 font-bold text-slate-700">+ صرف کنترل ({formatPercent((summary?.control_premium_percent || 0) * 100)})</td>
+                      <td className="p-3 text-right font-black text-emerald-700">{formatRial(summary?.enterprise_value_after_premium || 0)}</td>
+                    </tr>
+                    <tr className="bg-white hover:bg-slate-50/70">
+                      <td className="p-3 text-center font-black text-slate-500">۳</td>
+                      <td className="p-3 font-bold text-slate-700">- تخفیف بازارپذیری ({formatPercent((summary?.marketability_discount_percent || 0) * 100)})</td>
+                      <td className="p-3 text-right font-black text-rose-600">{formatRial(summary?.enterprise_value_after_discount || 0)}</td>
+                    </tr>
+                    <tr className="bg-white hover:bg-slate-50/70">
+                      <td className="p-3 text-center font-black text-slate-500">۴</td>
+                      <td className="p-3 font-bold text-slate-700">× سهم دارایی نامشهود ({formatPercent((summary?.intangible_share_percent || 0) * 100)})</td>
+                      <td className="p-3 text-right font-black text-violet-700">{formatRial(summary?.intangible_value_before_quality || 0)}</td>
+                    </tr>
+                    <tr className="bg-amber-50/50">
+                      <td className="p-3 text-center font-black text-amber-700">۵</td>
+                      <td className="p-3 font-black text-slate-800">× ضریب کیفیت ({summary?.quality_multiplier?.toFixed(2) || '۰.۰۰'})</td>
+                      <td className="p-3 text-right font-black text-dark-green">{formatRial(summary?.final_value || 0)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* 🔥 خلاصه نتایج - حذف کارت سطح اطمینان و اضافه کردن تک توکن */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-amber-50 to-white border-amber-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش نهایی دارایی</p>
-            <p className="text-2xl font-bold text-dark-green font-[family-name:var(--font-vazir)]">{formatRial(displayFinal)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">پس از اعمال ضریب کیفیت</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-100 to-white border-amber-300">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">ارزش بر حسب تک توکن</p>
-            <p className="text-3xl font-bold text-amber-700 font-[family-name:var(--font-vazir)]">{formatNumber(displayToken)}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تک توکن</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-teal-50 to-white border-teal-200">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 font-[family-name:var(--font-vazir)]">تاریخ محاسبه</p>
-            <p className="text-lg font-bold text-teal-700 font-[family-name:var(--font-vazir)]">{new Date().toLocaleDateString('fa-IR')}</p>
-            <p className="text-xs text-gray-400 font-[family-name:var(--font-vazir)]">تحلیلگر: سیستم</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Final valuation at bottom */}
+      <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-br from-[#073f35] via-dark-green to-[#0b6b58] p-6 text-white shadow-[0_18px_50px_rgba(5,75,63,0.18)] sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 right-8 h-52 w-52 rounded-full bg-emerald-300/10 blur-3xl" />
 
-      {/* دکمه خروجی Excel */}
-      <div className="flex justify-end">
-        <Button 
-          variant="outline" 
-          onClick={exportExcel}
-          className="flex items-center gap-1 font-[family-name:var(--font-vazir)] hover:bg-green-50 hover:border-green-300"
-        >
-          <Download className="w-4 h-4" /> خروجی Excel
-        </Button>
-      </div>
+        <div className="relative flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_5px_rgba(110,231,183,0.12)]" />
+              <span className="text-xs font-bold text-emerald-100/80">نتیجه نهایی ارزش‌گذاری</span>
+            </div>
+            <p className="text-sm font-bold text-white/70">ارزش نهایی دارایی</p>
+            <p className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{formatRial(displayFinal)}</p>
+            <p className="mt-2 text-[10px] text-emerald-100/60">پس از اعمال ضریب کیفیت</p>
+          </div>
+
+          <div className="grid w-full grid-cols-2 gap-3 md:w-auto md:min-w-[390px]">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">ارزش بر حسب تک توکن</p>
+              <p className="mt-1 text-xl font-black">{formatNumber(displayToken)}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تک توکن</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+              <p className="text-[10px] font-bold text-emerald-100/70">تاریخ محاسبه</p>
+              <p className="mt-1 text-base font-black">{new Date().toLocaleDateString('fa-IR')}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-100/60">تحلیلگر: سیستم</p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
