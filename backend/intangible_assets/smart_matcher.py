@@ -33,27 +33,37 @@ class SmartAssetMatcher:
             api_key=api_key,
             base_url="https://api.avalai.ir/v1"
         )
-        self.model = "gpt-4o"  # مدل قابل دسترس
+        self.model = "deepseek-v4.1-flash"  # مدل DeepSeek V4.1 Flash
         print(f"✅ AvalAI initialized with model: {self.model}")
     
     def find_best_match(self, asset_name: str, organization_type: str = None) -> dict:
         """پیدا کردن بهترین تطابق برای نام دارایی با استفاده از AvalAI"""
         
-        # دریافت لیست AssetType‌ها
-        asset_types = AssetType.objects.all()
-        if organization_type:
-            templates = ScreeningTemplate.objects.filter(
-                organization_type__name=organization_type
-            )
-            asset_type_ids = templates.values_list('asset_type_id', flat=True)
-            asset_types = asset_types.filter(id__in=asset_type_ids)
+        # 🆕 اول کل AssetTypeها رو بگیر
+        all_asset_types = AssetType.objects.all()
         
-        if not asset_types.exists():
+        if not all_asset_types.exists():
+            print('❌ هیچ AssetType وجود نداره')
             return None
+        
+        # 🆕 ساخت options از **همه** AssetTypeها (نه فیلتر شده)
+        # چون بعضی وقت‌ها organization_type با DB هم‌خوانی نداره
+        options = []
+        asset_type_map = {}  # id → AssetType
+        for at in all_asset_types:
+            options.append({
+                'id': at.id,
+                'name': at.name,
+                'code': at.code or '',
+                'description': (at.description or '')[:100],
+            })
+            asset_type_map[at.id] = at
+        
+        print(f'📊 تعداد AssetTypeها: {len(options)}')
         
         # ساخت لیست برای AvalAI (حداکثر ۵۰ گزینه)
         options = []
-        for at in asset_types[:50]:
+        for at in all_asset_types[:50]:
             options.append({
                 'id': at.id,
                 'name': at.name,
@@ -62,59 +72,99 @@ class SmartAssetMatcher:
             })
         
         # ساخت پرامپت برای AvalAI
-        prompt = f"""
-        شما یک سیستم تطابق دارایی‌های نامشهود هستید.
+        # 🆕 کوتاه‌تر و واضح‌تر
+        prompt = f"""نام دارایی: "{asset_name}"
+
+لیست دارایی‌های موجود:
+{json.dumps(options, ensure_ascii=False)}
+
+بهترین id را برای "{asset_name}" انتخاب کن.
+
+راهنما:
+- برند/نشان/نام تجاری/لوگو/علامت → برند ثبت شده
+- نرم‌افزار/سیستم/سامانه → نرم‌افزار یا سیستم
+- فرآیند/رویه/SOP/استاندارد → فرآیندهای استاندارد
+- پتنت/اختراع → پتنت‌ها
+- قرارداد → قراردادها
+- مشتری/CRM → مشتریان
+- مالی/حسابداری → سیستم مالی
+- دانش/Know-How → دانش فنی
+- شهرت/Goodwill/سرقفلی → شهرت تجاری
+- پیش‌بینی/شبیه‌سازی → مدل‌های پیش‌بینی
+- درس‌آموخته/Lessons → پایگاه درس‌آموخته‌ها
+
+پاسخ فقط JSON:
+{{"id": <عدد>, "confidence": <0-100>, "reason": "<دلیل>"}}"""
         
-        نام دارایی: "{asset_name}"
+        # 🆕 تلاش ۳ بار
+        result_text = None
+        for attempt in range(3):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "شما یک سیستم تطابق دارایی‌های نامشهود هستید. فقط JSON برگردانید."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=500
+                )
+                
+                result_text = response.choices[0].message.content
+                
+                if result_text and result_text.strip():
+                    print(f"📥 AvalAI Response: {result_text[:300]}")
+                    break
+                else:
+                    print(f"⚠️ تلاش {attempt + 1}: پاسخ خالی")
+                    if attempt < 2:
+                        import time
+                        time.sleep(2)
+            except Exception as e:
+                print(f"⚠️ تلاش {attempt + 1}: {e}")
+                if attempt < 2:
+                    import time
+                    time.sleep(2)
         
-        لیست انواع دارایی‌های موجود:
-        {json.dumps(options, ensure_ascii=False, indent=2)}
+        if not result_text or not result_text.strip():
+            print("❌ همه تلاش‌ها خالی بودن")
+            return None
         
-        وظیفه شما: بهترین نوع دارایی را از لیست بالا برای "{asset_name}" انتخاب کنید.
-        
-        قوانین:
-        1. فقط یک گزینه را انتخاب کنید
-        2. دقت کنید که نام دارایی با کدام نوع دارایی بیشترین تطابق را دارد
-        3. به کلمات کلیدی در نام دارایی توجه کنید (برند، نرم‌افزار، فرآیند، انرژی، etc.)
-        4. اگر نام دارایی شامل کلمات زیر است، اولویت بدهید:
-           - "برند"، "نشان"، "نام تجاری" → برند ثبت شده
-           - "نرم‌افزار"، "سیستم"، "سامانه" → نرم‌افزار اختصاصی
-           - "فرآیند"، "رویه"، "استاندارد" → فرآیندهای استاندارد
-           - "انرژی"، "آب"، "برق" → استانداردهای مصرف آب/انرژی
-           - "پتنت"، "اختراع" → پتنت‌ها و حقوق اختراع
-           - "قرارداد" → قراردادهای انحصاری بلندمدت
-           - "مشتری" → پورتفولیوی مشتریان استراتژیک
-           - "مالی"، "حسابداری" → سیستم مالی
-        
-        پاسخ را فقط به صورت JSON برگردان:
-        {{
-            "id": <id انتخاب شده>,
-            "confidence": <درصد اطمینان 0-100>,
-            "reason": "دلیل انتخاب"
-        }}
-        """
-        
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "شما یک سیستم تطابق دارایی‌های نامشهود هستید. پاسخ را فقط به صورت JSON برگردانید."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1,
-                max_tokens=300
-            )
-            
-            result_text = response.choices[0].message.content
-            print(f"📥 AvalAI Response: {result_text}")
-            
             # استخراج JSON از پاسخ
             json_match = re.search(r'\{.*\}', result_text, re.DOTALL)
-            if json_match:
-                result = json.loads(json_match.group())
-                return result
-            return None
+            if not json_match:
+                print("⚠️ JSON توی پاسخ نیست")
+                return None
             
+            try:
+                result = json.loads(json_match.group())
+            except json.JSONDecodeError as e:
+                print(f"⚠️ JSON parsing error: {e}")
+                return None
+            
+            # 🆕 ID رو به AssetType تبدیل کن
+            asset_type_id = result.get('id')
+            if asset_type_id and asset_type_id in asset_type_map:
+                at = asset_type_map[asset_type_id]
+                result['name'] = at.name
+                result['code'] = at.code
+                result['asset_type_id'] = asset_type_id
+                print(f"✅ تبدیل شد به: {at.name}")
+            elif asset_type_id:
+                print(f"⚠️ id={asset_type_id} توی map نیست")
+                # تلاش کن از DB بگیر
+                try:
+                    at = AssetType.objects.get(id=asset_type_id)
+                    result['name'] = at.name
+                    result['code'] = at.code
+                except AssetType.DoesNotExist:
+                    print(f"❌ AssetType id={asset_type_id} وجود نداره")
+            
+            return result
+            
+        except json.JSONDecodeError as e:
+            print(f"❌ JSON error: {e}")
+            return None
         except Exception as e:
             print(f"❌ Error using AvalAI: {e}")
             return None

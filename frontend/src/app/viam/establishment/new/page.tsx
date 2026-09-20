@@ -7,6 +7,22 @@ import Link from 'next/link';
 import { viamApi } from '@/services/viam/api';
 import { RoleGuard } from '@/components/RoleGuard';
 import { useAuthStore } from '@/store/auth-store';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Building2,
+  CheckCircle2,
+  ChevronLeft,
+  FilePlus2,
+  FileText,
+  Loader2,
+  ShieldCheck,
+  Sparkles,
+  UserRoundCog,
+  XCircle,
+} from 'lucide-react';
+
+import { toast } from 'sonner';
 
 function NewEstablishmentRequestForm() {
   const router = useRouter();
@@ -33,6 +49,31 @@ function NewEstablishmentRequestForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const formEl = e.currentTarget as HTMLFormElement;
+    const requiredInputs = formEl.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -65,18 +106,18 @@ function NewEstablishmentRequestForm() {
 
       case 'org_admin':
         return {
-          label: 'مدیر شرکت',
-          dot: 'bg-blue-500',
+          label: 'مدیر سازمان',
+          dot: 'bg-emerald-500',
           badge:
-            'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200/80',
+            'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/80',
         };
 
       default:
         return {
           label: 'مدیر واحد',
-          dot: 'bg-emerald-500',
+          dot: 'bg-teal-500',
           badge:
-            'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/80',
+            'bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-200/80',
         };
     }
   };
@@ -86,93 +127,168 @@ function NewEstablishmentRequestForm() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#f6f8fb] text-slate-900"
+      className="relative min-h-screen overflow-hidden bg-[#f7f9f8] font-vazir text-slate-900"
     >
-      {/* Background decorations */}
+      {/* =====================================================
+          BACKGROUND DECORATIONS
+      ===================================================== */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -right-32 -top-32 h-[420px] w-[420px] rounded-full bg-blue-100/40 blur-3xl" />
-        <div className="absolute -left-40 top-40 h-[420px] w-[420px] rounded-full bg-violet-100/30 blur-3xl" />
+        <div className="absolute -right-48 -top-48 h-[520px] w-[520px] rounded-full bg-emerald-100/40 blur-3xl" />
+
+        <div className="absolute -left-56 top-[28%] h-[480px] w-[480px] rounded-full bg-teal-100/25 blur-3xl" />
+
+        <div className="absolute bottom-[-250px] right-[35%] h-[500px] w-[500px] rounded-full bg-emerald-50/70 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        {/* Top navigation */}
-        <div className="mb-5 flex items-center justify-between">
+      <div className="relative mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+
+        {/* =====================================================
+            TOP NAVIGATION
+        ===================================================== */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/viam/dashboard"
-            className="group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm"
+            className="
+              group inline-flex h-11 items-center gap-2.5
+              rounded-xl border border-slate-200 bg-white px-4
+              text-[13px] font-bold text-slate-600
+              shadow-[0_4px_15px_rgba(15,23,42,0.04)]
+              transition-all duration-200
+              hover:-translate-y-0.5
+              hover:border-emerald-200
+              hover:bg-emerald-50
+              hover:text-emerald-700
+              hover:shadow-[0_8px_20px_rgba(5,150,105,0.08)]
+            "
           >
-            <span className="transition-transform group-hover:translate-x-0.5">
-              →
-            </span>
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
             بازگشت به داشبورد
           </Link>
 
           <div
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${roleConfig.badge}`}
+            className={`
+              inline-flex items-center gap-2 rounded-full
+              px-3.5 py-2 text-[12px] font-bold
+              ${roleConfig.badge}
+            `}
           >
-            <span
-              className={`h-2 w-2 rounded-full ${roleConfig.dot}`}
-            />
+            <span className={`h-2 w-2 rounded-full ${roleConfig.dot}`} />
             {roleConfig.label}
           </div>
         </div>
 
-        {/* Hero */}
-        <section className="mb-6 overflow-hidden rounded-[28px] border border-white/80 bg-gradient-to-l from-slate-950 via-slate-900 to-blue-950 px-6 py-7 text-white shadow-[0_20px_60px_-24px_rgba(15,23,42,0.45)] sm:px-8 sm:py-9">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-2xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-medium text-blue-100 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                فرآیند ایجاد واحد جدید
+        {/* =====================================================
+            HERO
+        ===================================================== */}
+        <section
+          className="
+            relative mb-6 overflow-hidden rounded-[30px]
+            border border-emerald-800/10
+            bg-gradient-to-l
+            from-[#064e3b] via-[#047857] to-[#059669]
+            shadow-[0_20px_60px_rgba(6,78,59,0.15)]
+          "
+        >
+          {/* Hero decoration */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute -left-20 -top-24 h-72 w-72 rounded-full border-[45px] border-white/[0.04]" />
+
+            <div className="absolute -bottom-36 right-[28%] h-80 w-80 rounded-full border-[60px] border-white/[0.035]" />
+
+            <div
+              className="absolute inset-0 opacity-[0.045]"
+              style={{
+                backgroundImage:
+                  'radial-gradient(circle, white 1px, transparent 1px)',
+                backgroundSize: '22px 22px',
+              }}
+            />
+
+            <div className="absolute left-[10%] top-1/2 h-48 w-48 -translate-y-1/2 rounded-full bg-white/[0.035] blur-2xl" />
+          </div>
+
+          <div className="relative px-6 py-7 sm:px-8 sm:py-9 lg:px-10 lg:py-10">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+
+              {/* Hero text */}
+              <div className="max-w-2xl">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-[12px] font-medium text-emerald-50 backdrop-blur-md">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  فرآیند ایجاد واحد جدید
+                </div>
+
+                <div className="flex items-start gap-4 sm:gap-5">
+                  <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-inner backdrop-blur-md sm:flex">
+                    <Building2 className="h-7 w-7 text-white" />
+                  </div>
+
+                  <div>
+                    <h1 className="text-[26px] font-black leading-tight tracking-tight text-white sm:text-[32px] lg:text-[34px]">
+                      ثبت درخواست تأسیس واحد IAM
+                    </h1>
+
+                    <p className="mt-3 max-w-xl text-[14px] leading-7 text-emerald-50/75 sm:text-[15px]">
+                      اطلاعات اولیه درخواست را ثبت کنید. پس از ثبت،
+                      درخواست وارد فرآیند بررسی و تکمیل مراحل تأسیس
+                      خواهد شد.
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <h1 className="text-2xl font-black tracking-tight sm:text-3xl lg:text-[34px]">
-                ثبت درخواست تأسیس واحد IAM
-              </h1>
+              {/* Current step */}
+              <div className="flex min-w-[215px] items-center gap-4 rounded-2xl border border-white/15 bg-white/[0.09] px-4 py-4 shadow-inner backdrop-blur-md">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-white text-[17px] font-black text-emerald-700 shadow-lg shadow-emerald-950/10">
+                  ۱
+                </div>
 
-              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-                اطلاعات اولیه درخواست را ثبت کنید. پس از ثبت، درخواست وارد
-                فرآیند بررسی و تکمیل مراحل تأسیس خواهد شد.
-              </p>
-            </div>
+                <div>
+                  <p className="text-[11px] font-medium text-emerald-100/70">
+                    مرحله فعلی
+                  </p>
 
-            <div className="flex min-w-[180px] items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 backdrop-blur">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-base font-black text-slate-900">
-                ۱
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">مرحله فعلی</p>
-                <p className="mt-0.5 text-sm font-bold text-white">
-                  ثبت درخواست
-                </p>
+                  <p className="mt-1 text-[14px] font-extrabold text-white">
+                    ثبت درخواست
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Progress */}
-        <section className="mb-6 rounded-3xl border border-slate-200/70 bg-white/80 p-5 shadow-sm backdrop-blur sm:p-6">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-slate-800">
-                روند تأسیس واحد
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                شما در مرحله ۱ از ۱۲ قرار دارید
-              </p>
+        {/* =====================================================
+            PROGRESS
+        ===================================================== */}
+        <section className="mb-6 rounded-[24px] border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.035)] sm:p-6">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-emerald-50 text-emerald-600">
+                <FilePlus2 className="h-5 w-5" />
+              </div>
+
+              <div>
+                <p className="text-[14px] font-extrabold text-slate-800">
+                  روند تأسیس واحد
+                </p>
+
+                <p className="mt-1 text-[11px] text-slate-400">
+                  شما در مرحله ۱ از ۱۲ قرار دارید
+                </p>
+              </div>
             </div>
 
-            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">
+            <span className="w-fit rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[11px] font-extrabold text-emerald-700">
               ۸٪ تکمیل
             </span>
           </div>
 
+          {/* progress bar */}
           <div className="mb-6 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-[8.33%] rounded-full bg-gradient-to-l from-blue-600 to-cyan-500" />
+            <div className="h-full w-[8.33%] rounded-full bg-gradient-to-l from-emerald-600 to-teal-400 shadow-[0_0_12px_rgba(16,185,129,0.35)]" />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <ProgressItem
               step="۱"
               title="ثبت درخواست"
@@ -194,72 +310,84 @@ function NewEstablishmentRequestForm() {
           </div>
         </section>
 
-        {/* Form */}
+        {/* =====================================================
+            FORM
+        ===================================================== */}
         <form
           onSubmit={handleSubmit}
-          className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_16px_50px_-32px_rgba(15,23,42,0.28)]"
-        >
-          {/* Form heading */}
+          className="
+            overflow-hidden rounded-[28px]
+            border border-slate-200/80 bg-white
+            shadow-[0_12px_40px_rgba(15,23,42,0.045)]
+          "
+         noValidate>
+          {/* FORM HEADING */}
           <div className="border-b border-slate-100 px-6 py-6 sm:px-8">
             <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
-                <svg
-                  width="21"
-                  height="21"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
-                </svg>
+
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[15px] bg-emerald-50 text-emerald-600">
+                <FileText className="h-5 w-5" />
               </div>
 
               <div>
-                <h2 className="text-lg font-extrabold text-slate-900">
+                <h2 className="text-[18px] font-black text-slate-900">
                   اطلاعات درخواست
                 </h2>
-                <p className="mt-1 text-sm leading-6 text-slate-500">
+
+                <p className="mt-1.5 text-[12px] leading-6 text-slate-400">
                   اطلاعات زیر مبنای بررسی اولیه درخواست تأسیس خواهد بود.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-6 p-6 sm:p-8">
-            {/* Alerts */}
+          <div className="space-y-7 p-6 sm:p-8">
+
+            {/* =================================================
+                ERROR
+            ================================================= */}
             {error && (
-              <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 text-sm text-rose-800">
-                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 font-bold">
-                  !
+              <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50/80 px-4 py-4 text-sm text-rose-800">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-600">
+                  <XCircle className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <p className="font-bold">ثبت درخواست انجام نشد</p>
-                  <p className="mt-0.5 text-rose-700">{error}</p>
+                  <p className="font-extrabold">
+                    ثبت درخواست انجام نشد
+                  </p>
+
+                  <p className="mt-1 text-[12px] leading-6 text-rose-700">
+                    {error}
+                  </p>
                 </div>
               </div>
             )}
 
+            {/* =================================================
+                SUCCESS
+            ================================================= */}
             {success && (
-              <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-sm text-emerald-800">
-                <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold">
-                  ✓
+              <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-4 text-sm text-emerald-800">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <CheckCircle2 className="h-5 w-5" />
                 </div>
 
                 <div>
-                  <p className="font-bold">درخواست با موفقیت ثبت شد</p>
-                  <p className="mt-0.5 text-emerald-700">
+                  <p className="font-extrabold">
+                    درخواست با موفقیت ثبت شد
+                  </p>
+
+                  <p className="mt-1 text-[12px] leading-6 text-emerald-700">
                     در حال انتقال به صفحه درخواست...
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Title */}
+            {/* =================================================
+                TITLE
+            ================================================= */}
             <FormField
               label="عنوان درخواست"
               required
@@ -271,12 +399,23 @@ function NewEstablishmentRequestForm() {
                 value={formData.title}
                 onChange={handleChange}
                 required
-                placeholder="مثال: تأسیس واحد IAM در شرکت فولاد"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                placeholder="مثال: تأسیس واحد IAM در سازمان فولاد"
+                className="
+                  w-full rounded-2xl border border-slate-200
+                  bg-slate-50/60 px-4 py-3.5
+                  text-[14px] font-medium text-slate-900
+                  outline-none transition-all duration-200
+                  placeholder:font-normal placeholder:text-slate-400
+                  hover:border-slate-300 hover:bg-slate-50
+                  focus:border-emerald-500 focus:bg-white
+                  focus:ring-4 focus:ring-emerald-500/10
+                "
               />
             </FormField>
 
-            {/* Description */}
+            {/* =================================================
+                DESCRIPTION
+            ================================================= */}
             <FormField
               label="توضیحات"
               required
@@ -289,11 +428,23 @@ function NewEstablishmentRequestForm() {
                 required
                 rows={5}
                 placeholder="شرح کامل درخواست..."
-                className="min-h-[130px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                className="
+                  min-h-[140px] w-full resize-y
+                  rounded-2xl border border-slate-200
+                  bg-slate-50/60 px-4 py-3.5
+                  text-[14px] font-medium leading-7 text-slate-900
+                  outline-none transition-all duration-200
+                  placeholder:font-normal placeholder:text-slate-400
+                  hover:border-slate-300 hover:bg-slate-50
+                  focus:border-emerald-500 focus:bg-white
+                  focus:ring-4 focus:ring-emerald-500/10
+                "
               />
             </FormField>
 
-            {/* Justification */}
+            {/* =================================================
+                JUSTIFICATION
+            ================================================= */}
             <FormField
               label="دلایل توجیهی"
               required
@@ -306,16 +457,36 @@ function NewEstablishmentRequestForm() {
                 required
                 rows={5}
                 placeholder="دلایل و ضرورت ایجاد واحد IAM..."
-                className="min-h-[130px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-sm leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                className="
+                  min-h-[140px] w-full resize-y
+                  rounded-2xl border border-slate-200
+                  bg-slate-50/60 px-4 py-3.5
+                  text-[14px] font-medium leading-7 text-slate-900
+                  outline-none transition-all duration-200
+                  placeholder:font-normal placeholder:text-slate-400
+                  hover:border-slate-300 hover:bg-slate-50
+                  focus:border-emerald-500 focus:bg-white
+                  focus:ring-4 focus:ring-emerald-500/10
+                "
               />
             </FormField>
           </div>
 
-          {/* Footer actions */}
-          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/60 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          {/* =====================================================
+              FORM ACTIONS
+          ===================================================== */}
+          <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-[#fafcfb] px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+
             <Link
               href="/viam/dashboard"
-              className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+              className="
+                inline-flex h-12 items-center justify-center
+                gap-2 rounded-xl border border-slate-200
+                bg-white px-6 text-[13px] font-bold text-slate-600
+                transition-all duration-200
+                hover:border-slate-300 hover:bg-slate-50
+                hover:text-slate-900
+              "
             >
               انصراف
             </Link>
@@ -323,33 +494,58 @@ function NewEstablishmentRequestForm() {
             <button
               type="submit"
               disabled={loading}
-              className="group inline-flex h-12 min-w-[190px] items-center justify-center gap-2 rounded-xl bg-slate-950 px-7 text-sm font-bold text-white shadow-lg shadow-slate-950/10 transition hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-blue-700/20 disabled:pointer-events-none disabled:translate-y-0 disabled:opacity-60"
+              className="
+                group inline-flex h-12 min-w-[200px]
+                items-center justify-center gap-2.5
+                rounded-xl
+                bg-gradient-to-l from-emerald-700 to-emerald-600
+                px-7 text-[13px] font-extrabold text-white
+                shadow-[0_8px_22px_rgba(5,150,105,0.22)]
+                transition-all duration-200
+                hover:-translate-y-0.5
+                hover:from-emerald-800 hover:to-emerald-700
+                hover:shadow-[0_12px_28px_rgba(5,150,105,0.28)]
+                active:translate-y-0
+                disabled:pointer-events-none
+                disabled:translate-y-0
+                disabled:opacity-60
+              "
             >
               {loading ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   در حال ثبت...
                 </>
               ) : (
                 <>
                   ثبت و ادامه
-                  <span className="text-lg transition-transform group-hover:-translate-x-0.5">
-                    ←
-                  </span>
+
+                  <ChevronLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-0.5" />
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <p className="mt-5 text-center text-xs leading-6 text-slate-400">
-          اطلاعات ثبت‌شده در ادامه فرآیند تأسیس قابل بررسی و پیگیری خواهند
-          بود.
-        </p>
+        {/* =====================================================
+            FOOTER NOTE
+        ===================================================== */}
+        <div className="mt-5 flex items-center justify-center gap-2 text-center text-[11px] leading-6 text-slate-400">
+          <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+
+          اطلاعات ثبت‌شده در ادامه فرآیند تأسیس قابل بررسی و پیگیری
+          خواهند بود.
+        </div>
+
+        <div className="h-6" />
       </div>
     </main>
   );
 }
+
+/* ============================================================
+   PROGRESS ITEM
+============================================================ */
 
 function ProgressItem({
   step,
@@ -364,36 +560,58 @@ function ProgressItem({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-3.5 transition sm:p-4 ${
-        active
-          ? 'border-blue-200 bg-blue-50/70'
-          : 'border-slate-100 bg-slate-50/70'
-      }`}
+      className={`
+        relative overflow-hidden rounded-2xl border p-3.5
+        transition-all duration-200 sm:p-4
+        ${
+          active
+            ? 'border-emerald-200 bg-emerald-50/70 shadow-[0_5px_15px_rgba(5,150,105,0.05)]'
+            : 'border-slate-100 bg-slate-50/60'
+        }
+      `}
     >
+      {active && (
+        <div className="absolute right-0 top-0 h-full w-1 bg-emerald-500" />
+      )}
+
       <div className="flex items-start gap-3">
         <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
-            active
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-              : 'bg-white text-slate-400 ring-1 ring-slate-200'
-          }`}
+          className={`
+            flex h-9 w-9 shrink-0 items-center
+            justify-center rounded-xl text-[12px] font-black
+            ${
+              active
+                ? 'bg-emerald-600 text-white shadow-[0_5px_12px_rgba(5,150,105,0.22)]'
+                : 'bg-white text-slate-400 ring-1 ring-slate-200'
+            }
+          `}
         >
           {step}
         </div>
 
         <div className="min-w-0">
           <p
-            className={`truncate text-xs font-bold sm:text-sm ${
-              active ? 'text-blue-800' : 'text-slate-600'
-            }`}
+            className={`
+              truncate text-[12px] font-extrabold sm:text-[13px]
+              ${
+                active
+                  ? 'text-emerald-800'
+                  : 'text-slate-600'
+              }
+            `}
           >
             {title}
           </p>
 
           <p
-            className={`mt-1 hidden text-[11px] sm:block ${
-              active ? 'text-blue-600/70' : 'text-slate-400'
-            }`}
+            className={`
+              mt-1 text-[10px] sm:text-[11px]
+              ${
+                active
+                  ? 'text-emerald-600/70'
+                  : 'text-slate-400'
+              }
+            `}
           >
             {description}
           </p>
@@ -402,6 +620,10 @@ function ProgressItem({
     </div>
   );
 }
+
+/* ============================================================
+   FORM FIELD
+============================================================ */
 
 function FormField({
   label,
@@ -417,7 +639,7 @@ function FormField({
   return (
     <div>
       <div className="mb-2.5">
-        <label className="flex items-center gap-1.5 text-sm font-bold text-slate-800">
+        <label className="flex items-center gap-1.5 text-[13px] font-extrabold text-slate-800">
           {label}
 
           {required && (
@@ -426,7 +648,7 @@ function FormField({
         </label>
 
         {hint && (
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p className="mt-1 text-[11px] leading-5 text-slate-400">
             {hint}
           </p>
         )}
@@ -436,6 +658,10 @@ function FormField({
     </div>
   );
 }
+
+/* ============================================================
+   PAGE
+============================================================ */
 
 export default function NewEstablishmentRequest() {
   return (

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { viamApi } from '@/services/viam/api';
 import { RoleGuard } from '@/components/RoleGuard';
+import { toast } from 'sonner';
 
 function NewCharterForm() {
   const router = useRouter();
@@ -53,6 +54,31 @@ function NewCharterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const formEl = e.currentTarget as HTMLFormElement;
+    const requiredInputs = formEl.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(false);
@@ -80,7 +106,7 @@ function NewCharterForm() {
         </Link>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6" noValidate>
         {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}</div>}
         {success && <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">✅ منشور با موفقیت تدوین شد!</div>}
 

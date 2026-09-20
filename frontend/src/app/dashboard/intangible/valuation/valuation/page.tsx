@@ -179,14 +179,22 @@ export default function ValuationPage() {
       
       // 🎯 فقط یه API call بهینه
       try {
+        console.log('🔍 fetch asset-summary برای asset.id:', asset.id);
         const { data } = await api.get(`/intangible/valuation/asset-summary/${asset.id}/`);
-        if (data.has_valuation) {
+        console.log('📥 response:', data);
+        console.log('   has_valuation:', data.has_valuation);
+        
+        if (data.has_valuation && data.summary) {
           setValuationData(data.summary);
+          console.log('✅ valuationData set شد');
+          console.log('   strategic_score:', data.summary.strategic_score);
         } else {
           setValuationData(null);
+          console.log('⚠️ valuationData null شد');
         }
-      } catch (error) {
-        console.error('Error fetching valuation data:', error);
+      } catch (error: any) {
+        console.error('❌ Error:', error);
+        console.error('   status:', error.response?.status);
         setValuationData(null);
       }
     } else {

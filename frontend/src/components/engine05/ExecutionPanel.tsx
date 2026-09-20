@@ -10,6 +10,7 @@ import {
 import { engine05Api } from '@/services/engine05/api';
 import { AlertsBanner } from './AlertsBanner';
 import { useAlerts } from '@/hooks/useAlerts';
+import { toast } from 'sonner';
 
 interface Project {
   id: number;
@@ -166,6 +167,31 @@ export function ExecutionPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const formEl = e.currentTarget as HTMLFormElement;
+    const requiredInputs = formEl.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (!activeProject) return;
     setSaving(true);
     try {
@@ -293,7 +319,7 @@ export function ExecutionPanel() {
               {showForm && (
                 <Card className="border-2 border-[#04241D]/20">
                   <CardContent className="p-5">
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Check, ShieldCheck, Building2, User, Mail, Key } from 'lucide-react';
 import api from '@/lib/api';
 import Image from 'next/image';
+import { toast } from 'sonner';
 
 export default function RegisterOrgPage() {
   const router = useRouter();
@@ -30,6 +31,31 @@ export default function RegisterOrgPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const formEl = e.currentTarget as HTMLFormElement;
+    const requiredInputs = formEl.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setError(null);
 
     if (!form.first_name || !form.last_name) {
@@ -199,7 +225,7 @@ export default function RegisterOrgPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">نام</label>

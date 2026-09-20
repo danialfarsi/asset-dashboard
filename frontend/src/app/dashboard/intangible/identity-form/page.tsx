@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 export default function IdentityFormPage() {
   const router = useRouter();
@@ -68,6 +69,31 @@ export default function IdentityFormPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const formEl = e.currentTarget as HTMLFormElement;
+    const requiredInputs = formEl.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     setLoading(true);
     // ذخیره در بک‌اند
     setTimeout(() => {
@@ -91,7 +117,7 @@ export default function IdentityFormPage() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* اطلاعات دارایی */}
         <Card>
           <CardHeader><CardTitle>اطلاعات دارایی</CardTitle></CardHeader>

@@ -19,6 +19,21 @@ import { Step11PlatformConfig } from '@/components/viam/steps/Step11PlatformConf
 import { Step12Pilot } from '@/components/viam/steps/Step12Pilot';
 
 /* -------------------------------------------------------------------------- */
+/*                              HELPERS                                       */
+/* -------------------------------------------------------------------------- */
+
+/** تبدیل اعداد به فارسی */
+const toFa = (num: number | string | null | undefined): string => {
+  if (num === null || num === undefined) return '—';
+  return String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)]);
+};
+
+/** تبدیل + Locale به فارسی */
+const faNum = (num: number | string): string => {
+  return Number(num).toLocaleString('fa-IR');
+};
+
+/* -------------------------------------------------------------------------- */
 /*                                  CONSTANTS                                 */
 /* -------------------------------------------------------------------------- */
 
@@ -426,8 +441,8 @@ export default function EstablishmentRequestDetail() {
       active: {
         label: 'فعال',
         className:
-          'bg-blue-50 text-blue-700 ring-blue-200',
-        dot: 'bg-blue-500',
+          'bg-emerald-50 text-emerald-700 ring-emerald-200',
+        dot: 'bg-emerald-500',
       },
     };
 
@@ -591,7 +606,7 @@ export default function EstablishmentRequestDetail() {
             {data.members?.length > 0 && (
               <DataRow
                 label="اعضا"
-                value={`${data.members.length} نفر`}
+                value={`${toFa(data.members.length)} نفر`}
               />
             )}
           </StepDataBox>
@@ -614,9 +629,7 @@ export default function EstablishmentRequestDetail() {
           <StepDataBox>
             <DataRow
               label="تعداد نمایندگان"
-              value={`${
-                data.representatives?.length || 0
-              } نفر`}
+              value={`${toFa(data.representatives?.length || 0)} نفر`}
             />
           </StepDataBox>
         );
@@ -633,9 +646,7 @@ export default function EstablishmentRequestDetail() {
 
             <DataRow
               label="تعداد فعالیت‌ها"
-              value={`${
-                data.raciItems?.length || 0
-              } مورد`}
+              value={`${toFa(data.raciItems?.length || 0)} مورد`}
             />
           </StepDataBox>
         );
@@ -678,9 +689,7 @@ export default function EstablishmentRequestDetail() {
 
             <DataRow
               label="ماژول‌ها"
-              value={`${
-                data.modules?.length || 0
-              } ماژول`}
+              value={`${toFa(data.modules?.length || 0)} ماژول`}
             />
           </StepDataBox>
         );
@@ -695,12 +704,12 @@ export default function EstablishmentRequestDetail() {
 
             <DataRow
               label="تعداد دارایی هدف"
-              value={data.targetAssets || 0}
+              value={toFa(data.targetAssets || 0)}
             />
 
             <DataRow
               label="مدت زمان"
-              value={`${data.duration || 0} هفته`}
+              value={`${toFa(data.duration || 0)} هفته`}
             />
 
             <DataRow
@@ -725,13 +734,13 @@ export default function EstablishmentRequestDetail() {
     return (
       <main
         dir="rtl"
-        className="flex min-h-screen items-center justify-center bg-[#f6f8fb]"
+        className="flex min-h-screen items-center justify-center bg-[#f7f9f8]"
       >
         <div className="text-center">
           <div className="relative mx-auto h-14 w-14">
             <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
 
-            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-blue-600" />
+            <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-emerald-600" />
           </div>
 
           <p className="mt-5 text-sm font-bold text-slate-700">
@@ -754,7 +763,7 @@ export default function EstablishmentRequestDetail() {
     return (
       <main
         dir="rtl"
-        className="min-h-screen bg-[#f6f8fb] px-4 py-10"
+        className="min-h-screen bg-[#f7f9f8] px-4 py-10"
       >
         <div className="mx-auto max-w-2xl">
           <div className="rounded-[28px] border border-rose-200 bg-white p-7 shadow-sm">
@@ -781,7 +790,7 @@ export default function EstablishmentRequestDetail() {
 
           <Link
             href="/viam/dashboard"
-            className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-900"
           >
             <ArrowRightIcon />
             بازگشت به داشبورد
@@ -820,16 +829,16 @@ export default function EstablishmentRequestDetail() {
   return (
     <main
       dir="rtl"
-      className="min-h-screen bg-[#f6f8fb] text-slate-900"
+      className="min-h-screen bg-[#f7f9f8] font-vazir text-slate-900"
     >
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -right-40 -top-40 h-[480px] w-[480px] rounded-full bg-blue-100/40 blur-3xl" />
+        <div className="absolute -right-40 -top-40 h-[480px] w-[480px] rounded-full bg-emerald-100/40 blur-3xl" />
 
-        <div className="absolute -left-40 top-[30%] h-[450px] w-[450px] rounded-full bg-violet-100/30 blur-3xl" />
+        <div className="absolute -left-40 top-[30%] h-[450px] w-[450px] rounded-full bg-teal-100/30 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+      <div className="relative mx-auto max-w-[1500px] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
         {/* -------------------------------------------------------------- */}
         {/* BACK */}
         {/* -------------------------------------------------------------- */}
@@ -837,7 +846,7 @@ export default function EstablishmentRequestDetail() {
         <div className="mb-5">
           <Link
             href="/viam/dashboard"
-            className="group inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-900 hover:shadow-sm"
+            className="group inline-flex h-11 items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-bold text-slate-600 shadow-[0_4px_15px_rgba(15,23,42,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:shadow-[0_8px_20px_rgba(5,150,105,0.08)]"
           >
             <ArrowRightIcon />
             بازگشت به داشبورد
@@ -848,10 +857,10 @@ export default function EstablishmentRequestDetail() {
         {/* HERO */}
         {/* -------------------------------------------------------------- */}
 
-        <section className="relative mb-6 overflow-hidden rounded-[30px] bg-gradient-to-l from-slate-950 via-[#101c34] to-[#102f65] px-6 py-7 text-white shadow-[0_25px_70px_-30px_rgba(15,23,42,0.6)] sm:px-8 sm:py-9">
-          <div className="pointer-events-none absolute -left-20 -top-28 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
+        <section className="relative mb-6 overflow-hidden rounded-[30px] bg-gradient-to-l from-[#064e3b] via-[#047857] to-[#059669] px-6 py-7 text-white border border-emerald-800/10 shadow-[0_20px_60px_rgba(6,78,59,0.15)] sm:px-8 sm:py-9">
+          <div className="pointer-events-none absolute -left-20 -top-28 h-72 w-72 rounded-full bg-emerald-300/15 blur-3xl" />
 
-          <div className="pointer-events-none absolute -bottom-32 right-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-32 right-20 h-64 w-64 rounded-full bg-teal-200/10 blur-3xl" />
 
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
@@ -860,7 +869,7 @@ export default function EstablishmentRequestDetail() {
 
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-slate-300">
                   <HashIcon />
-                  {request.id}
+                  {toFa(request.id)}
                 </span>
 
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.08] px-3 py-1.5 text-xs font-medium text-slate-300">
@@ -872,7 +881,7 @@ export default function EstablishmentRequestDetail() {
                 </span>
               </div>
 
-              <p className="mb-2 text-xs font-bold tracking-wide text-blue-300">
+              <p className="mb-2 text-xs font-bold tracking-wide text-emerald-100/80">
                 درخواست تأسیس واحد IAM
               </p>
 
@@ -895,7 +904,7 @@ export default function EstablishmentRequestDetail() {
                   {isCompleted ? (
                     <CheckIcon />
                   ) : (
-                    currentStep
+                    toFa(currentStep)
                   )}
                 </div>
 
@@ -926,7 +935,7 @@ export default function EstablishmentRequestDetail() {
 
           <div className="rounded-[26px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-7">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                 <DocumentIcon />
               </div>
 
@@ -969,7 +978,7 @@ export default function EstablishmentRequestDetail() {
 
           <div className="rounded-[26px] border border-slate-200/70 bg-white p-6 shadow-sm sm:p-7">
             <div className="mb-6 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
                 <WorkflowIcon />
               </div>
 
@@ -987,9 +996,7 @@ export default function EstablishmentRequestDetail() {
             <div className="flex items-end justify-between">
               <div>
                 <span className="text-4xl font-black tracking-tight text-slate-950">
-                  {isCompleted
-                    ? 100
-                    : progressPercent}
+                  {toFa(isCompleted ? 100 : progressPercent)}
                 </span>
 
                 <span className="mr-1 text-sm font-bold text-slate-400">
@@ -1000,7 +1007,7 @@ export default function EstablishmentRequestDetail() {
               <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-600">
                 {isCompleted
                   ? '۱۲ از ۱۲'
-                  : `${currentStep} از ۱۲`}
+                  : `${toFa(currentStep)} از ۱۲`}
               </span>
             </div>
 
@@ -1009,7 +1016,7 @@ export default function EstablishmentRequestDetail() {
                 className={`h-full rounded-full transition-all duration-700 ${
                   isCompleted
                     ? 'bg-emerald-500'
-                    : 'bg-gradient-to-l from-blue-600 to-cyan-500'
+                    : 'bg-gradient-to-l from-emerald-600 to-teal-400'
                 }`}
                 style={{
                   width: `${
@@ -1023,12 +1030,12 @@ export default function EstablishmentRequestDetail() {
 
             <div className="mt-5 flex items-center justify-between text-xs">
               <span className="text-slate-400">
-                {completedSteps.length} مرحله تکمیل شده
+                {toFa(completedSteps.length)} مرحله تکمیل شده
               </span>
 
               {!isCompleted && (
-                <span className="font-bold text-blue-600">
-                  {12 - currentStep + 1} مرحله باقی‌مانده
+                <span className="font-bold text-emerald-700">
+                  {toFa(12 - currentStep + 1)} مرحله باقی‌مانده
                 </span>
               )}
             </div>
@@ -1062,7 +1069,7 @@ export default function EstablishmentRequestDetail() {
                 const title =
                   step.title ||
                   STEP_NAMES[num] ||
-                  `گام ${num}`;
+                  `گام ${toFa(num)}`;
 
                 const isDone =
                   completedSteps.includes(num) ||
@@ -1077,7 +1084,7 @@ export default function EstablishmentRequestDetail() {
                     key={num}
                     className={`relative rounded-2xl p-3.5 transition-all ${
                       isCurrent
-                        ? 'bg-blue-50 ring-1 ring-inset ring-blue-200'
+                        ? 'bg-emerald-50 ring-1 ring-inset ring-emerald-200'
                         : isDone
                           ? 'hover:bg-slate-50'
                           : 'opacity-50'
@@ -1089,14 +1096,14 @@ export default function EstablishmentRequestDetail() {
                           isDone
                             ? 'bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200'
                             : isCurrent
-                              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
                               : 'bg-slate-100 text-slate-400'
                         }`}
                       >
                         {isDone ? (
                           <CheckIcon />
                         ) : (
-                          num
+                          toFa(num)
                         )}
                       </div>
 
@@ -1104,7 +1111,7 @@ export default function EstablishmentRequestDetail() {
                         <p
                           className={`truncate text-sm font-bold ${
                             isCurrent
-                              ? 'text-blue-800'
+                              ? 'text-emerald-800'
                               : isDone
                                 ? 'text-slate-700'
                                 : 'text-slate-500'
@@ -1116,7 +1123,7 @@ export default function EstablishmentRequestDetail() {
                         <p
                           className={`mt-1 truncate text-[11px] ${
                             isCurrent
-                              ? 'text-blue-600'
+                              ? 'text-emerald-700'
                               : 'text-slate-400'
                           }`}
                         >
@@ -1131,7 +1138,7 @@ export default function EstablishmentRequestDetail() {
                       </div>
 
                       {isCurrent && (
-                        <span className="mt-3 h-2 w-2 shrink-0 animate-pulse rounded-full bg-blue-500" />
+                        <span className="mt-3 h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
                       )}
                     </div>
 
@@ -1242,20 +1249,20 @@ export default function EstablishmentRequestDetail() {
                   <div className="border-b border-slate-100 bg-gradient-to-l from-white to-slate-50/60 px-6 py-6 sm:px-8">
                     <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-base font-black text-white shadow-md shadow-blue-600/20">
-                          {currentStep}
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-base font-black text-white shadow-md shadow-emerald-600/20">
+                          {toFa(currentStep)}
                         </div>
 
                         <div>
                           <div className="mb-1 flex items-center gap-2">
-                            <span className="text-[11px] font-black uppercase tracking-wide text-blue-600">
+                            <span className="text-[11px] font-black uppercase tracking-wide text-emerald-700">
                               مرحله فعلی
                             </span>
 
                             <span className="h-1 w-1 rounded-full bg-slate-300" />
 
                             <span className="text-[11px] font-medium text-slate-400">
-                              گام {currentStep} از ۱۲
+                              گام {toFa(currentStep)} از ۱۲
                             </span>
                           </div>
 
@@ -1273,7 +1280,7 @@ export default function EstablishmentRequestDetail() {
                         </div>
                       </div>
 
-                      <div className="hidden rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 sm:block">
+                      <div className="hidden rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 sm:block">
                         در حال انجام
                       </div>
                     </div>
@@ -1326,7 +1333,7 @@ export default function EstablishmentRequestDetail() {
                             disabled={
                               actionLoading
                             }
-                            className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-blue-700 disabled:pointer-events-none disabled:opacity-50"
+                            className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 text-sm font-bold text-white transition hover:bg-emerald-700 disabled:pointer-events-none disabled:opacity-50"
                           >
                             {actionLoading ? (
                               <>

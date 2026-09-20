@@ -5,6 +5,26 @@ from difflib import SequenceMatcher
 class DiscoveryAnalyzer:
     """تحلیل‌گر موتور شناسایی برای پیشنهاد هوشمند قالب دارایی"""
     
+    @staticmethod
+    def normalize(text):
+        """نرمال‌سازی متن برای مقایسه بهتر"""
+        if not text:
+            return ''
+        text = str(text).lower()
+        # حذف نیم‌فاصله
+        text = text.replace('\u200c', '')
+        # یکسان‌سازی فاصله‌ها
+        text = re.sub(r'\s+', ' ', text)
+        # حذف پرانتز و محتوای داخلش
+        text = re.sub(r'\([^)]*\)', '', text)
+        # حذف کاراکترهای اضافی
+        text = re.sub(r'[/\\،,،؛;\-—–_]', ' ', text)
+        # حذف کاراکترهای نگارشی
+        text = re.sub(r'[.؟!«»"\'\'\(\)\[\]{}]', '', text)
+        # یکسان‌سازی فاصله
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+    
     QUESTION_DESC = {
     'n1': 'محصول فکری است (نتیجه تفکر و خلاقیت)',
     'n2': 'هویت غیرفیزیکی دارد (قابل لمس نیست)',
@@ -39,1080 +59,314 @@ class DiscoveryAnalyzer:
     
     # کلمات کلیدی کامل برای هر دارایی بر اساس فایل PDF
     KEYWORDS = {
-    # دارایی 1: برند ثبت شده / سبد علائم تجاری
-    'برند ثبت شده / سبد علائم تجاری': [
-        'برند', 'ثبت', 'لوگو', 'علامت تجاری', 'مالکیت برند', 'Brand Equity', 'ارزش برند', 'نشان تجاری', 'لوگوی انحصاری',
-        'گواهینامه ثبت علامت', 'برند سازمان', 'پورتفولیوی علائم', 'حقوق انحصاری برند', 'نام تجاری قانونی', 'Brand Assets',
-        'هویت برند محافظت شده', 'قانون ثبت علائم', 'علامت ثبت شده', 'علامت تجاری ثبت شده', 'Registered Trademark',
-        'پرونده ثبت علامت', 'طبقه بندی نیس', 'طبقات کالا و خدمات', 'گواهی ثبت برند', 'سبد برند', 'سبد علائم تجاری',
-        'نام برند ثبت شده', 'هویت بصری ثبت شده', 'مالکیت علامت', 'حمایت حقوقی برند', 'تمدید علامت تجاری',
-        'استعلام برند', 'اعتراض به ثبت علامت', 'برند محافظت شده', 'دارایی برند', 'نام و نشان تجاری', 'علائم متمایز کننده',
-        'Service Mark', 'برند مدار', 'زیربرند ثبت شده', 'نشان خدماتی', 'Madrid System', 'تابعین المللی علامت',
-        'Trade Dress', 'حقوق مالکیت صنعتی'
-    ],
-
-    # دارایی 2: قراردادهای انحصاری بلندمدت
-    'قراردادهای انحصاری بلندمدت': [
-        'قرارداد بلندمدت', 'حق انحصار', 'تامین انحصاری', 'توزیع انحصاری', 'مدت اعتبار قرارداد', 'بند انحصار',
-        'قرارداد استراتژیک', 'Exclusive', '3 ساله', 'توافق نامه انحصاری', 'حق خرید اختصاصی', 'قرارداد فروش انحصاری',
-        'تعهد خرید تضمینی', 'قرارداد 3 ساله و بیشتر', 'قرارداد پنج ساله', 'قرارداد چندساله', 'انحصار منطقه ای',
-        'انحصار جغرافیایی', 'حق توزیع انحصاری', 'نمایندگی انحصاری', 'قرارداد انحصار فروش', 'قرارداد انحصار خرید',
-        'Offtake Agreement', 'Long-term Supply Agreement', 'Sole Distribution Agreement', 'قرارداد تامین پایدار',
-        'تضمین خرید', 'تعهد حداقل خرید', 'Minimum Purchase Commitment', 'شرط عدم رقابت', 'Right of First Refusal',
-        'حق اولویت خرید', 'Non-Compete Clause', 'کانال فروش اختصاصی', 'اختصاص بازار', 'بازار انحصاری',
-        'قرارداد استراتژیک تامین', 'توافق نامه بلندمدت تجاری', 'امتیاز انحصاری بهره برداری', 'قرارداد رسمی انحصار',
-        'حق عرضه انحصاری', 'حق واردات انحصاری', 'حق صادرات انحصاری', 'B2B', 'توافق انحصار تجاری'
-    ],
-
-    # دارایی 3: مدل کسب و کار مستند
-    'مدل کسب و کار مستند': [
-        'BMC', 'خلق ارزش', 'جریان درآمدی', 'مستند سازی مدل', 'ساختار هزینه', 'بخش بندی مشتریان', 'ارزش پیشنهادی',
-        'کانال های توزیع', 'فعالیت های کلیدی', 'شرکای کلیدی', 'منابع کلیدی', 'مستندات استراتژی کسب و کار', 'منطق تجاری',
-        'Operating Model', 'Business Model Canvas', 'بیزینس مدل', 'توسعه مدل کسب و کار', 'Go-to-Market Model',
-        'Value Proposition', 'Customer Segments', 'Cost Structure', 'Revenue Model', 'مدل درآمدی', 'مدل عملیاتی',
-        'طراحی مدل کسب و کار', 'معماری کسب و کار', 'نقشه مدل کسب و کار', 'بلوپرینت کسب و کار', 'اقتصاد واحد',
-        'Value Chain Logic', 'مستند جریان ارزش', 'مدل پلتفرمی', 'مدل رشد', 'طرح کسب و کار مستند', 'چارچوب تجاری',
-        'مدل خدمت رسانی', 'مدل پلتفرمی', 'Platform Business Model', 'مدل اشتراکی', 'مدل کارمزدی', 'مدل لایسنس',
-        'مدل فرانچایز', 'مستند استراتژی بازار', 'طراحی ارزش'
-    ],
-
-    # دارایی 4: فرمول های قیمت گذاری اختصاصی
-    'فرمول های قیمت گذاری اختصاصی': [
-        'قیمت گذاری اختصاصی', 'الگوریتم قیمت', 'محاسبات قیمت', 'سود ناخالص', 'بهینه سازی قیمت', 'فرمول ریاضی قیمت',
-        'مدل قیمت گذاری', 'Pricing Engine', 'متدولوژی قیمت گذاری پویا', 'قیمت گذاری تخفیف اختصاصی', 'استراتژی قیمت',
-        'Price Optimization', 'Dynamic Pricing', 'Rule-based Pricing', 'Pricing Formula', 'Margin Logic',
-        'Discount Logic', 'Rebate Formula', 'Tiered Pricing', 'Segmented Pricing', 'Base Price Model',
-        'Ceiling Price', 'Price Corridor', 'Yield Management', 'Revenue Management', 'Pricing Policy Engine',
-        'Quote', 'B2B Pricing'
-    ],
-
-    # دارایی 5: شهرت تجاری قابل ارزش گذاری (Goodwill)
-    'شهرت تجاری قابل ارزش گذاری': [
-        'شهرت', 'گودویل', 'Goodwill', 'ارزش خرید شرکت', 'دارایی نامشهود', 'حق خرید', 'نیاز خرید', 'شهرت سازمانی',
-        'ارزش بازار شرکت', 'اکتساب', 'ارزش‌گذاری', 'M&A', 'Goodwill', 'Purchase Price Allocation', 'PPA',
-        'ارزش و شهرت', 'Enterprise Value Premium', 'ارزش بازار', 'Residual Goodwill', 'Impairment Test',
-        'آزمون کاهش ارزش', 'IAS 38', 'IFRS 3', 'Business Combination', 'ارزش منصفانه', 'Economic Goodwill',
-        'Accounting Goodwill', 'Premium Acquisition', 'ارزش‌گذاری M&A', 'ارزش شرکت'
-    ],
-
-    # دارایی 6: پورتفولیوی مشتریان استراتژیک
-    'پورتفولیوی مشتریان استراتژیک': [
-        'CRM', 'مدیریت مشتریان', 'پورتفولیو مشتری', 'راهبرد بازار', 'Key Account Management', 'KAM', 'مشتریان کلیدی',
-        'مشتریان استراتژیک', 'پایگاه مشتریان', 'ارزش طول عمر مشتری', 'CLV', 'Strategic Accounts', 'Key Customers',
-        'Account Portfolio', 'Enterprise Customers', 'Top Clients', 'مشتریان VIP', 'Customer Profitability',
-        'Retention Rate', 'نرخ وفاداری', 'Churn Analysis', 'Net Revenue Retention', 'Gross Revenue Retention',
-        'مشتریان لنگر', 'Anchor Clients', 'Revenue Concentration', 'ارزش مشتری', 'Customer Intelligence',
-        'سابقه مشتری', 'B2B', 'Cross-sell Potential', 'Upsell Potential', 'Portfolio of Strategic Customers'
-    ],
-
-    # دارایی 7: شبکه شراکت های استراتژیک
-    'شبکه شراکت های استراتژیک': [
-        'شراکت استراتژیک', 'همکاری تجاری', 'شرکت‌های تابعه', 'توافقنامه همکاری', 'MoU', 'JV', 'همکاری سرمایه‌گذاری',
-        'شبکه شراکت', 'همکاری راهبردی', 'Strategic Partnership', 'Alliance Agreement', 'Business Alliance',
-        'Ecosystem Partnership', 'Channel Partnership', 'Technology Partnership', 'Commercial Alliance',
-        'Distribution Alliance', 'Co-branding Partnership', 'Co-development Agreement', 'Research Partnership',
-        'Partner Network', 'Alliance Portfolio', 'Consortium Agreement', 'همکاری بین‌المللی', 'Strategic Alliance Network'
-    ],
-
-    # دارایی 8: رتبه‌بندی های CSR معتبر
-    'رتبه‌بندی های CSR معتبر': [
-        'CSR', 'ESG', 'رتبه‌بندی', 'گواهی نامه', 'ISO 26000', 'گزارش پایداری', 'GRI', 'ارزیابی اجتماعی',
-        'مسئولیت اجتماعی', 'رتبه‌بندی ESG', 'راهبرد پایداری', 'Sustainability Rating', 'ESG Score', 'CSR Rating',
-        'Responsible Business Ranking', 'GRI Standards', 'SASB', 'TCFD', 'UN Global Compact', 'B Corp',
-        'Social Impact Rating', 'Environmental Score', 'Governance Score', 'مسئولیت شرکتی', 'پایداری شرکتی',
-        'third-party assessment', 'ارزیابی بیرونی', 'Sustainable Finance Signals', 'Non-financial Rating',
-        'Sustainability Benchmark'
-    ],
-
-    # دارایی 9: عضویت در شوراهای ملی / بین‌المللی
-    'عضویت در شوراهای ملی / بین‌المللی': [
-        'عضویت', 'عضویت در شورا', 'شورای راهبردی', 'شورای مشورتی', 'شورای خط مشی', 'عضویت اتاق بازرگانی',
-        'عضویت انجمن صنفی', 'انجمن بین‌المللی', 'کمیته راهبری', 'عضویت گروه کاری', 'کمیته فنی', 'شورای سیاست‌گذاری',
-        'نهادهای سیاست‌گذار', 'عضو هیئت مدیره', 'رابطه با نهادهای نظارتی', 'Board Membership', 'Council Membership',
-        'Advisory Council', 'Policy Council', 'Chamber Membership', 'Trade Association Membership',
-        'International Association', 'Steering Committee', 'Working Group Membership', 'Technical Committee',
-        'Policy Influence Network', 'Institutional Seat'
-    ],
-
-    # دارایی 10: پروتکل‌های همکاری با دولت / دانشگاه
-    'پروتکل‌های همکاری با دولت / دانشگاه': [
-        'همکاری بین‌المللی', 'پروژه دانشگاهی', 'پژوهش علمی', 'توافقنامه با نهاد تحقیقاتی', 'همکاری با دانشگاه',
-        'تحقیق و توسعه دولتی', 'همکاری با دولت', 'قرارداد تحقیقات عمومی', 'همکاری دانشگاهی', 'MoU with University',
-        'Research Consortium', 'Technology Transfer Agreement', 'Grant Agreement', 'State-funded R&D',
-        'Innovation Voucher', 'همکاری پژوهشی', 'همکاری با نهادهای دولتی', 'Government-University Collaboration',
-        'Public Research Agreement', 'Academic Partnership', 'Commercialization Agreement', 'Regulatory Sandbox',
-        'قرارداد انتقال دانش فنی', 'حمایت مالی پژوهشی', 'پروژه کنسرسیومی', 'طرح کلان ملی', 'University Lab Access',
-        'Government Lab Access', 'قرارداد تست میدانی', 'مجوز بهره برداری آزمایشی'
-    ],
-
-    # دارایی 11: میزان اعتماد عمومی
-    'میزان اعتماد عمومی': [
-        'اعتماد عمومی', 'نظرسنجی', 'پیمایش افکار', 'رضایت جامعه', 'ادراک ذی‌نفعان', 'سرمایه اجتماعی', 'حسن نیت عمومی',
-        'باور مشتریان', 'صداقت سازمان', 'شفافیت ادراکی', 'مقبولیت اجتماعی', 'تصویر عمومی', 'اعتبار مردمی', 'نفوذ اجتماعی',
-        'شاخص اعتماد', 'پرسشنامه اعتماد', 'تحلیل نگرش', 'محبوبیت', 'اعتماد ذی‌نفعان', 'Brand Trust', 'Trust Index',
-        'Public Trust', 'اعتماد شهروندی', 'اعتماد مشتریان', 'سنجش اعتماد', 'سنجش ادراک عمومی', 'اعتبار اجتماعی',
-        'Social Reputation', 'Survey', 'License to Operate', 'Sentiment Analysis', 'تحلیل احساسات عمومی',
-        'بازخورد جامعه', 'رضایت ذی‌نفعان', 'اعتماد نهادی', 'شفافیت سازمانی', 'پاسخ‌گویی عمومی', 'پذیرش اجتماعی',
-        'مقبولیت برند', 'اعتبار نزد افکار عمومی', 'اعتمادسنجی', 'گزارش پیمایش', 'رصد شهرت عمومی'
-    ],
-
-    # دارایی 12: شبکه سفیران برند
-    'شبکه سفیران برند': [
-        'سفیر برند', 'ترویج برند', 'حامیان برند', 'شبکه نفوذ', 'قرارداد سفیر', 'اینفلوئنسر مارکتینگ استراتژیک',
-        'وفاداری فعال', 'مبلغان سازمانی', 'شبکه مروجان', 'الیحه همکاری سفیران', 'توسعه برند انسانی', 'روابط عمومی فعال',
-        'کمپین سفیران', 'نفوذ کلام', 'Brand Ambassador', 'Community Management', 'سفیران افتخاری', 'مدیریت جامعه',
-        'Word of Mouth', 'مشتریان حامی', 'Employee Advocacy', 'Brand Advocacy', 'Advocacy Marketing',
-        'Ambassador Program', 'Advocate Community', 'شبکه هواداران برند', 'نمایندگان برند', 'سفیران سازمانی',
-        'سفیران مشتری', 'Referral Program', 'برنامه ارجاع', 'Key Opinion Leader', 'KOL', 'اینفلوئنسرهای قراردادی',
-        'UGC', 'محتوای تولیدشده توسط کاربر', 'NPS', 'Promoter Score', 'شبکه معرفی برند', 'کمپین توصیه برند',
-        'پایگاه سفیران', 'مدیریت اینفلوئنسر', 'توافق‌نامه سفیر برند', 'فعال‌سازی سفیر', 'برنامه وفاداری مروجان'
-    ],
-
-    # دارایی 13: پتنت ها و حقوق اختراع ثبت شده
-    'پتنت ها و حقوق اختراع ثبت شده': [
-        'پتنت', 'ثبت اختراع', 'گواهی ثبت', 'اظهارنامه اختراع', 'IP', 'ادعانامه', 'طبقه اختراع', 'حق انحصاری',
-        'مالکیت فکری', 'Filing', 'شماره پتنت', 'WIPO', 'اداره ثبت اختراعات', 'اختراع بین‌المللی', 'لایسنس پتنت',
-        'مهلت اعتبار', 'نوآوری فنی', 'Claims', 'Patent Application', 'Patent Certificate', 'Patent Registration',
-        'حفاظت قانونی', 'Patent Holder', 'مخترع', 'Patent Portfolio', 'نقشه پتنت', 'Patent Family', 'خانواده اختراع',
-        'حق تقدم', 'Priority Date', 'PCT', 'معاهده همکاری ثبت اختراع', 'Prior Art', 'جستجوی پیشینه اختراع',
-        'تازگی اختراع', 'گام ابتکاری', 'قابلیت کاربرد صنعتی', 'نقض پتنت', 'Patent Infringement', 'Patent Phase',
-        'تمدید اعتبار پتنت', 'انتقال مالکیت اختراع', 'واگذاری پتنت', 'تجاری‌سازی اختراع', 'Licensing'
-    ],
-
-    # دارایی 14: نرم افزارهای اختصاصی / کدهای منبع
-    'نرم افزارهای اختصاصی / کدهای منبع': [
-        'کد منبع', 'Source Code', 'نرم‌افزار اختصاصی', 'Repository', 'Git', 'نسخه‌بندی', 'پشتیبان‌گیری', 'Frontend',
-        'Backend', 'سیستم عامل', 'نرم‌افزار اختصاصی', 'API', 'Proprietary Software', 'Custom Software',
-        'Code Ownership', 'GitHub Enterprise', 'GitLab', 'Bitbucket', 'Version Control', 'Branch', 'Commit History',
-        'CI/CD', 'DevOps Pipeline', 'Software Architecture Document', 'API Documentation', 'SDK', 'Microservices',
-        'Codebase', 'Software Copyright', 'ثبت نرم‌افزار', 'Private Repository'
-    ],
-
-    # دارایی 15: مستند خط لوله تحقیق و توسعه
-    'مستند خط لوله تحقیق و توسعه': [
-        'R&D', 'تحقیق و توسعه', 'خط لوله نوآوری', 'پروژه توسعه', 'فناوری‌های آینده', 'Stage-Gate', 'TRL',
-        'سطح آمادگی فناوری', 'پروژه‌های تحقیق', 'Innovation Pipeline', 'Technology Roadmap', 'Product Roadmap',
-        'Technology Portfolio', 'Innovation Portfolio', 'Development Roadmap', 'Proof of Concept', 'PoC',
-        'Minimum Viable Product', 'MVP', 'Pilot Project', 'Validation Plan', 'طرح آزمایشی', 'R&D Governance',
-        'Go/No-Go Decision', 'نقشه راه فناوری'
-    ],
-
-    # دارایی 16: مدل‌های پیش بینی / شبیه‌سازی منحصربه‌فرد
-    'مدل‌های پیش بینی / شبیه‌سازی منحصربه‌فرد': [
-        'پیش‌بینی', 'شبیه‌سازی', 'مدل یادگیری ماشین', 'Predictive Analytics', 'Machine Learning Model',
-        'Digital Twin', 'Forecast Model', 'Monte Carlo Simulation', 'مدل هوش مصنوعی', 'Predictive Model',
-        'Simulation Model', 'Forecasting Engine', 'AI Model', 'Deep Learning', 'Neural Network', 'Regression Model',
-        'Time Series Forecasting', 'Discrete Event Simulation', 'Agent-Based Model', 'System Dynamics',
-        'Optimization Engine', 'Prescriptive Analytics', 'Scoring Model', 'Model Validation', 'Sensitivity Analysis'
-    ],
-
-    # دارایی 17: دانش فنی غیرقابل تقلید / اسرار تجاری
-    'دانش فنی غیرقابل تقلید / اسرار تجاری': [
-        'Trade Secret', 'اسرار تجاری', 'Know-how', 'دانش فنی', 'رازداری', 'NDA', 'Non-Disclosure Agreement',
-        'محرمانه', 'Confidential Information', 'فناوری اختصاصی', 'روش‌های اختصاصی', 'ساختار سازمانی', 'دستورالعمل',
-        'IP Protection', 'حفاظت از مالکیت فکری', 'دانش فنی محرمانه', 'اطلاعات طبقه‌بندی شده', 'Proprietary Know-how',
-        'Restricted Information', 'Data Room', 'RBAC', 'کنترل دسترسی', 'سیاست محرمانگی', 'Confidentiality Policy',
-        'ثبت اسرار تجاری', 'Clauses of Confidentiality'
-    ],
-
-    # دارایی 18: پایگاه داده تحلیلی استراتژیک
-    'پایگاه داده تحلیلی استراتژیک': [
-        'Data Warehouse', 'Data Lake', 'داده‌های اختصاصی', 'Master Data', 'Business Intelligence', 'Data Mart',
-        'داده‌های تحلیلی', 'Metadata', 'Data Governance', 'Analytics Platform', 'Decision Support',
-        'Strategic Data Asset', 'Enterprise Data Warehouse', 'EDW', 'Lakehouse', 'MDM', 'مدل داده', 'Data Model',
-        'Data Catalog', 'Data Lineage', 'Data Quality', 'ETL', 'ELT', 'Data Pipeline', 'Data Integration',
-        'OLAP', 'Semantic Layer', 'Big Data', 'Advanced Analytics'
-    ],
-
-    # دارایی 19: دانش فنی منحصربه‌فرد کارشناسان کلیدی
-    'دانش فنی منحصربه‌فرد کارشناسان کلیدی': [
-        'دانش ضمنی', 'Tacit Knowledge', 'Expert Knowledge', 'کارشناس کلیدی', 'خبرگی', 'انتقال دانش', 'سندسازی دانش',
-        'NDA', 'Non-Compete', 'مدیریت دانش', 'Expert Network', 'Subject Matter Expert', 'SME', 'کیفیت خبرگی',
-        'Critical Knowledge', 'Key Person Dependency', 'وابستگی به کارشناس کلیدی', 'Knowledge Mapping',
-        'نقشه دانش', 'Knowledge Elicitation', 'جلسات انتقال تجربه', 'Job Shadowing', 'Apprenticeship', 'SOP',
-        'Playbook', 'Skill Matrix', 'Retention of Experts', 'Community of Practice'
-    ],
-
-    # دارایی 20: تجربه حل مسائل پیچیده
-    'تجربه حل مسائل پیچیده': [
-        'Lessons Learned', 'Best Practices', 'تجربه سیستم‌سازی', 'دانش تجربی', 'Case Study', 'مدیریت تجربه',
-        'تجربه پروژه‌ها', 'Continuous Improvement', 'Knowledge Base', 'Complex Problem Solving', 'Problem-Solving Playbook',
-        'Root Cause Analysis', 'RCA', 'CAPA', 'After Action Review', 'AAR', 'Post-Implementation Review', 'PIR',
-        'Postmortem', 'Incident Resolution', 'Case Repository', 'Design Thinking', 'Kaizen', 'PDCA'
-    ],
-
-    # دارایی 21: سند فلسفه و ارزش های سازمانی
-    'سند فلسفه و ارزش های سازمانی': [
-        'فلسفه سازمانی', 'ارزش‌ها', 'چشم‌انداز', 'رسالت', 'Core Values', 'Mission Statement', 'Vision Statement',
-        'راهبرد سازمانی', 'اهداف کلان', 'ارزش‌های بنیادین', 'Culture Book', 'Code of Conduct', 'Organizational Identity',
-        'Corporate Philosophy', 'Strategic Direction', 'بیانیه ماموریت', 'چشم‌انداز سازمانی', 'راهبرد کلان',
-        'ارزش‌های سازمانی', 'هویت سازمانی'
-    ],
-
-    # دارایی 22: Story Brand مستندشده
-    'Story Brand مستندشده': [
-        'Story Brand', 'داستان برند', 'هویت داستانی', 'سفر مشتری', 'Brand Story', 'Brand Voice', 'Brand Narrative',
-        'داستان‌سرایی', 'راهنمای برند', 'StoryBrand Framework', 'برندسازی داستانی', 'Brand Messaging',
-        'Brand Archetype', 'Narrative Identity', 'Strategic Storytelling', 'هویت برند'
-    ],
-
-    # دارایی 23: سیستم رهبری تحول
-    'سیستم رهبری تحول': [
-        'رهبری تحول', 'مدیریت تغییر', 'سیستم رهبری', 'IDP', 'برنامه توسعه فردی', 'رهبری آینده‌نگر', 'رهبری استراتژیک',
-        'مدل شایستگی', 'ارزیابی 360 درجه', 'Executive Coaching', 'Transformation Leadership', 'Change Leadership',
-        'مسیر رهبری', 'Leadership Development', 'Succession Planning', 'Change Management', '360-Degree Feedback',
-        'Transformation Governance', 'نقشه رهبری'
-    ],
-
-    # دارایی 24: آیین های کلان
-    'آیین های کلان': [
-        'آیین‌های سازمانی', 'رویداد راهبردی', 'نشست‌های راهبردی', 'جشنواره‌های سازمانی', 'آیین‌های تقدیر', 'Town Hall Meetings',
-        'مراسم سازمانی', 'Corporate Rituals', 'Organizational Rituals', 'مراسم تحول', 'گردهمایی راهبردی',
-        'مراسم سازمانی', 'جشن دستاوردها', 'مراسم قدرشناسی', 'مراسم معارفه کارکنان', 'آیین استقبال',
-        'رویداد هم‌راستاسازی', 'نشست عمومی کارکنان', 'جشن سالانه', 'تقویم فرهنگی', 'پروتکل رویداد',
-        'دستورالعمل مراسم', 'سنت‌های سازمانی', 'نمادهای هویتی', 'مشارکت کارکنان', 'انسجام تیمی', 'تعلق سازمانی',
-        'نهادینه‌سازی ارزش‌ها', 'ارتباطات فرهنگی', 'جشن تحول', 'رویداد داخلی', 'گردهمایی مدیران', 'مراسم پاداش',
-        'آیین‌های انگیزشی', 'فرهنگ‌سازی سازمانی', 'تجربه کارکنان', 'Employee Engagement'
-    ],
-
-    # دارایی 25: شیوه نامه تصمیم گیری استراتژیک
-    'شیوه نامه تصمیم گیری استراتژیک': [
-        'شیوه نامه تصمیم‌گیری', 'تصمیم‌گیری استراتژیک', 'حاکمیت تصمیم', 'چارچوب تصمیم‌گیری', 'تحلیل ریسک',
-        'تصمیم‌گیری چندمعیاره', 'ماتریس تفویض اختیار', 'تحلیل سناریو', 'فرآیند توافق', 'ماتریس RACI',
-        'تصمیم‌گیری داده‌محور', 'اتاق جنگ استراتژیک', 'ارزیابی گزینه‌ها', 'عدم قطعیت', 'Strategic Decision-Making',
-        'سطوح اختیار', 'حدود اختیارات', 'کمیته تصمیم‌گیری', 'مرجع تصویب', 'فرآیند تأیید', 'تحلیل هزینه-فایده',
-        'تحلیل ذی‌نفعان', 'درخت تصمیم', 'ماتریس تصمیم', 'اولویت‌بندی گزینه‌ها', 'معیارهای ارزیابی',
-        'مدیریت ریسک تصمیم', 'برنامه‌ریزی سناریو', 'تحلیل حساسیت', 'تصمیم‌گیری اجرایی', 'تصمیم‌گیری سازمانی',
-        'تصمیم‌گیری تحت عدم قطعیت', 'Strategic War Room', 'اجماع سازمانی', 'مستندسازی تصمیم', 'ثبت تصمیمات',
-        'پایش اجرای تصمیم'
-    ],
-
-    # دارایی 26: کدهای اخلاقی مصوب
-    'کدهای اخلاقی مصوب': [
-        'کد اخلاقی', 'منشور اخلاقی', 'رفتار حرفه‌ای', 'ارزش‌های اخلاقی', 'انضباط کاری', 'مسئولیت‌پذیری',
-        'حاکمیت شرکتی', 'شفافیت', 'تضاد منافع', 'سیاست‌های اخلاقی', 'اخلاق حرفه‌ای', 'آیین انضباطی',
-        'آیین‌نامه اخلاقی', 'پایبندی اخلاقی', 'بیانیه اخلاق', 'استاندارد عملکرد', 'Code of Ethics',
-        'سیاست تضاد منافع', 'افشاگری', 'تخلف', 'سوت‌زنی', 'محرمانگی', 'ضد فساد', 'مبارزه با رشوه', 'هدیه و پذیرایی',
-        'عدالت سازمانی', 'پاسخ‌گویی', 'رعایت قوانین', 'مسئولیت اجتماعی', 'اخلاق کسب و کار', 'کمیته اخلاق',
-        'آموزش اخلاق', 'گزارش تخلف', 'کانال شکایت', 'اصول رفتاری', 'استانداردهای اخلاقی', 'انضباط سازمانی',
-        'تخلف حرفه‌ای', 'الزامات اخلاقی', 'تعهد اخلاقی', 'منشور رفتار کارکنان', 'سیاست ضدتقلب', 'استانداردهای حاکمیت'
-    ],
-
-    # دارایی 27: گواهینامه های کلیدی
-    'گواهینامه های کلیدی': [
-        'گواهینامه', 'استاندارد پایداری', 'گواهی زیست‌محیطی', 'کانادایی پایداری', 'تأییدیه بین‌المللی', 'مدیریت سبز',
-        'مسئولیت اجتماعی', 'گواهی سبز', 'پایداری', 'استاندارد حاکمیتی', 'انطباق زیست‌محیطی', 'اعتبار پایداری',
-        'گواهینامه ISO', 'گواهی کیفیت'
-    ],
-
-    # دارایی 28: گواهی نامه های محیط زیستی
-    'گواهی نامه های محیط زیستی': [
-        'گواهی‌نامه زیست‌محیطی', 'ارزیابی زیست‌محیطی', 'استراتژی پایداری', 'گزارش پایداری', 'اهداف زیست‌محیطی',
-        'شاخص‌های پایداری', 'راهبرد ESG', 'سیاست‌های زیست‌محیطی', 'ارزش پایدار', 'اهداف 2030', 'برنامه‌های پایدار',
-        'نقشه راه ESG', 'متغیرهای زیست‌محیطی'
-    ],
-
-    # دارایی 29: سیاست Net Zero مصوب
-    'سیاست Net Zero مصوب': [
-        'Net Zero', 'خنثی‌سازی کربن', 'کربن‌زدایی', 'گازهای گلخانه‌ای', 'اهداف کاهش کربن', 'Footprint', 'کربن',
-        'سیاست خنثی‌سازی', 'اهداف اقلیمی', 'تعهدات اقلیمی', 'مدیریت انرژی', 'کربن‌زدایی', 'انرژی پاک', 'گازهای گلخانه‌ای',
-        'Net-Zero Policy', 'سیاست اقلیمی', 'راهبر کربن‌زدایی', 'کاهش انرژی', 'Scope 1', 'Scope 2', 'Scope 3',
-        'SBTi', 'اهداف علمی', 'کربن خنثی', 'Carbon Neutrality', 'Climate Action', 'Climate Commitment'
-    ],
-
-    # دارایی 30: گزارش های پایداری منتشرشده
-    'گزارش های پایداری منتشرشده': [
-        'گزارش پایداری', 'GRI', 'ESG Report', 'گزارش سالانه', 'پایداری زیست‌محیطی', 'مسئولیت اجتماعی', 'CSR',
-        'گزارش سالانه پایداری', 'گزارش ESG', 'GRI Standards', 'Global Reporting Initiative', 'گزارش سالانه',
-        'اطلاعات غیرمالی', 'گزارش مسئولیت اجتماعی', 'متغیرهای اقلیمی', 'شاخص‌های زیست‌محیطی', 'شاخص‌های پایداری',
-        'شاخص‌های عملکردی', 'KPI', 'کاهش کربن', 'مصرف انرژی', 'مصرف آب', 'مدیریت پسماند', 'تنوع زیستی',
-        'رفاه کارکنان', 'ایمنی و سلامت', 'SDGs', 'اهداف توسعه پایدار', 'گزارش اثرگذاری', 'گزارش متغیرهای ESG',
-        'اطلاعات اقلیمی', 'TCFD', 'SASB', 'گزارش متوازن'
-    ],
-
-    # دارایی 31: اعتبارات کربنی (Carbon Credits)
-    'اعتبارات کربنی (Carbon Credits)': [
-        'Carbon Credits', 'اعتبارات کربنی', 'بازار کربن', 'کاهش انرژی', 'اکسید کربن', 'جبران کربن', 'گواهی کربن',
-        'گازهای گلخانه‌ای', 'پروژه‌های جذب کربن', 'کربن‌زدایی', 'استانداردهای کربن', 'بازارهای کربن', 'Carbon Offset',
-        'Carbon Trading', 'Emission Trading System', 'ETS', 'Cap and Trade', 'Verified Carbon Standard', 'VCS',
-        'Gold Standard', 'Carbon Registry', 'Carbon Neutrality', 'Net Zero Offset', 'Carbon Removal',
-        'Nature-Based Solutions', 'Reforestation', 'Afforestation', 'Renewable Energy Credits', 'REC',
-        'Climate Finance', 'Decarbonization', 'Carbon Accounting', 'Scope 1', 'Scope 2', 'Scope 3',
-        'GHG Protocol', 'Carbon Market', 'Emission Reduction Units', 'CER', 'Voluntary Carbon Market',
-        'Compliance Market', 'Carbon Sequestration', 'Climate Mitigation', 'Low Carbon Economy',
-        'Sustainability Finance', 'Green Assets'
-    ],
-
-    # دارایی 32: برنامه اقتصاد گردشی
-    'برنامه اقتصاد گردشی': [
-        'اقتصاد گردشی', 'مدیریت منابع', 'بهره‌وری منابع', 'بازگشت منابع', 'بسته چرخه', 'پایداری منابع', 'حذف ضایعات',
-        'بازتولید', 'بازیافت', 'Circular Economy', 'مدل اقتصاد گردشی', 'زنجیره تأمین گردشی', 'طراحی برای بازیافت',
-        'Closed Loop System', 'Circular Supply Chain', 'Refurbishment', 'Reuse', 'Upcycling', 'Material Recovery',
-        'Resource Recovery', 'Waste Reduction', 'Remanufacturing', 'Product Lifecycle', 'Sustainable Production',
-        'Sustainable Consumption', 'Zero Waste', 'Downcycling', 'Reverse Logistics', 'Industrial Symbiosis',
-        'Green Manufacturing', 'Eco Design', 'LCA', 'Life Cycle Assessment', 'Secondary Raw Materials',
-        'Circular Innovation', 'Resource Efficiency', 'Circular Business Model', 'Sustainable Packaging',
-        'Product-as-a-Service', 'Sharing Economy', 'Waste Valorization', 'Green Economy', 'Carbon Reduction',
-        'Material Circularity', 'Environmental Sustainability', 'Regenerative Economy', 'Circular Transformation',
-        'Eco Efficiency', 'Sustainable Value Chain'
-    ],
-
-    # دارایی 33: فرآیندهای استاندارد بهینه شده (SOPS)
-    'فرآیندهای استاندارد بهینه شده (SOPS)': [
-        'SOP', 'روش اجرایی', 'دستورالعمل کاری', 'بهینه‌سازی فرآیند', 'بهره‌وری عملیاتی', 'استانداردسازی',
-        'تضمین کیفیت', 'کاهش خطا', 'گردش کار', 'فلوچارت فرآیند', 'مستندات عملیاتی', 'دانش فرآیندی', 'کارایی اقتصادی',
-        'کنترل داخلی', 'یکپارچه‌سازی فرآیند', 'Standard Operating Procedure', 'Workflow Management',
-        'Process Optimization', 'Process Mapping', 'Process Governance', 'Operational Excellence',
-        'BPM', 'Business Process Management', 'Work Instructions', 'Compliance Procedures', 'ISO Procedures',
-        'Quality Control', 'Quality Assurance', 'Continuous Improvement', 'Standardization Framework',
-        'Process Documentation', 'Operational Workflow', 'Manufacturing Procedures', 'Service Procedures',
-        'Process Automation', 'Lean Operations', 'Knowledge Transfer', 'Procedure Manual', 'Risk Control',
-        'Audit Trail', 'Task Standardization', 'Operational Consistency', 'SOP Repository', 'KPI Alignment',
-        'Reengineering', 'Process Efficiency', 'Enterprise Procedures', 'Workflow Standardization',
-        'Best Practices', 'Workflow'
-    ],
-
-    # دارایی 34: الگوریتم های قیمت گذاری پویا
-    'الگوریتم های قیمت گذاری پویا': [
-        'قیمت‌گذاری پویا', 'Dynamic Pricing', 'الگوریتم بهینه‌سازی', 'کشش تقاضا', 'مدل ریاضی قیمت',
-        'قیمت‌گذاری لحظه‌ای', 'تحلیل رقبا', 'بیشینه‌سازی درآمد', 'سودآوری هوشمند', 'الگوریتم یادگیری ماشین',
-        'قیمت‌گذاری داده‌محور', 'متغیرهای بازار', 'Price Optimization', 'Yield Management', 'Revenue Management',
-        'استراتژی قیمت‌گذاری', 'AI Pricing', 'Elasticity Modeling', 'Demand Forecasting', 'Real-Time Pricing',
-        'Surge Pricing', 'Pricing Engine', 'Margin Optimization', 'Competitive Pricing', 'Algorithmic Pricing',
-        'Smart Pricing', 'Predictive Pricing', 'Consumer Behavior Analysis', 'Market Intelligence',
-        'Automated Pricing', 'Dynamic Revenue Model', 'Machine Learning', 'Data-Driven Pricing',
-        'Pricing Analytics', 'Personalized Pricing', 'Price Segmentation', 'Adaptive Pricing Strategy',
-        'Scenario Pricing', 'Promotion Optimization', 'Pricing Rules Engine', 'Behavioral Pricing',
-        'Retail Pricing Analytics', 'Auction Pricing', 'Bid Pricing'
-    ],
-
-    # دارایی 35: داشبوردهای مدیریتی
-    'داشبوردهای مدیریتی': [
-        'داشبورد', 'تصمیم‌گیری بصری', 'تجزیه و تحلیل داده', 'گزارش مدیریتی', 'پایش لحظه‌ای', 'هوش داده', 'تحلیل شاخص‌ها',
-        'KPI', 'تابلوی KPI', 'سنجش عملکرد', 'کارایی سازمانی', 'ابزارهای BI', 'تحلیل روند', 'تحلیل‌های عملیاتی',
-        'متریک داده', 'Executive Dashboard', 'Performance Analytics', 'Business Intelligence', 'Dashboard',
-        'Strategic KPIs', 'Operational Metrics', 'Balanced Scorecard', 'Real-Time Monitoring', 'Visualization',
-        'Power BI', 'DSS', 'Decision Support System', 'Analytics Platform', 'Reporting System',
-        'Data Warehouse', 'Data Insights', 'Predictive Analytics', 'Dashboard Reporting', 'QlikView', 'Tableau',
-        'Trend Analysis', 'Scorecard System', 'Benchmarking', 'OKR Tracking', 'Performance Management',
-        'Business Metrics', 'Management Cockpit', 'Data Governance', 'Operational Intelligence',
-        'Analytical Dashboard', 'Corporate Performance', 'Data-Driven Management', 'Monitoring Tools',
-        'Enterprise Analytics', 'Integrated Reporting'
-    ],
-
-    # دارایی 36: قراردادهای فعال زنجیره تأمین
-    'قراردادهای فعال زنجیره تأمین': [
-        'زنجیره تأمین', 'قرارداد خرید', 'تأمین‌کننده', 'توافقات SLA', 'لجستیک', 'پیمانکار', 'شرایط پرداخت',
-        'ضمانت تأمین', 'تفاهم نامه همکاری', 'مدیریت منابع', 'تأمین‌کنندگان کلیدی', 'پایداری زنجیره', 'سریع‌سازی',
-        'Service Level Agreement', 'SLA', 'Vendor Management', 'Supplier Agreement', 'Procurement Contract',
-        'Strategic Sourcing', 'Logistics Agreement', 'CLM', 'Contract Lifecycle Management', 'Purchase Order',
-        'Supply Assurance', 'Distribution Agreement', 'Framework Agreement', 'Inventory Management',
-        'SRM', 'Supplier Relationship Management', 'Compliance Contract', 'Incoterms', 'Delivery Terms',
-        'Vendor Ecosystem', 'Outsourcing Contract', 'Governance', 'Third-Party Agreements', 'Risk Mitigation',
-        'Supply Continuity', 'Negotiation', 'Sustainable Supply Chain', 'Contract Repository', 'Sourcing Strategy',
-        'Strategic Procurement', 'Supply Network', 'Procurement Analytics', 'Performance', 'Commercial Agreements'
-    ],
-
-    # دارایی 37: تکنیک های کاهش هزینه عملیاتی
-    'تکنیک های کاهش هزینه عملیاتی': [
-        'کاهش هزینه', 'بهینه‌سازی عملیاتی', 'هزینه سربار', 'OPEX', 'سودآوری', 'کنترل مخارج', 'مهندسی ارزش',
-        'بهره‌وری هزینه', 'تحلیل هزینه-فایده', 'کاهش ضایعات', 'مدیریت مالی عملیاتی', 'بهینه‌سازی فرآیند',
-        'حاشیه سود', 'استراتژی مالی', 'Operational Efficiency', 'Cost Reduction', 'Expense Optimization',
-        'Cost Control', 'Activity-Based Costing', 'Lean Costing', 'Productivity Improvement', 'Waste Elimination',
-        'Process Efficiency', 'ABC Costing'
-    ],
-
-    # دارایی 38: قراردادهای مشارکت با مشتریان کلیدی
-    'قراردادهای مشارکت با مشتریان کلیدی': [
-        'مشارکت با مشتری', 'قرارداد کلیدی', 'همکاری بلندمدت', 'توافقنامه استراتژیک', 'مدیریت حساب',
-        'قرارداد خدمت‌رسانی', 'شرایط انحصاری', 'بازخورد مشتری', 'ارزش مشارکت', 'رابطه استراتژیک',
-        'Key Account', 'Strategic Partnership', 'Customer Agreement', 'Co-creation', 'Collaboration Framework',
-        'Partnership Model', 'Long-term Relationship', 'Value Co-creation', 'Relationship Management'
-    ],
-
-    # دارایی 39: سبد پروژه های تحقیق و توسعه
-    'سبد پروژه های تحقیق و توسعه': [
-        'پروژه‌های تحقیق', 'توسعه محصول', 'نوآوری فناورانه', 'اولویت‌بندی پروژه', 'مدیریت سبد', 'منابع تحقیق',
-        'موفقیت پروژه', 'پروژه‌های استراتژیک', 'پروژه‌های مشارکتی', 'تخصیص بودجه', 'فازهای پروژه', 'تحویل پروژه',
-        'مدیریت ریسک', 'ارزیابی پروژه', 'گزارش پیشرفت', 'R&D Projects', 'Innovation Portfolio', 'Project Roadmap',
-        'Resource Allocation', 'Risk Management', 'Project Governance', 'Milestone Tracking'
-    ],
-
-    # دارایی 40: مجوزها و پروانه های بهره برداری
-    'مجوزها و پروانه های بهره برداری': [
-        'مجوز', 'پروانه بهره‌برداری', 'گواهی فعالیت', 'مجوز کسب و کار', 'مجوزهای قانونی', 'پروانه صنعتی',
-        'مجوز واردات', 'مجوز صادرات', 'مجوز فعالیت', 'مجوز ساخت', 'مجوز نصب', 'پروانه اشتغال', 'مجوز زیست‌محیطی',
-        'مجوز ایمنی', 'مجوز بهداشتی', 'Business License', 'Operating Permit', 'Environmental Permit',
-        'Regulatory License', 'Compliance Certificate', 'Industrial License', 'Import License', 'Export License',
-        'Building Permit', 'Safety Permit', 'Health Permit', 'Legal Authorization'
-    ],
-
-    # دارایی 41: قراردادهای همکاری بین شرکتی
-    'قراردادهای همکاری بین شرکتی': [
-        'همکاری بین شرکتی', 'مشارکت راهبردی', 'توافق تجاری', 'شریک تجاری', 'تعهدات طرفین', 'مدل همکاری',
-        'حقوق و تعهدات', 'قرارداد خدمات متقابل', 'اتحاد استراتژیک', 'قرارداد هم‌سرمایه‌گذاری', 'مدل همکاری',
-        'الزامات قرارداد', 'مدت اعتبار', 'Business Alliance', 'Collaboration Framework', 'Joint Venture Agreement',
-        'Partnership Agreement', 'Master Service Agreement', 'MSA', 'Service Agreement', 'Commercial Terms',
-        'Contract Governance', 'Revenue Sharing Agreement', 'Confidentiality Agreement', 'Non-Disclosure Agreement',
-        'Distribution Agreement', 'Licensing Agreement', 'Co-development Agreement', 'Risk Sharing',
-        'Legal Framework', 'Contractual Obligations', 'CLM', 'Contract Lifecycle Management', 'Contract Negotiation',
-        'Alliance Management', 'Memorandum of Understanding', 'Term Sheet', 'Exit Clause', 'Business Collaboration',
-        'Shared Investment', 'Governance Committee', 'Renewal Terms'
-    ],
-
-    # دارایی 42: سیستم بازخورد 360 درجه
-    'سیستم بازخورد 360 درجه': [
-        '360 درجه', 'ارزیابی 360', 'بازخورد چندمنبعی', 'چندارزیاب', 'توسعه فردی', 'شایستگی', 'ارزیابی عملکرد',
-        'مدیر', 'همکار', 'زیردست', 'خودارزیابی', 'پرسشنامه شایستگی', 'گزارش بازخورد', 'برنامه توسعه فردی', 'IDP',
-        'تحلیل شکاف شایستگی', 'محرمانگی ارزیابی', 'Feedback 360', 'Multi-Rater Feedback', 'Competency',
-        'Leadership Assessment', 'Behavioral Feedback', 'Talent Development', 'Performance Review',
-        'Assessment Center', 'Feedback Report', 'Succession Planning', 'Competency Model', 'Manager Feedback',
-        'HR Analytics', 'Mentoring Input', 'Coaching Plan', 'Development Dashboard', 'Appraisal System',
-        'Employee Insight', 'Professional Growth', 'Team Effectiveness', 'Stakeholder Feedback',
-        'Employee Development', 'Managerial Evaluation', 'Peer Review', 'Executive Assessment', 'Development Plan',
-        'Capability Gap Analysis', 'Anonymous Feedback', 'Culture Feedback', 'Leadership Pipeline',
-        'Human Capital Assessment', 'Organizational Development'
-    ],
-
-    # دارایی 43: انجمن‌های صنفی داخلی
-    'انجمن‌های صنفی داخلی': [
-        'انجمن صنفی', 'کمیته داخلی', 'انجمن حرفه‌ای', 'جامعه حرفه‌ای', 'عضویت', 'شورای انجمن', 'نشست‌های سالانه',
-        'کمیته‌های تخصصی', 'شبکه حرفه‌ای', 'انتقال تجربه', 'توسعه حرفه‌ای', 'جامعه صنفی', 'Community of Practice',
-        'گروه تخصصی', 'Internal Guild', 'Professional Association', 'Knowledge Community', 'Expert Network',
-        'Practice Community', 'Professional Forum', 'Member Directory', 'Governance Charter', 'Technical Committee',
-        'Special Interest Group', 'SIG', 'Internal Chapter', 'Competence Network', 'Peer Learning',
-        'Professional Development', 'Knowledge Exchange', 'Association Governance', 'Working Group',
-        'Internal Membership', 'Field Community', 'Advisory Circle', 'Expert Circle', 'Collaboration Forum',
-        'Internal Society', 'Career Community', 'Best Practice Sharing', 'Professional Network',
-        'Community Leadership', 'Internal Elections', 'Charter Document', 'Association Bylaws'
-    ],
-
-    # دارایی 44: دانش ضمنی کارکنان خبره
-    'دانش ضمنی کارکنان خبره': [
-        'دانش ضمنی', 'Tacit Knowledge', 'خبرگی', 'تجربه کیفیت', 'دانش تجربی', 'انتقال دانش', 'استخراج دانش',
-        'سندسازی تجربه', 'آموزش ضمنی', 'نقشه دانش', 'جلسات انتقال', 'کارشناس کلیدی', 'مدیریت دانش', 'Expert Knowledge',
-        'Knowledge Capture', 'Knowledge Retention', 'Knowledge Elicitation', 'Subject Matter Expert', 'SME',
-        'Experiential Knowledge', 'Institutional Memory', 'Critical Know-How', 'Expert Interview',
-        'Cognitive Mapping', 'Skill Transfer', 'Knowledge Mapping', 'Best Practice Capture', 'Mentorship Knowledge',
-        'Apprenticeship Learning', 'Job Shadowing', 'Hidden Expertise', 'Knowledge Preservation',
-        'Organizational Learning', 'Capability Retention', 'Intellectual Capital', 'Human Capital Knowledge',
-        'Expert Insights', 'Operational Wisdom', 'Knowledge Continuity', 'Strategic Know-How',
-        'Experience Repository', 'Competence Extraction', 'Practical Intelligence'
-    ],
-
-    # دارایی 45: مهارت‌های تخصصی غیرمستند
-    'مهارت‌های تخصصی غیرمستند': [
-        'مهارت تخصصی', 'دانش ضمنی', 'تجربه کاری', 'کیفیت مهارت', 'وابستگی به کارشناس', 'آموزش غیررسمی',
-        'دانش ثبت‌نشده', 'تجربه عملی', 'Uncodified Skills', 'Undocumented Expertise', 'Hidden Skills',
-        'Informal Competence', 'Personal Know-How', 'Individual Capability', 'Tacit Skillset',
-        'Non-Documented Knowledge', 'Experiential Skill', 'Key Person Dependency', 'Skill Gap Risk',
-        'Informal Learning', 'On-the-Job Learning', 'Practical Expertise', 'Human Capital Risk',
-        'Unique Capability', 'Skill Inventory', 'Competency Mapping', 'Implicit Knowledge', 'Specialist Capability',
-        'Craft Knowledge', 'Personal Expertise'
-    ],
-
-    # دارایی 46: تکنیک های عملی آموخته شده
-    'تکنیک های عملی آموخته شده': [
-        'تکنیک‌های عملی', 'تجربه اجرایی', 'میان‌بر', 'شگرد', 'بهینه‌سازی', 'یادگیری تجربی', 'متدولوژی غیررسمی',
-        'مستندسازی', 'اشتراک دانش', 'استانداردسازی', 'مهارت‌های اکتسابی', 'Best Practices', 'دانش عملیاتی',
-        'حل مسئله', 'کارایی', 'ارتقاء عملکرد', 'Field Methods', 'Operational Tactics', 'Experiential Learning',
-        'Practical Techniques', 'فرآیند اجرایی', 'Process Hacks', 'Workarounds', 'Applied Know-How',
-        'Practice-Based Knowledge', 'Execution Tricks', 'Implementation Tactics', 'Performance Tips',
-        'Operational Improvements', 'Real-World Solutions', 'Informal Methods', 'Practice Notes',
-        'Experience-Based Optimization', 'Learned Methods', 'Adaptive Troubleshooting Techniques',
-        'Actionable Knowledge', 'Execution Excellence', 'Efficiency Methods', 'Operational Lessons',
-        'Process Mastery', 'Continuous Learning', 'Productivity Techniques', 'Proven Methods',
-        'Performance Know-How', 'Hands-On Expertise', 'Workplace Innovation', 'Applied Improvement',
-        'Execution Insights', 'Problem Solving'
-    ],
-
-    # دارایی 47: شبکه تماس و روابط شخصی کارکنان
-    'شبکه تماس و روابط شخصی کارکنان': [
-        'شبکه تماس', 'روابط شخصی', 'لیست مخاطبین', 'ارتباطات فردی', 'لینکدین شخصی', 'دفترچه تلفن', 'ارتباطات کاری',
-        'شبکه حرفه‌ای', 'رابطه کاری', 'اعتبار فردی', 'Personal Network', 'Networking', 'Contacts', 'Professional Contacts',
-        'همکاران', 'مراودات شخصی', 'Stakeholder Contacts', 'Contact Base', 'Social Capital', 'Relationship Capital',
-        'Individual Contacts', 'Informal Connections', 'Business Relationships', 'Referral Network',
-        'Trusted Connections', 'Influence Network', 'Key Introductions', 'Internal Contacts', 'External Contacts',
-        'Strategic Relationships', 'Contact Directory', 'Personal Credibility', 'Relationship Mapping',
-        'Client Relations', 'Executive Network', 'Social Graph', 'Connector Role', 'Network Access',
-        'Partnership Contacts', 'Reputation Capital', 'Relationship Assets', 'Alumni Network', 'Industry Network',
-        'Vendor Contacts', 'Informal Contacts', 'Influence Capital', 'Human Network', 'Contact Leverage',
-        'Trusted Circle', 'Network Intelligence', 'Relationship Map'
-    ],
-
-    # دارایی 48: بهترین شیوه های غیررسمی
-    'بهترین شیوه های غیررسمی': [
-        'بهترین شیوه غیررسمی', 'Best Practice', 'فرهنگ کاری', 'عرف سازمانی', 'رویه مرسوم', 'کار درست', 'نانوشته',
-        'روش عرف', 'Unwritten Rules', 'Informal Best Practices', 'فرهنگ واحد', 'دستورالعمل نانوشته', 'عادت عملیاتی',
-        'روش همیشگی', 'Informal Practices', 'Cultural Norms', 'Team Norms', 'Local Practice', 'Operational Habits',
-        'Customary Process', 'Institutional Habit', 'Established Ways', 'Workplace Convention', 'Practical Routine',
-        'Standards'
-    ],
-
-    # دارایی 49: خلاصه پیاده‌سازی استراتژی
-    'خلاصه پیاده‌سازی استراتژی': [
-        'پیاده‌سازی استراتژی', 'اجرای راهبرد', 'نقشه راه اجرا', 'برنامه عملیاتی', 'اقدامات کلیدی', 'چشم‌انداز اجرا',
-        'مدیریت اجرا', 'اهداف استراتژیک', 'شاخص‌های پیشرفت', 'موانع اجرا', 'راهکارهای اجرایی', 'اصلاح مسیر',
-        'ارزیابی عملکرد', 'نتایج کلیدی', 'استراتژی عملیاتی', 'Strategy Implementation', 'Execution Roadmap',
-        'Action Plan', 'Strategic Goals', 'Performance Metrics', 'Implementation Roadblocks', 'Execution Tactics',
-        'Course Correction', 'Performance Evaluation', 'Key Results', 'Operational Strategy', 'Strategic Alignment',
-        'Execution Governance', 'Implementation Framework', 'Strategy Map', 'Balanced Scorecard'
-    ],
-
-    # دارایی 50: شرح وظایف و انتظارات سازمانی
-    'شرح وظایف و انتظارات سازمانی': [
-        'شرح وظایف', 'انتظارات سازمانی', 'مسئولیت‌های شغلی', 'نقش‌های سازمانی', 'اختیارات', 'سطح انتظار',
-        'معیارهای عملکرد', 'فرهنگ پاسخگویی', 'شفافیت وظایف', 'بازخورد عملکرد', 'توسعه نقش', 'تعهدات کاری',
-        'ارزیابی شغلی', 'الگوی عملکرد', 'Job Description', 'Organizational Expectations', 'Job Responsibilities',
-        'Organizational Roles', 'Authorities', 'Performance Criteria', 'Accountability Culture', 'Role Transparency',
-        'Performance Feedback', 'Role Development', 'Work Commitments', 'Job Evaluation', 'Performance Model'
-    ],
-
-    # دارایی 51: اتاق جنگ استراتژیک
-    'اتاق جنگ استراتژیک': [
-        'اتاق جنگ', 'نظارت استراتژیک', 'تصمیم‌گیری لحظه‌ای', 'پایش داده‌ها', 'سناریوهای کسب و کار', 'هماهنگی تیمی',
-        'داشبورد تصمیم‌گیری', 'هوش تجاری', 'واکنش به تغییرات', 'مدیریت بحران', 'رهبری موقعیتی', 'پاسخگویی سریع',
-        'تغییر استراتژی', 'War Room', 'Strategic Monitoring', 'Real-time Decision Making', 'Data Surveillance',
-        'Business Scenarios', 'Team Coordination', 'Decision Dashboard', 'Business Intelligence', 'Change Response',
-        'Crisis Management', 'Situational Leadership', 'Quick Response', 'Strategy Pivot'
-    ],
-
-    # دارایی 52: مستندات پروژه
-    'مستندات پروژه': [
-        'مستندات پروژه', 'گزارش جلسه', 'گزارش پیشرفت', 'اختتامیه پروژه', 'نقشه فنی', 'حافظه تاریخی', 'داکیومنت',
-        'خروجی تحلیلی', 'آرشیو پروژه', 'سوابق', 'برنامه زمان‌بندی', 'گزارش نهایی', 'تأییدیه‌های پروژه', 'اسناد فنی',
-        'مدیریت پروژه', 'Project Documentation', 'Final Report', 'Progress Report', 'Meeting Minutes',
-        'Project Records', 'Technical Documents', 'Project Baseline', 'WBS', 'Work Breakdown Structure',
-        'Scope Statement', 'Project Charter', 'Milestone Report', 'Risk Register', 'Issue Log', 'Change Request',
-        'Design Documents', 'Drawings', 'Sign-off Document', 'Acceptance Criteria', 'Project Closure Report',
-        'Deliverables Register', 'Status Report', 'PMO Documentation', 'Project Archive', 'Execution Records',
-        'Implementation Notes', 'Project Files', 'Action Items', 'Stakeholder Register', 'Decision Log',
-        'Governance Documents', 'Project Evidence', 'Schedule Baseline', 'Audit Trail', 'Version History',
-        'Document Control'
-    ],
-
-    # دارایی 53: کتابخانه ویدئویی آموزشی
-    'کتابخانه ویدئویی آموزشی': [
-        'فیلم آموزشی', 'ویدئو آموزشی', 'کتابخانه ویدئویی', 'محتوای مالتی‌مدیا', 'آرشیو آموزشی', 'آموزش ویدئویی',
-        'وبینار ضبط شده', 'آموزش نرم‌افزاری', 'یادگیری ویدئویی', 'دیتابیس ویدئو', 'آموزش کارکنان', 'توسعه مهارت',
-        'کارگاه ویدئویی', 'آرشیو دیجیتال', 'Video Learning Library', 'Video Tutorials', 'Recorded Webinar',
-        'Training Videos', 'Multimedia Learning', 'Digital Training Archive', 'Video Repository',
-        'Learning Content Library', 'Instructional Video', 'E-learning Video', 'Corporate Learning',
-        'Skills Training Videos', 'Microlearning Videos', 'On-demand Learning', 'Webinar Archive',
-        'Screen Recording Tutorial', 'Product Training Video', 'Demo Videos', 'Internal Training',
-        'Learning Playlist', 'Video Catalog', 'Training Portal', 'Educational Media', 'Knowledge Videos',
-        'Course Video Library', 'Video-based Learning', 'Visual Learning Content', 'Training Media',
-        'Asynchronous Learning', 'Recorded Workshops', 'Staff Development Videos', 'Content Repository',
-        'Employee Enablement', 'Video Knowledge Base', 'Multimedia Repository', 'Learning Asset Library',
-        'Digital Course Videos'
-    ],
-
-    # دارایی 54: سیستم‌های مدیریت محتوا (CMS)
-    'سیستم‌های مدیریت محتوا (CMS)': [
-        'CMS', 'مدیریت محتوا', 'سیستم انتشار', 'ویرایش محتوا', 'قالب‌های محتوا', 'وب‌سایت سازمانی', 'پورتال خبری',
-        'مدیریت اسناد', 'بایگانی دیجیتال', 'گردش کار محتوا', 'نسخه‌بندی محتوا', 'مدیریت کاربران', 'امنیت محتوا',
-        'جستجوی محتوا', 'Content Management System', 'Content Publishing', 'Content Editing', 'Content Templates',
-        'Corporate Website', 'News Portal', 'Document Management', 'Digital Archive', 'Content Workflow',
-        'Version Control', 'User Management', 'Content Security', 'Content Search'
-    ],
-
-    # دارایی 55: کانال‌های ارتباط داخلی
-    'کانال‌های ارتباط داخلی': [
-        'کانال‌های ارتباط', 'ارتباطات داخلی', 'شبکه اطلاع‌رسانی', 'پورتال سازمانی', 'ایمیل سازمانی', 'پیام‌رسان داخلی',
-        'تابلو اعلانات', 'خبرنامه داخلی', 'جلسات عمومی', 'وب‌سایت داخلی', 'پاسخگویی سریع', 'روابط عمومی داخلی',
-        'فرهنگ ارتباطی', 'Internal Communication', 'Information Network', 'Corporate Portal', 'Corporate Email',
-        'Internal Messenger', 'Bulletin Board', 'Internal Newsletter', 'Town Hall Meetings', 'Intranet',
-        'Quick Response', 'Internal PR', 'Communication Culture'
-    ],
-
-    # دارایی 56: واژگان و اصطلاحات سازمانی
-    'واژگان و اصطلاحات سازمانی': [
-        'واژگان سازمانی', 'اصطلاحات', 'دیکشنری داخلی', 'اصطلاحات تخصصی', 'یکپارچه‌سازی زبانی', 'واژه‌نامه',
-        'مفاهیم کلیدی', 'زبان سازمانی', 'هماهنگی تیمی', 'درک مشترک', 'استاندارد نام‌گذاری', 'Terminology',
-        'Shared Vocabulary', 'Reference Terms', 'Lexicon', 'Nomenclature', 'Internal Dictionary', 'Data Glossary',
-        'Domain Terminology', 'Master Definitions', 'Unified Terminology', 'Language Standardization',
-        'Concept Harmonization', 'Ontology Terms', 'Functional Vocabulary', 'Institutional Language',
-        'Cross-team Vocabulary', 'Term Mapping', 'Definition Governance', 'Common Semantics',
-        'Language Consistency', 'Corporate Lexicon', 'Shared Understanding', 'Vocabulary Governance',
-        'Standard Naming Convention'
-    ],
-
-    # دارایی 57: آیین های روزمره (Stand-ups, Retrospectives)
-    'آیین های روزمره (Stand-ups, Retrospectives)': [
-        'آیین روزمره', 'Stand-up', 'Retrospective', 'جلسه ایستاده', 'بازاندیشی', 'Daily', 'بازخورد', 'رویداد بهبود',
-        'بازخورد سیستماتیک', 'بهبود مستمر', 'جلسات روزانه', 'اسپرینت', 'Daily Stand-up', 'Sprint Retrospective',
-        'Agile Rituals', 'Scrum Ceremonies', 'Team Sync', 'Check-in Meeting', 'Daily Huddle', 'Iteration Review',
-        'Reflection Session', 'Continuous Improvement Ritual', 'Team Cadence', 'Agile Meeting Structure',
-        'Sprint Planning', 'Review Meeting', 'Team Alignment', 'Feedback Loop', 'Collaboration Rhythm',
-        'Recurring Team Meeting', 'Operational Cadence', 'Ceremony Facilitation', 'Learning Retrospective',
-        'Improvement Backlog', 'Action Review', 'Team Reflection', 'Iterative Improvement', 'Kanban Cadence',
-        'Daily Coordination', 'Team Pulse', 'Ritual Governance', 'Agile Culture', 'Communication Rhythm',
-        'Execution Sync', 'Stand-up Notes', 'Retrospective Insights', 'Team Learning Cycle',
-        'Working Agreements', 'Scrum Events', 'Delivery Rhythm'
-    ],
-
-    # دارایی 58: نمادهای بصری (لوگو، رنگ‌ها، معماری)
-    'نمادهای بصری (لوگو، رنگ‌ها، معماری)': [
-        'لوگو', 'رنگ‌ها', 'معماری بصری', 'هویت بصری', 'راهنمای برند', 'Typography', 'ثبت نشان', 'برندبوک',
-        'هویت سازمانی', 'سیستم لوگو', 'پالت رنگ', 'راهنمای برند', 'راهنمای سبک', 'سیستم تایپوگرافی', 'زبان بصری',
-        'استانداردهای گرافیک', 'علامت تجاری', 'سیستم طراحی', 'آیکون‌شناسی', 'دارایی‌های بصری', 'راهنمای برند',
-        'استانداردهای هویت', 'نشان رسمی', 'معماری برند', 'سیستم علائم', 'هویت بسته‌بندی', 'برندسازی بصری',
-        'مجموعه هویت', 'دارایی‌های خلاقانه', 'اصول چیدمان', 'کدهای رنگ', 'حاکمیت طراحی', 'ثبات بصری', 'علامت ثبت شده',
-        'طراحی سازمانی', 'حفاظت از هویت', 'کتابخانه نمادها', 'منشور گرافیک', 'بیان برند', 'امضای بصری',
-        'Visual Identity', 'Brand Identity', 'Corporate Identity', 'Logo System', 'Color Palette', 'Brand Guidelines',
-        'Style Guide', 'Typography System', 'Visual Language', 'Graphic Standards', 'Trademark', 'Trade Dress',
-        'Design System', 'Iconography', 'Visual Assets', 'Brand Manual', 'Identity Standards', 'Official Emblem',
-        'Brand Architecture', 'Signage System', 'Packaging Identity', 'Visual Branding', 'Identity Toolkit',
-        'Creative Assets', 'Layout Principles', 'Color Codes', 'Design Governance', 'Visual Consistency',
-        'Registered Mark', 'Corporate Design', 'Identity Protection', 'Symbol Library', 'Graphic Charter',
-        'Brand Expression', 'Visual Signature'
-    ],
-
-    # دارایی 59: قوانین لباس و رفتار (Dress Code)
-    'قوانین لباس و رفتار (Dress Code)': [
-        'Dress Code', 'آراستگی', 'ظاهر کاری', 'لباس سازمانی', 'ظاهر حرفه‌ای', 'استانداردهای ظاهری', 'انضباط ظاهری',
-        'قوانین آراستگی', 'Professional Appearance', 'Workplace Attire', 'Uniform Policy', 'Personal Presentation',
-        'Behavioral Code', 'Corporate Etiquette', 'Office Conduct', 'Appearance Guidelines', 'Professional Conduct',
-        'Workplace Behavior', 'Brand Representation', 'Frontline Standards', 'Formal Wear Policy',
-        'Smart Casual Policy', 'Uniform Guidelines', 'Hygiene Standards', 'Decorum', 'Staff Appearance',
-        'Presence Standards', 'Conduct Policy', 'Code of Appearance', 'Employee Presentation',
-        'Organizational Discipline', 'Service Etiquette', 'Customer-facing Standards', 'Corporate Manners',
-        'Behavioral Norms', 'Workplace Professionalism', 'Dress Regulations', 'Identity through Attire',
-        'Visual Professionalism', 'Courtesy Standards', 'Attendance Presentation', 'Formality Standards',
-        'Workplace Decency', 'Respectful Conduct'
-    ],
-
-    # دارایی 60: سنت‌های جشن / تقدیر
-    'سنت‌های جشن / تقدیر': [
-        'سنت‌های جشن', 'تقدیر', 'جشن سازمانی', 'قدردانی', 'رویداد تقدیر', 'فرهنگ تقدیر', 'آیین تقدیر', 'جشن‌های سالانه',
-        'تشویق', 'لوح تقدیر', 'جشن موفقیت', 'رویداد قدردانی', 'جشنواره', 'Recognition Rituals', 'Celebration Traditions',
-        'Employee Appreciation', 'Award Ceremony', 'Service Recognition', 'Milestone Celebration',
-        'Anniversary Event', 'Team Celebration', 'Recognition Program', 'Cultural Rituals', 'Staff Appreciation',
-        'Achievement Awards', 'Appreciation Event', 'Symbolic Rewards', 'Employee Engagement Rituals',
-        'Belonging Culture', 'Ceremonial Recognition', 'Honor Event', 'Internal Festivity', 'Celebration Calendar',
-        'Reward and Recognition', 'Excellence Awards', 'Tribute Ceremony', 'Social Cohesion Rituals',
-        'Morale Building Events', 'Organizational Traditions', 'Cultural Events', 'Commemorative Ceremony',
-        'Festive Gathering', 'Informal Recognition', 'Employee Honors', 'Appreciation Culture',
-        'Recognition Practices', 'Community Celebration', 'Institutional Ceremonies'
-    ],
-
-    # دارایی 61: دستورالعمل‌های مدیریت ضایعات
-    'دستورالعمل‌های مدیریت ضایعات': [
-        'مدیریت ضایعات', 'SOP', 'دستورالعمل زباله', 'اصول بازیافت', 'زیست‌محیطی', 'بازیافت', 'مدیریت پسماند',
-        'جدا سازی', 'ضایعات', 'استانداردهای پسماند', 'بهداشت محیط', 'Waste Management', 'Waste Handling Procedure',
-        'Waste Segregation', 'Waste Disposal', 'Solid Waste Management', 'Hazardous Waste', 'Non-Hazardous Waste',
-        'Medical Waste', 'Industrial Waste', 'Waste Minimization', 'Source Separation', 'Waste Collection',
-        'Waste Storage', 'Waste Transportation', 'Waste Treatment', 'Waste Disposal Standards',
-        'Environmental Compliance', 'Waste Audit', 'Waste Tracking', 'Waste Manifest', 'Disposal Log',
-        'Recycling Procedure', 'Zero Waste', 'Resource Recovery', 'Environmental Health and Safety', 'EHS', 'HSE',
-        'ISO 14001', 'Pollution Prevention', 'Landfill Management', 'Waste Risk Assessment', 'Waste Reduction Plan',
-        'Environmental Procedure', 'Sustainable Waste Management', 'Circular Waste Management'
-    ],
-
-    # دارایی 62: سیستم بازیافت عملیاتی
-    'سیستم بازیافت عملیاتی': [
-        'بازیافت', 'اقتصاد گردشی', 'بازچرخانی', 'منابع', 'پسماند قابل بازیافت', 'کاغذ باطله', 'قطعات الکترونیکی',
-        'چرخه مواد', 'جمع‌آوری', 'بازیافتی', 'ایستگاه بازیافت', 'فروش ضایعات', 'کاهش مصرف مواد اولیه', 'پایداری', 'سبز',
-        'Recycling System', 'Recyclable Materials', 'Resource Recovery', 'Material Recovery', 'Recycling Program',
-        'Plastic Recycling', 'Paper Recycling', 'Segregation at Source', 'Waste Sorting', 'Recycling Collection',
-        'Recycling Bin', 'Reverse Logistics', 'Electronic Waste', 'E-waste Recycling', 'Metal Recycling',
-        'Closed-Loop', 'Secondary Raw Materials', 'Scrap Sale', 'Recycling Vendor', 'Recycling Station',
-        'Reprocessing', 'Upcycling', 'Reuse', 'Waste Valorization', 'Circular Materials Flow', 'Green Operations',
-        'Sustainable Materials Management', 'Material Circularity', 'Recycling KPI', 'Recovery Rate',
-        'Environmental Performance', 'Recycling Supply Chain', 'Recycling Compliance', 'Recycling Tracking',
-        'Circular Economy Program', 'Resource Efficiency'
-    ],
-
-    # دارایی 63: استانداردهای مصرف آب/انرژی
-    'استانداردهای مصرف آب/انرژی': [
-        'مصرف انرژی', 'بهره‌وری', 'آب', 'برق', 'گاز', 'شاخص مصرف', 'KPI انرژی', 'استاندارد مصرف', 'بهینه‌سازی',
-        'مدیریت منابع', 'کاهش کربن', 'پایداری', 'مدیریت تأسیسات', 'سنجش مصرف', 'Water Consumption', 'Energy Consumption',
-        'Energy Management System', 'EnMS', 'Utility Management', 'Water Efficiency', 'Energy Efficiency',
-        'Consumption Baseline', 'Energy Benchmark', 'Water Intensity', 'Energy Intensity', 'Energy KPI',
-        'ISO 50001', 'Demand Management', 'Utility Dashboard', 'Energy Monitoring', 'Submetering', 'Smart Meter',
-        'Metering', 'Water Conservation', 'Gas Consumption Control', 'Electricity Saving', 'Peak Load Management',
-        'Energy Audit', 'Carbon Footprint Reduction', 'Resource Optimization', 'Building Energy Management System',
-        'BEMS', 'Facility Management', 'EnPI', 'Performance Indicator', 'Renewable Energy Integration',
-        'Sustainable Utilities', 'Water Saving Plan', 'Energy Saving Plan', 'Resource Consumption Standard'
-    ],
-
-    # دارایی 64: روش‌های کاهش آلودگی
-    'روش‌های کاهش آلودگی': [
-        'کاهش آلودگی', 'آلایندگی', 'انتشار', 'محیط زیست', 'پیشگیری', 'کنترل آلودگی', 'تصفیه', 'کاهش انتشار',
-        'گازهای گلخانه‌ای', 'صوت', 'ذرات معلق', 'سلامت محیط', 'استانداردهای آلایندگی', 'Decarbonization', 'Pollution Reduction',
-        'Air Pollution Control', 'Environmental Mitigation', 'Emissions Reduction', 'Prevention', 'Industrial Emissions',
-        'PM10', 'PM2.5', 'Particulate Matter', 'Noise Pollution Control', 'Water Pollution Control', 'Clean Air',
-        'Decarbonization', 'Carbon Reduction', 'GHG Emissions', 'Greenhouse Gas Reduction', 'Air Pollution',
-        'Odor Control', 'Dust Control', 'Effluent Treatment', 'Wastewater Treatment', 'Filtration', 'Clean Technology',
-        'Pollution Control Equipment', 'Emission Abatement', 'Environmental Monitoring', 'Carbon Capture',
-        'Low-Emission Operations', 'Clean Production', 'Environmental Compliance', 'ISO 14001', 'EHS Management',
-        'Environmental Impact Mitigation', 'Emission Standards', 'Sustainable Operations', 'Pollution Prevention Plan',
-        'Environmental Health'
-    ],
-
-    # دارایی 65: چک لیست‌های محیط زیستی
-    'چک لیست‌های محیط زیستی': [
-        'چک لیست', 'بازرسی', 'پایش', 'محیط‌زیستی', 'انطباق', 'امتیازی', 'ارزیابی', 'پایداری', 'بازرسی روزانه', 'تأییدیه',
-        'سلامت محیط', 'ESG', 'Environmental Checklist', 'Environmental Inspection', 'Sustainability Audit',
-        'Environmental Audit', 'HSE Checklist', 'EHS Checklist', 'Compliance Checklist', 'Audit Checklist',
-        'Daily Inspection Log', 'Environmental Monitoring', 'Site Inspection', 'ESG Assessment', 'Compliance',
-        'Environmental Risk Assessment', 'Nonconformity Report', 'CAPA', 'Corrective Action', 'Pollution Control Check',
-        'Water Inspection', 'Energy Inspection', 'Waste Inspection', 'Verification', 'Legal Compliance',
-        'ISO 14001 Checklist', 'Environmental Performance Review', 'Facility Environmental Review',
-        'Inspection Record', 'Preventive Action', 'Environmental Controls', 'Compliance Register',
-        'Sustainable Operations Checklist', 'Green Compliance', 'Environmental Due Diligence', 'Regulatory',
-        'Environmental Quality Control', 'EMS Audit', 'Environmental Management System', 'Environmental Assurance',
-        'Inspection'
-    ],
-
-    # دارایی 66: سیاست خرید سبز
-    'سیاست خرید سبز': [
-        'خرید سبز', 'پایداری', 'زنجیره تأمین', 'تأمین‌کنندگان', 'خرید پایدار', 'توافقات سبز', 'استاندارد خرید',
-        'ارزیابی زیست‌محیطی', 'تأمین‌کنندگان سبز', 'محصولات زیست‌سازگار', 'توافقات پایدار', 'گواهینامه سبز',
-        'زنجیره ارزش', 'اصول خرید', 'Green Procurement', 'Sustainable Sourcing', 'Sustainable Procurement',
-        'Environmental Purchasing Policy', 'Supplier Sustainability Assessment', 'Green Supply Chain',
-        'Eco-Friendly Products', 'Life Cycle Assessment', 'LCA', 'Life Cycle Costing', 'LCC',
-        'Environmental Criteria', 'Supplier ESG Assessment', 'Low-Carbon Procurement', 'Ethical Sourcing',
-        'Responsible Procurement', 'Green Certification', 'Environmental Labeling', 'Eco-label',
-        'Energy Efficient Products', 'Recycled Content', 'Supplier Code of Conduct', 'Sustainable Purchasing Policy',
-        'ISO 20400', 'Procurement Governance', 'Sustainable Tendering', 'Green Tender',
-        'Environmental Due Diligence', 'Carbon-Aware Procurement', 'Sustainable Materials', 'Circular Procurement',
-        'Responsible Supply Chain', 'EPD', 'Environmental Product Declaration', 'Green Vendor Evaluation',
-        'Purchasing Governance', 'Green Contracting', 'Value Chain'
-    ],
-
-    # دارایی 67: نرم‌افزارهای ERP/CRM
-    'نرم‌افزارهای ERP/CRM': [
-        'ERP', 'CRM', 'لایسنس', 'پیکربندی', 'اختصاصی‌سازی', 'سیستم یکپارچه', 'کد منبع', 'حقوق مالکیت معنوی',
-        'نرم‌افزار سازمانی', 'اتوماسیون فرآیندها', 'پشتیبانی سیستم', 'ماژول‌های نرم‌افزاری', 'Enterprise Resource Planning',
-        'Software License', 'Customization', 'Integration', 'Source Code', 'Intellectual Property',
-        'Process Automation', 'System Support', 'Software Modules'
-    ],
-
-    # دارایی 68: پلتفرم داده/تحلیل
-    'پلتفرم داده/تحلیل': [
-        'پلتفرم داده', 'تحلیل داده', 'هوش مصنوعی', 'مدل‌سازی داده', 'پردازش کلان‌داده', 'داشبورد تحلیلی',
-        'گزارش‌دهی هوشمند', 'پایگاه داده تحلیلی', 'داده‌کاوی', 'پیش‌بینی', 'تحلیل عمیق', 'راهکارهای داده‌محور',
-        'Data Platform', 'Analytics', 'Artificial Intelligence', 'Data Modeling', 'Big Data Processing',
-        'Analytics Dashboard', 'Intelligent Reporting', 'Analytical Database', 'Data Mining', 'Prediction',
-        'Deep Analysis', 'Data-driven Solutions'
-    ],
-
-    # دارایی 69: سامانه‌های حسابداری
-    'سامانه‌های حسابداری': [
-        'حسابداری', 'سیستم مالی', 'دفتر کل', 'GL', 'درخت حساب', 'سند حسابداری', 'تراز آزمایشی', 'صورت مالی',
-        'صورت سود و زیان', 'صورت جریان نقدی', 'حساب‌های پرداختنی', 'AP', 'حساب‌های دریافتنی', 'AR', 'مدیریت حقوق',
-        'مدیریت مالیات', 'مدیریت خزانه', 'مدیریت نقدینگی', 'گزارش‌دهی مالی', 'بستن حساب', 'بودجه‌بندی',
-        'حسابداری بهای تمام شده', 'Accounting Software', 'Financial Management System', 'General Ledger', 'GL',
-        'Chart of Accounts', 'Journal Entry', 'Trial Balance', 'Balance Sheet', 'Income Statement',
-        'Cash Flow Statement', 'Accounts Payable', 'AP', 'Accounts Receivable', 'AR', 'Payroll Management',
-        'Tax Management', 'Treasury Management', 'Cash Management', 'Financial Reporting', 'Financial Close',
-        'Budgeting', 'Cost Accounting', 'Fixed Asset Accounting', 'Invoice Management', 'Financial Audit',
-        'Audit Trail', 'Internal Control', 'Financial Compliance', 'IFRS Reporting', 'ERP Finance Module',
-        'Bank Reconciliation', 'Financial Statements', 'Ledger Management', 'Voucher Management',
-        'Accounting Records', 'Fiscal Year Closing', 'Financial Analytics', 'Finance Automation'
-    ],
-
-    # دارایی 70: مجوزهای نرم‌افزاری
-    'مجوزهای نرم‌افزاری': [
-        'مجوز نرم‌افزار', 'لایسنس', 'حقوق استفاده', 'قرارداد نرم‌افزاری', 'تمدید مجوز', 'مدیریت مجوز', 'انطباق مجوز',
-        'Software License', 'License Management', 'Usage Rights', 'Software Agreement', 'License Renewal',
-        'License Compliance', 'Software Asset Management', 'SAM'
-    ],
-
-    # دارایی 71: زیرساخت Cloud/Server
-    'زیرساخت Cloud/Server': [
-        'زیرساخت', 'Cloud', 'سرور', 'مجازی‌سازی', 'رایانش ابری', 'مرکز داده', 'ماشین مجازی', 'VPS', 'سرور اختصاصی',
-        'میزبانی', 'IaaS', 'شبکه', 'بازیابی فاجعه', 'تعادل بار', 'فایروال', 'دسترس‌پذیری بالا', 'مقیاس‌پذیری',
-        'نظارت', 'SLA', 'تداوم کسب و کار', 'Colocation', 'ذخیره‌سازی ابری', 'پشتیبان‌گیری', 'Cloud Computing',
-        'Server Infrastructure', 'Data Center', 'Virtual Machine', 'VPS', 'Dedicated Server', 'Hosting', 'IaaS',
-        'Network Infrastructure', 'Disaster Recovery', 'Load Balancing', 'Firewall', 'High Availability',
-        'Scalability', 'Monitoring', 'SLA', 'Business Continuity', 'Colocation', 'Cloud Storage', 'Backup',
-        'Edge Computing', 'API Infrastructure', 'Serverless', 'Containerization', 'Docker', 'Kubernetes',
-        'Public Cloud', 'Private Cloud', 'Hybrid Cloud', 'Network Topology', 'Latency', 'Fault Tolerance'
-    ],
-
-    # دارایی 72: لایسنس‌های نرم‌افزاری
-    'لایسنس‌های نرم‌افزاری': [
-        'لایسنس', 'مجوز نرم‌افزار', 'سیستم‌های سازمانی', 'اشتراک', 'قرارداد نرم‌افزاری', 'حق مالکیت', 'ارزیابی',
-        'تمدید لایسنس', 'رعایت', 'نرم‌افزار', 'انطباق حقوقی', 'خرید لایسنس', 'Software License', 'License Management',
-        'Software Subscription', 'Enterprise Software', 'License Key', 'License Renewal', 'Software Asset Management',
-        'SAM', 'License Compliance', 'Copyright', 'Intellectual Property', 'IP Rights', 'Vendor Agreement',
-        'SaaS Subscription', 'Usage Rights', 'Audit', 'License Inventory', 'Volume Licensing', 'Software Procurement',
-        'EULA', 'End User License Agreement', 'Subscription Model', 'Activation Code', 'Software Activation',
-        'Compliance Reporting', 'IT Asset Management', 'ITAM', 'Tokenization', 'Seat Licensing', 'Concurrent User',
-        'Perpetual License', 'Maintenance Support', 'Software Entitlement'
-    ],
-
-    # دارایی 73: پلتفرم‌های ارتباط داخلی (Teams, Slack)
-    'پلتفرم‌های ارتباط داخلی (Teams, Slack)': [
-        'ارتباطات داخلی', 'چت سازمانی', 'Slack', 'Teams', 'ویدئوکنفرانس', 'پیام‌رسانی کاری', 'مدیریت تیم',
-        'فضای همکاری', 'گفتگو', 'ارتباطات بالدرنگ', 'ابزار همکاری', 'کانال‌های کاری', 'پیام‌های رسمی', 'Enterprise Chat',
-        'Internal Communication', 'Instant Messaging', 'Video Conference', 'Slack Workspace', 'Microsoft Teams',
-        'Team Collaboration', 'File Sharing', 'Screen Sharing', 'Real-Time Communication', 'Direct Message',
-        'Group Chat', 'Team Channel', 'Communication Archive', 'Remote Collaboration', 'Workspace', 'Notifications',
-        'Meeting Recording', 'Official Announcement', 'Threaded Conversations', 'Collaboration Hub',
-        'Digital Workspace', 'Status Update', 'File Repository', 'Voice Call', 'Chat Bots', 'Presence Awareness',
-        'Unified Communications', 'Web Conferencing', 'Team Integration'
-    ],
-
-    # دارایی 74: سیستم‌های بازخورد مشتریان
-    'سیستم‌های بازخورد مشتریان': [
-        'بازخورد مشتری', 'صدای مشتری', 'رضایت مشتری', 'تجربه مشتری', 'نظرسنجی مشتری', 'شکایت مشتری', 'پیشنهاد مشتری',
-        'Voice of Customer', 'Customer Feedback', 'Customer Satisfaction', 'Customer Experience', 'CSAT', 'CX',
-        'Net Promoter Score', 'NPS', 'Customer Effort Score', 'CES', 'Customer Complaint', 'Customer Survey',
-        'Feedback Management', 'Sentiment Analysis', 'Customer Insight', 'Review', 'Rating', 'Suggestion',
-        'Service Quality', 'Customer Journey', 'Resolution', 'Case Management', 'Feedback Form', 'CRM Integration',
-        'Complaint Tracking', 'Customer Analytics', 'Feedback Dashboard', 'Closed-Loop Feedback', 'Retention Analysis',
-        'Customer Advocacy', 'SLA', 'Service Level Agreement', 'Direct Feedback', 'Customer Retention'
-    ],
-
-    # دارایی 75: شبکه اجتماعی داخلی
-    'شبکه اجتماعی داخلی': [
-        'شبکه اجتماعی داخلی', 'تعاملات سازمانی', 'اینترانت', 'اشتراک دانش', 'فرهنگ سازمانی', 'معرفی دستاوردها',
-        'گفتگوهای حرفه‌ای', 'ترویج فرهنگ', 'مشارکت کارکنان', 'فضای غیررسمی', 'انجمن داخلی', 'اطلاع‌رسانی', 'تعامل',
-        'Internal Social Network', 'ESN', 'Enterprise Social Network', 'Intranet', 'Employee Community',
-        'Workplace Community', 'Social Collaboration', 'Knowledge Sharing', 'Employee Engagement', 'Interest Group',
-        'Professional Discussion', 'Recognition', 'Organizational Culture', 'Discussion Board', 'Activity Feed',
-        'User Profile', 'Social Intranet', 'Internal Announcement', 'Employee Participation', 'Digital Workplace',
-        'Virtual Watercooler', 'Internal Networking', 'Content Moderation', 'Corporate Social Media',
-        'People Connection', 'Community Building', 'Peer-to-Peer Engagement', 'Social Graph', 'Communication Flow'
-    ],
-
-    # دارایی 76: سیستم مدیریت ارتباط با ذی‌نفعان
-    'سیستم مدیریت ارتباط با ذی‌نفعان': [
-        'ذی‌نفعان', 'مدیریت ارتباط', 'نظارت', 'تعامل استراتژیک', 'جامعه محلی', 'شرکای تجاری', 'نهادهای نظارتی',
-        'سرمایه‌گذاران', 'گزارش‌دهی حاکمیتی', 'ماتریس ذی‌نفعان', 'نظرات ذی‌نفعان', 'Stakeholders', 'Stakeholder Management',
-        'Stakeholder Relationship Management', 'SRM', 'Stakeholder Engagement', 'Investor Relations', 'Local Community',
-        'Business Partners', 'Regulatory Relations', 'Governance Reporting', 'Stakeholder Mapping', 'Stakeholder Matrix',
-        'MoU', 'Partnership', 'Dialogue', 'Consultation', 'Grievance Management', 'Materiality Assessment',
-        'Relationship Tracking', 'Stakeholder Analytics', 'Transparency', 'Accountability', 'Agreement Tracking',
-        'Community Engagement', 'CSR', 'Corporate Social Responsibility', 'Strategic Alignment', 'Policy Influence',
-        'Impact Assessment'
-    ],
-
-    # دارایی 77: پورتال کارکنان
-    'پورتال کارکنان': [
-        'پورتال کارکنان', 'اینترانت', 'منابع انسانی', 'فیش حقوقی', 'مرخصی', 'خدمات پرسنلی', 'اخبار داخلی',
-        'چارت سازمانی', 'فرم‌های اداری', 'کارپوشه کارمندان', 'رفاهیات', 'بخش‌نامه‌های داخلی', 'تعامل پرسنل',
-        'Employee Portal', 'Intranet', 'Human Resources', 'Payslip', 'Leave Management', 'Personnel Services',
-        'Internal News', 'Organization Chart', 'Administrative Forms', 'Employee Profile', 'Digital Workplace',
-        'HR Forms', 'Attendance Tracking', 'Payroll', 'ESS', 'Self-Service', 'Employee Directory', 'Approval Workflow',
-        'Service Request', 'Welfare', 'Benefits', 'Personnel File', 'Document Access', 'Internal Announcement',
-        'Employee Communication', 'Training', 'Onboarding', 'Employee Experience', 'Staff Services',
-        'Employee Engagement', 'Employee Dashboard', 'E-Form', 'Internal Services', 'Leave Request',
-        'Policy Repository', 'Digital HR'
-    ],
-
-    # دارایی 78: ابزارهای نظرسنجی
-    'ابزارهای نظرسنجی': [
-        'نظرسنجی', 'پرسشنامه', 'بازخورد', 'سنجش افکار', 'رضایت‌سنجی', 'فرم آنلاین', 'تحلیل نتایج', 'SurveyMonkey',
-        'گوگل فرم', 'نرخ پاسخ‌دهی', 'گزارش تحلیلی', 'ارزیابی', 'بازخورد مشتری', 'Survey', 'Online Form', 'Questionnaire',
-        'Survey Tool', 'Customer Satisfaction', 'Opinion Measurement', 'Poll', 'Google Forms', 'Survey Platform',
-        'Multiple Choice', 'Likert Scale', 'Sampling', 'Response Rate', 'Market Research', 'Employee Survey',
-        'Results Analysis', 'Survey Analytics', 'Data Collection', 'Anonymous Survey', 'Open-Ended Question',
-        'Feedback Analysis', 'CSAT Survey', 'NPS Survey', 'Data Visualization', 'Report', 'Dashboard',
-        'Survey Logic', 'Audience Targeting', 'Data Export', 'Research Methodology', 'Template Design',
-        'Quantitative Research'
-    ],
-
-    # دارایی 79: سیستم مدیریت دانش (KMS)
-    'سیستم مدیریت دانش (KMS)': [
-        'KMS', 'مدیریت دانش', 'اشتراک دانش', 'هستی‌شناسی دانش', 'درخت دانش', 'مستندسازی پروژه', 'انتقال تجربه',
-        'دانش صریح', 'دانش ضمنی', 'بایگانی دانش', 'طبقه‌بندی', 'ثبت تجربه', 'درس‌آموخته', 'Knowledge Management',
-        'Knowledge System', 'Tacit Knowledge', 'Explicit Knowledge', 'Knowledge Repository', 'Knowledge Base',
-        'Knowledge Transfer', 'Knowledge Sharing', 'Experience Capture', 'Lessons Learned', 'Best Practice',
-        'Project Documentation', 'Knowledge Tree', 'Ontology', 'Taxonomy', 'Classification', 'Search',
-        'Community of Practice', 'Expert Directory', 'Knowledge Article', 'Organizational Knowledge',
-        'Knowledge Retention', 'Content Management', 'Version Control', 'Tagging', 'Metadata', 'Procedure',
-        'FAQ', 'Institutional Memory', 'Intellectual Capital', 'Knowledge Mapping', 'Discovery',
-        'Information Architecture', 'Semantic Search', 'Knowledge Governance', 'Case Study', 'Guideline',
-        'Learning Organization'
-    ],
-
-    # دارایی 80: ابزارهای AI/ML
-    'ابزارهای AI/ML': [
-        'هوش مصنوعی', 'AI', 'یادگیری ماشین', 'ML', 'الگوریتم', 'شبکه عصبی', 'پردازش زبان طبیعی', 'NLP', 'بینایی ماشین',
-        'مدل زبانی بزرگ', 'LLM', 'هوش مصنوعی مولد', 'Deep Learning', 'Neural Network', 'Machine Learning',
-        'Artificial Intelligence', 'Natural Language Processing', 'Computer Vision', 'Large Language Model',
-        'Generative AI', 'Predictive Model', 'Model Training', 'Data Preprocessing', 'Feature Engineering',
-        'Data Science', 'Supervised Learning', 'Unsupervised Learning', 'Reinforcement Learning', 'MLOps',
-        'Model Deployment', 'Recommendation System', 'Pattern Recognition', 'Clustering', 'Regression',
-        'Classification', 'Predictive Analytics', 'Model Monitoring', 'AI Governance', 'Intelligent Automation',
-        'Chatbot', 'Cognitive Computing', 'Neural Architecture', 'Transformer', 'Prompt Engineering',
-        'Model Validation'
-    ],
-
-    # دارایی 81: کتابخانه دیجیتال
-    'کتابخانه دیجیتال': [
-        'کتابخانه دیجیتال', 'کتابخانه مجازی', 'E-library', 'E-book', 'مقاله', 'دسترسی به منابع', 'مطالعه', 'مخزن دیجیتال',
-        'فایل‌های آموزشی', 'پورتال مطالعه', 'حق دسترسی', 'امانت دیجیتال', 'PDF', 'Audiobook', 'کتابخانه سازمانی',
-        'منابع علمی', 'منابع آموزشی', 'آرشیو کتاب', 'کتاب صوتی', 'EPUB', 'مدیریت منابع', 'جستجوی کتاب', 'فهرست‌نویسی',
-        'طبقه‌بندی کتاب', 'اشتراک نشریات', 'پایگاه کتاب', 'سیستم امانت', 'Digital Library', 'Online Reading',
-        'Academic Library', 'Digital Repository', 'Library Portal', 'Reading Platform', 'Publication Access',
-        'Knowledge Resource', 'Research Resource', 'Reference Material', 'Collection Development', 'ISBN',
-        'Metadata', 'Library Management', 'Digital Lending', 'Copyright Clearance', 'Virtual Collection',
-        'Reading History', 'Content Access'
-    ],
-
-    # دارایی 82: پایگاه داده مقالات/تحقیقات
-    'پایگاه داده مقالات/تحقیقات': [
-        'پایگاه داده علمی', 'مقاله تحقیقاتی', 'پژوهش', 'White Paper', 'گزارش تحقیقاتی', 'مرور ادبیات', 'مطالعه موردی',
-        'مجله علمی', 'پایگاه مقالات', 'دسترسی به تحقیقات', 'منبع داده', 'روش‌شناسی تحقیق', 'تحلیل داده', 'پایگاه استنادی',
-        'Research Database', 'Academic Article', 'Research Paper', 'Journal Article', 'Literature Review',
-        'Case Study', 'White Paper', 'Research Report', 'Citation', 'Bibliography', 'DOI', 'Research Archive',
-        'Knowledge Repository', 'Feasibility Study', 'Market Research', 'Industry Report', 'Technical Paper',
-        'Working Paper', 'Evidence-Based', 'Data Source', 'Research Methodology', 'Survey Research',
-        'Qualitative Research', 'Quantitative Research'
-    ],
-
-    # دارایی 83: سیستم مدیریت اسناد (DMS)
-    'سیستم مدیریت اسناد (DMS)': [
-        'DMS', 'مدیریت اسناد', 'کنترل نسخه', 'پشتیبان‌گیری', 'آرشیو', 'سیستم مدیریت اسناد', 'ثبت سند', 'نسخه‌بندی',
-        'Document Management System', 'Document Repository', 'Electronic Document Management', 'EDMS',
-        'Document Workflow', 'Document Approval', 'Document Tracking', 'Version Control', 'Indexing',
-        'Metadata', 'Tagging', 'File Management', 'Document Lifecycle', 'Retention Policy', 'Role-Based Access',
-        'Check-in', 'Check-out', 'Audit Trail', 'OCR', 'Paperless Office', 'File Archive', 'Records Management',
-        'Document Search', 'Document Template', 'Compliance Document', 'Document Governance'
-    ],
-
-    # دارایی 84: ابزارهای شبیه‌سازی و مدل‌سازی
-    'ابزارهای شبیه‌سازی و مدل‌سازی': [
-        'شبیه‌سازی', 'مدل‌سازی', 'دیجیتال تویین', 'مدل‌سازی فرآیند', 'شبیه‌سازی سیستم', 'الگوریتم مدل‌سازی', 'مدل ریاضی',
-        'تحلیل اثر', 'پیش‌بینی', 'تحلیل حساسیت', 'بهینه‌سازی', 'پیش‌بینی مدل', 'شبیه‌سازی آینده', 'مدل‌سازی داده',
-        'Simulation', 'Modeling', 'Digital Twin', 'System Dynamics', 'Process Simulation', 'Monte Carlo',
-        'What-if Analysis', 'Sensitivity Analysis', 'Forecasting', 'Predictive Modeling', 'Decision Model',
-        'Optimization', 'Agent-Based Modeling', 'Discrete Event Simulation', 'Risk Modeling', 'Future Scenario',
-        'System Behavior', 'Data Modeling', 'Simulation Software', 'Business Simulation', 'Impact Assessment',
-        'Capacity Planning', 'Demand Forecasting', 'Stress Testing', 'Digital Prototype'
-    ],
-
-    # دارایی 85: راهنمای سبک بصری (Brand Guidelines)
-    'راهنمای سبک بصری (Brand Guidelines)': [
-        'برندینگ', 'هویت بصری', 'لوگو', 'پالت رنگی', 'تایپوگرافی', 'فونت سازمانی', 'Brandbook', 'راهنمای سبک',
-        'ثبات برند', 'گرافیک', 'ست اداری', 'نماد برند', 'استانداردهای طراحی', 'شخصیت برند', 'بازاریابی', 'Visual Identity',
-        'Brand Guidelines', 'Logo Usage', 'Corporate Identity', 'Brand Manual', 'Visual Standards', 'Graphic Standards',
-        'Design System', 'Brand Color', 'Imagery Guidelines', 'Iconography', 'Grid System', 'Design Principles',
-        'Photography Style', 'Brand Asset', 'Business Card', 'Email Signature', 'Brand Consistency', 'Corporate Design'
-    ],
-
-    # دارایی 86: دستورالعمل ارتباطات (Tone of Voice)
-    'دستورالعمل ارتباطات (Tone of Voice)': [
-        'لحن ارتباطی', 'ادبیات برند', 'سبک نگارش', 'صدای برند', 'پیام سازمانی', 'واژگان مصوب', 'نگارش رسمی',
-        'ارتباط با مخاطب', 'اصول مکاتبه', 'پیام‌نویسی', 'شخصیت برند', 'کپی‌رایتینگ', 'راهنمای محتوا', 'لحن دیجیتال',
-        'شیوه پاسخ‌گویی', 'لحن رسمی', 'زبان برند', 'پیام کلیدی', 'راهنمای محتوا', 'پاسخ به مشتری', 'لحن دوستانه',
-        'لحن حرفه‌ای', 'لحن همدلانه', 'مکاتبات سازمانی', 'نامه‌نگاری اداری', 'لحن شبکه اجتماعی', 'محتوای وب‌سایت',
-        'پیام تبلیغاتی', 'پیام بحران', 'واژه‌نامه برند', 'Tone of Voice', 'Brand Voice', 'Style Guide', 'Editorial Guide',
-        'Writing Style', 'Communication Guidelines', 'Brand Language', 'Messaging Framework', 'Key Message',
-        'Content Guidelines', 'Email Etiquette', 'Social Media Tone', 'Customer Communication', 'Crisis Communication',
-        'Terminology', 'Microcopy', 'Copywriting', 'Consistent Messaging', 'Content Review'
-    ],
-
-    # دارایی 87: سیستم مدیریت فرهنگ سازمانی
-    'سیستم مدیریت فرهنگ سازمانی': [
-        'فرهنگ سازمانی', 'ارزش‌های سازمانی', 'رفتار سازمانی', 'سنجش فرهنگ', 'شاخص فرهنگی', 'ارزش محوری', 'تعهد سازمانی',
-        'توسعه فرهنگ', 'فرهنگ‌سنجی', 'تحول فرهنگی', 'نقشه فرهنگ', 'فرهنگ عملکرد', 'فرهنگ نوآوری', 'فرهنگ یادگیری',
-        'فرهنگ همکاری', 'فرهنگ پاسخ‌گویی', 'فرهنگ اعتماد', 'فرهنگ شفافیت', 'فرهنگ مشتری‌مداری', 'ارزش‌های محوری',
-        'Organizational Culture', 'Core Values', 'Employee Engagement', 'Cultural Transformation', 'Culture Dashboard',
-        'Culture Assessment', 'Cultural Gap Analysis', 'Workplace Culture', 'Leadership Culture', 'Culture Ambassador',
-        'Organizational Commitment', 'Employee Experience', 'Competency Framework', 'Cultural Survey',
-        'Behavioral Patterns'
-    ],
-
-    # دارایی 88: اساسنامه فرهنگی
-    'اساسنامه فرهنگی': [
-        'اساسنامه فرهنگی', 'منشور فرهنگی', 'ارزش‌های بنیادین', 'اصول سازمانی', 'هنجارهای رفتاری', 'فرهنگ مطلوب',
-        'سیاست فرهنگی', 'حاکمیت فرهنگی', 'آیین‌نامه', 'مصوبه فرهنگی', 'مسئولیت‌های فرهنگی', 'اخلاق سازمانی',
-        'چشم‌انداز فرهنگی', 'سند راهبردی', 'اهداف راهبردی', 'ارزش‌های کلیدی', 'راهبرد فرهنگی', 'Cultural Charter',
-        'Culture Constitution', 'Organizational Charter', 'Values Charter', 'Code of Conduct', 'Ethical Principles',
-        'Value Statement', 'Behavioral Standards', 'Cultural Governance', 'Integrity', 'Ethical Charter'
-    ],
-
-    # دارایی 89: پلتفرم Onboarding
-    'پلتفرم Onboarding': [
-        'Onboarding', 'ورود سازمانی', 'خوش‌آمدگویی', 'کارمند جدید', 'جامعه پذیری', 'آموزش بدو استخدام', 'منتور',
-        'مسیر سازمانی', 'برنامه راهبری', 'خوش‌آمدگویی', 'تجربه کارمند جدید', 'Induction', 'Orientation', 'Preboarding',
-        'Employee Onboarding', 'New Hire', 'New Employee Experience', 'Employee Journey', 'Buddy Program',
-        'Training Plan', 'Employee Handbook', 'Role Clarity', 'Probation Period', 'Follow-up', 'Onboarding Checklist',
-        'Onboarding Portal', 'HR Onboarding', 'Digital Onboarding', 'Welcome Kit', 'Employee Integration',
-        'First Day Experience', 'New Hire Survey', 'Time to Productivity', 'Employee Retention'
-    ],
-
-    # دارایی 90: قالب‌های ارائه (Templates)
-    'قالب‌های ارائه (Templates)': [
-        'قالب', 'اسلاید', 'تم', 'ارائه', 'تم سازمانی', 'اسلاید مستر', 'قالب ورد', 'قالب اکسل', 'قالب جلسه', 'هویت برند',
-        'استاندارد', 'قالب گزارش', 'قالب پیشنهاد', 'سربرگ سازمانی', 'Presentation Template', 'PowerPoint Template',
-        'PPT Template', 'Corporate Template', 'Report Template', 'Proposal Template', 'Document Template',
-        'Meeting Minutes Template', 'Letterhead', 'Executive Presentation', 'Pitch Deck', 'Dashboard Template',
-        'Contract Template', 'Project Plan Template', 'Resume Template', 'Business Letter Template', 'Email Template',
-        'Slide Design', 'Layout', 'Theme', 'Corporate Theme', 'Brand Template', 'Infographic Template',
-        'Chart Template', 'Data Visualization Template', 'Template Library', 'Content Placeholder'
-    ],
-
-    # دارایی 91: سیستم مانیتورینگ محیط‌زیستی
-    'سیستم مانیتورینگ محیط‌زیستی': [
-        'پایش محیط‌زیستی', 'سنسور', 'کیفیت هوا', 'PM2.5', 'PM10', 'CO₂', 'NOx', 'SOx', 'VOC', 'هشدار', 'Trend',
-        'Environmental Monitoring', 'Environmental Sensor', 'Air Quality Monitoring', 'Water Quality Monitoring',
-        'Wastewater Monitoring', 'Emission Monitoring', 'Continuous Emission Monitoring System', 'CEMS',
-        'Real-Time Monitoring', 'Environmental Data', 'Sensor Network', 'Data Logger', 'Remote Sensing',
-        'Threshold Alert', 'Alarm Management', 'Pollution Control', 'Ambient Air Monitoring', 'Effluent Monitoring',
-        'Sampling', 'Environmental Compliance', 'Regulatory Limits', 'Dashboard', 'Geospatial Monitoring', 'GIS',
-        'Predictive Maintenance', 'IoT Gateway', 'Measurement Accuracy', 'Environmental Analytics',
-        'Compliance Tracking'
-    ],
-
-    # دارایی 92: ابزار محاسبه ردپای کربنی
-    'ابزار محاسبه ردپای کربنی': [
-        'ردپای کربن', 'Carbon Footprint', 'CO₂e', 'GHG Protocol', 'ISO 14064', 'Scope 1', 'Scope 2', 'Scope 3',
-        'Emission Factor', 'کربن‌زدایی', 'Net Zero', 'Greenhouse Gas', 'GHG Inventory', 'Carbon Accounting',
-        'Carbon Calculator', 'Carbon Emissions', 'Baseline Emissions', 'Carbon Baseline', 'Activity Data',
-        'Carbon Intensity', 'Emission Reduction', 'Decarbonization Pathway', 'Carbon Management',
-        'Carbon Disclosure', 'Carbon Reporting', 'Life Cycle Assessment', 'LCA', 'Carbon Neutrality',
-        'Climate Target', 'Science Based Targets', 'SBTi', 'Avoided Emissions', 'Carbon Offset', 'Carbon Credit',
-        'Value Chain Emissions', 'Scope 3 Accounting', 'Sustainability Metrics', 'Climate Risk', 'Energy Emissions',
-        'Verification', 'Assurance', 'Emissions Dashboard', 'Reduction Roadmap', 'Carbon Data'
-    ],
-
-    # دارایی 93: گزارش‌دهی محیط‌زیستی (Reporting Tools)
-    'گزارش‌دهی محیط‌زیستی (Reporting Tools)': [
-        'گزارش محیط‌زیستی', 'گزارش انطباق', 'گزارش پایداری', 'گزارش ESG', 'گزارش سالانه', 'گزارش انتشار', 'گزارش پسماند',
-        'گزارش آب', 'گزارش انرژی', 'گزارش آلودگی', 'گزارش حوادث', 'Environmental Reporting', 'Compliance Report',
-        'Sustainability Report', 'ESG Reporting', 'GRI Standards', 'CDP Disclosure', 'Environmental KPI',
-        'Environmental Data Management', 'Audit Trail', 'Evidence Management', 'Compliance Dashboard',
-        'Emissions Report', 'Waste Report', 'Water Report', 'Energy Report', 'Pollution Report', 'Incident Report',
-        'Environmental Permit', 'Permit Compliance', 'Data Validation', 'Report Automation', 'Automated Reporting',
-        'Reporting Template', 'Annual Environmental Report', 'Quarterly Report', 'Environmental Audit',
-        'Assurance Report', 'Data Collection', 'Environmental Performance', 'Regulatory Submission',
-        'Materiality Disclosure', 'Documented Evidence', 'Compliance Record', 'Environmental Statement',
-        'Impact Report'
-    ],
-
-    # دارایی 94: استانداردهای سبز (Green Building)
-    'استانداردهای سبز (Green Building)': [
-        'ساختمان سبز', 'Green Building', 'LEED', 'BREEAM', 'بهره‌وری انرژی', 'مدیریت پسماند ساختمانی', 'کیفیت هوای داخلی',
-        'کاهش کربن', 'Sustainable Building', 'Green Certification', 'WELL Building Standard', 'EDGE Certification',
-        'Passive House', 'Net Zero Building', 'Energy Efficient Building', 'Water Efficiency', 'Renewable Energy',
-        'Solar Energy', 'Building Energy Management System', 'BEMS', 'Smart Building', 'Sustainable Architecture',
-        'Low Carbon Building', 'Green Materials', 'Recycled Materials', 'Thermal Insulation', 'Energy Modeling',
-        'Daylighting', 'Ventilation', 'Indoor Environmental Quality', 'IEQ', 'Sustainable Construction',
-        'Construction Waste Management', 'Life Cycle Assessment', 'Building Commissioning', 'Carbon Reduction',
-        'Green Roof', 'Rainwater Harvesting', 'Greywater Reuse', 'Energy Performance Certificate', 'EPC',
-        'Building Retrofit'
-    ],
-
-    # دارایی 95: سیستم مدیریت انرژی (EnMS)
-    'سیستم مدیریت انرژی (EnMS)': [
-        'مدیریت انرژی', 'EnMS', 'ISO 50001', 'بهره‌وری انرژی', 'شاخص عملکرد انرژی', 'خط پایه انرژی', 'EnPI',
-        'مدیریت بار', 'کنترل هوشمند', 'انرژی تجدیدپذیر', 'برنامه اقدام انرژی', 'پایش انرژی', 'اندازه‌گیری',
-        'Energy Management System', 'Energy Performance Indicator', 'Significant Energy Use', 'SEU', 'Energy Review',
-        'Energy Policy', 'Energy Objective', 'Energy Target', 'Energy Action Plan', 'Energy Monitoring',
-        'Metering', 'Submetering', 'Smart Meter', 'Energy Data Management', 'Energy Dashboard', 'Electricity Consumption',
-        'Natural Gas Consumption', 'Steam Consumption', 'Fuel Consumption', 'Demand Management', 'Peak Load Management',
-        'Load Profile', 'Energy Efficiency Project', 'Energy Saving', 'Energy Optimization', 'Measurement and Verification',
-        'M&V', 'ISO 50006', 'ISO 50015', 'Energy Audit Report', 'Energy Benchmarking', 'Energy Performance Improvement',
-        'Operational Control', 'Energy Procurement', 'Continuous Improvement'
-    ],
-}
+        # ────────────── برند ──────────────
+        'برند ثبت‌شده': [
+            'برند', 'ثبت', 'لوگو', 'علامت تجاری', 'نشان تجاری', 'برند ثبت', 'علائم تجاری',
+            'Brand', 'Trademark', 'لوگوی انحصاری', 'نام تجاری', 'هویت برند', 'برند سازمان',
+            'سبد علائم', 'حقوق انحصاری برند', 'گواهی ثبت برند', 'ثبت علامت تجاری', 'Service Mark',
+            'نشان', 'نماد', 'embleم', 'sign', 'logo', 'نام نشان', 'نشان سازمان',
+        ],
+        'برند ثبت‌شده/سبد علائم تجاری': [
+            'برند', 'ثبت', 'لوگو', 'علامت تجاری', 'نشان تجاری', 'سبد علائم', 'علائم تجاری',
+            'Brand', 'Trademark', 'نام تجاری', 'هویت بصری', 'پرونده ثبت', 'طبقه بندی نیس',
+        ],
+        'داستان برند مستند': [
+            'داستان برند', 'Story Brand', 'روایت برند', 'داستان سازمان', 'هویت روایی',
+            'برند مستند', 'Brand Story', 'روایت تجاری',
+        ],
+        'داستان برند مستندشده': [
+            'داستان برند', 'Story Brand', 'روایت برند', 'داستان سازمان', 'Brand Story',
+        ],
+        'شبکه سفیران برند': [
+            'سفیر برند', 'شبکه سفیران', 'سفیران', 'Ambassador', 'برند سفیر', 'نماینده برند',
+        ],
+
+        # ────────────── قرارداد ──────────────
+        'قراردادهای انحصاری بلندمدت': [
+            'قرارداد', 'انحصار', 'بلندمدت', 'توافق', 'پیمان', 'Exclusive', 'Long-term',
+            'قرارداد انحصاری', 'حق انحصار', 'تامین انحصاری', 'توزیع انحصاری', 'Offtake',
+        ],
+        'قراردادهای زنجیره تأمین': [
+            'قرارداد', 'زنجیره تامین', 'زنجیره تأمین', 'تامین', 'Supplier', 'Supply Chain',
+            'توافق تامین', 'قرارداد تامین', 'پیمان تامین',
+        ],
+        'قراردادهای همکاری بین‌شرکتی': [
+            'قرارداد', 'همکاری', 'بین‌شرکتی', 'بین شرکتی', 'مشارکت', 'JV', 'Joint Venture',
+            'توافق همکاری', 'پیمان همکاری', 'شراکت شرکتی',
+        ],
+
+        # ────────────── مدل کسب‌وکار ──────────────
+        'مدل کسب‌وکار مستند (BMC)': [
+            'مدل کسب', 'BMC', 'Business Model', 'کسب و کار', 'کسب‌وکار', 'مدل تجاری',
+            'جریان درآمد', 'خلق ارزش', 'ساختار هزینه', 'ارزش پیشنهادی', 'بخش بندی مشتریان',
+            'مدل درآمدی', 'Business Model Canvas', 'مدل عملیاتی',
+        ],
+
+        # ────────────── فرمول قیمت‌گذاری ──────────────
+        'فرمول‌های قیمت‌گذاری اختصاصی': [
+            'فرمول', 'قیمت‌گذاری', 'قیمت گذاری', 'Pricing', 'الگوریتم قیمت', 'محاسبات قیمت',
+            'فرمول قیمت', 'مدل قیمت', 'Price Optimization', 'Pricing Formula', 'سود ناخالص',
+        ],
+        'الگوریتم‌های قیمت‌گذاری پویا': [
+            'الگوریتم', 'قیمت‌گذاری پویا', 'قیمت گذاری پویا', 'Dynamic Pricing', 'DYN',
+            'قیمت پویا', 'Rule-based', 'Yield Management', 'Revenue Management',
+        ],
+
+        # ────────────── شهرت تجاری ──────────────
+        'شهرت تجاری/سرقفلی (Goodwill)': [
+            'شهرت', 'گودویل', 'Goodwill', 'سرقفلی', 'اعتبار', 'Reputation', 'شهرت تجاری',
+            'ارزش برند', 'M&A', 'Enterprise Value', 'Purchase Price Allocation',
+            'شهرت سازمانی', 'اعتبار تجاری', 'اعتبار سازمان', 'نام نیک', 'حسن شهرت',
+            'آبرو', 'پرستیژ', 'اعتبار بازار', 'Brand Value', 'شهرت بازار',
+            'نیک نامی', 'حسن سابقه', 'خوشنامی', 'سابقه درخشان',
+        ],
+
+        # ────────────── مشتریان ──────────────
+        'پورتفولیوی مشتریان استراتژیک': [
+            'مشتری', 'پورتفولیو', 'استراتژیک', 'CRM', 'Key Account', 'KAM', 'Customer',
+            'مشتریان کلیدی', 'مشتریان راهبردی', 'پورتفولیو مشتری',
+        ],
+        'پایگاه داده مشتریان (CRM Database)': [
+            'مشتری', 'CRM', 'پایگاه داده', 'Database', 'Customer Database', 'بانک اطلاعات مشتریان',
+            'اطلاعات مشتریان', 'داده مشتریان',
+        ],
+        'پایگاه داده مشتریان (CRM)': [
+            'مشتری', 'CRM', 'پایگاه داده', 'Customer Database',
+        ],
+        'نرم‌افزار ERP/CRM': [
+            'ERP', 'CRM', 'نرم‌افزار', 'سیستم جامع', 'یکپارچه', 'Enterprise Resource Planning',
+        ],
+        'نرم‌افزارهای ERP/CRM': [
+            'ERP', 'CRM', 'نرم‌افزار', 'سیستم جامع', 'یکپارچه',
+        ],
+        'نرم‌افزارهای ERP/CRM یکپارچه': [
+            'ERP', 'CRM', 'نرم‌افزار', 'یکپارچه', 'سیستم جامع', 'Integrated',
+        ],
+        'سامانه بازخورد مشتریان': [
+            'بازخورد', 'مشتری', 'Feedback', 'نظرسنجی', 'صدای مشتری', 'رضایت مشتری',
+        ],
+
+        # ────────────── شراکت ──────────────
+        'شبکه شراکت‌های استراتژیک': [
+            'شبکه', 'شراکت', 'استراتژیک', 'همکاری', 'Partnership', 'Network', 'JV', 'MoU',
+            'شبکه شراکت', 'شرکای استراتژیک',
+        ],
+        'شبکه شراکت‌های استراتژیک (JV/MoU)': [
+            'شبکه', 'شراکت', 'استراتژیک', 'JV', 'MoU', 'Joint Venture', 'Memorandum',
+        ],
+        'شبکه شراکت‌های استراتژیک (MoU/JV)': [
+            'شبکه', 'شراکت', 'استراتژیک', 'MoU', 'JV', 'Joint Venture',
+        ],
+
+        # ────────────── CSR و شوراها ──────────────
+        'رتبه‌بندی‌های CSR معتبر': [
+            'CSR', 'رتبه‌بندی', 'مسئولیت اجتماعی', 'Corporate Social Responsibility', 'پایداری',
+        ],
+        'عضویت در شوراهای ملی/بین‌المللی': [
+            'عضویت', 'شورا', 'انجمن', 'Council', 'Association', 'اتحادیه', 'شورای ملی',
+            'شورای بین‌المللی',
+        ],
+
+        # ────────────── پروتکل ──────────────
+        'پروتکل‌های همکاری با دولت/دانشگاه': [
+            'پروتکل', 'همکاری', 'دولت', 'دانشگاه', 'Protocol', 'Government', 'University',
+            'تفاهم نامه', 'MoU دانشگاه',
+        ],
+
+        # ────────────── پتنت ──────────────
+        'پتنت‌ها و حقوق اختراع': [
+            'پتنت', 'اختراع', 'Patent', 'حقوق اختراع', 'ثبت اختراع', 'Innovation Patent',
+        ],
+        'پتنت‌ها و حقوق اختراع ثبت‌شده': [
+            'پتنت', 'اختراع', 'Patent', 'ثبت اختراع', 'حقوق اختراع',
+        ],
+
+        # ────────────── نرم‌افزار ──────────────
+        'نرم‌افزارهای اختصاصی (کد منبع)': [
+            'نرم‌افزار', 'کد منبع', 'Source Code', 'اختصاصی', 'Software', 'Application',
+            'نرم افزار', 'کد اختصاصی', 'توسعه نرم‌افزار',
+        ],
+        'زیرساخت سرور/ابری': [
+            'سرور', 'ابری', 'Cloud', 'Server', 'زیرساخت', 'Infrastructure', 'Hosting',
+        ],
+
+        # ────────────── R&D و مستند ──────────────
+        'مستند خط لوله R&D': [
+            'R&D', 'تحقیق و توسعه', 'خط لوله', 'Pipeline', 'پروژه تحقیق', 'Research',
+            'مستند R&D', 'تحقیقات', 'توسعه محصول',
+        ],
+        'مستندات پروژه‌های اجرایی': [
+            'مستندات', 'پروژه', 'اجرایی', 'Documentation', 'Project', 'مستند پروژه',
+        ],
+
+        # ────────────── پیش‌بینی و شبیه‌سازی ──────────────
+        'مدل‌های پیش‌بینی/شبیه‌سازی': [
+            'پیش‌بینی', 'شبیه‌سازی', 'Simulation', 'Forecasting', 'مدل پیش‌بینی', 'مدل‌سازی',
+        ],
+        'مدل‌های پیش‌بینی/شبیه‌سازی منحصربه‌فرد': [
+            'پیش‌بینی', 'شبیه‌سازی', 'Simulation', 'منحصربه‌فرد', 'مدل اختصاصی', 'Modeling',
+        ],
+
+        # ────────────── دانش فنی ──────────────
+        'دانش فنی غیرقابل تقلید (اسرار تجاری)': [
+            'دانش فنی', 'اسرار تجاری', 'Trade Secret', 'Know-How', 'غیرقابل تقلید', 'محرمانه',
+            'دانش اختصاصی', 'تکنولوژی اختصاصی',
+        ],
+        'دانش فنی/متدولوژی غیرقابل تقلید': [
+            'دانش فنی', 'متدولوژی', 'روش اختصاصی', 'Know-How', 'Methodology', 'غیرقابل تقلید',
+        ],
+        'دانش فنی منحصربه‌فرد کارشناسان کلیدی': [
+            'دانش فنی', 'کارشناس کلیدی', 'Expert Knowledge', 'تخصص', 'خبره', 'منحصربه‌فرد',
+            'دانش کارشناسان',
+        ],
+        'دانش ضمنی کارکنان خبره': [
+            'دانش ضمنی', 'Tacit Knowledge', 'کارکنان خبره', 'تجربه کارکنان', 'دانش پنهان',
+        ],
+
+        # ────────────── تجربه ──────────────
+        'تجربه حل مسائل پیچیده': [
+            'تجربه', 'حل مسئله', 'مسائل پیچیده', 'Problem Solving', 'تجربه عملیاتی',
+        ],
+
+        # ────────────── پایگاه داده ──────────────
+        'پایگاه داده تحلیلی استراتژیک': [
+            'پایگاه داده', 'تحلیلی', 'استراتژیک', 'Analytical Database', 'داده تحلیلی',
+            'Data Warehouse', 'انبار داده', 'داده کاوی',
+        ],
+        'پایگاه داده مقالات/تحقیقات': [
+            'پایگاه داده', 'مقالات', 'تحقیقات', 'Research Database', 'آرشیو تحقیقات',
+        ],
+        'پایگاه داده درس‌آموخته‌ها': [
+            'پایگاه داده', 'درس‌آموخته', 'Lessons Learned', 'تجربیات',
+        ],
+        'پایگاه درس‌آموخته‌ها': [
+            'درس‌آموخته', 'Lessons Learned', 'تجربیات', 'پایگاه دانش تجربی',
+        ],
+
+        # ────────────── فرآیند و SOP ──────────────
+        'فرآیندهای استاندارد (SOPs)': [
+            'فرآیند', 'استاندارد', 'SOP', 'رویه', 'Procedure', 'Process', 'فرایند',
+            'دستورالعمل استاندارد',
+        ],
+        'فرآیندهای استاندارد بهینه‌شده (SOPs)': [
+            'فرآیند', 'بهینه', 'SOP', 'Optimized', 'Process', 'بهبود یافته',
+        ],
+
+        # ────────────── تیم‌ها ──────────────
+        'تیم‌های پروژه‌ای مستند': [
+            'تیم', 'پروژه', 'Team', 'Project Team', 'تیم پروژه', 'گروه پروژه',
+        ],
+
+        # ────────────── آموزش ──────────────
+        'پلتفرم LMS': [
+            'LMS', 'آموزش', 'پلتفرم آموزشی', 'Learning Management', 'سامانه آموزش',
+            'آموزش الکترونیکی', 'e-learning',
+        ],
+        'پلتفرم LMS (سامانه آموزش)': [
+            'LMS', 'آموزش', 'سامانه آموزش', 'پلتفرم آموزشی', 'e-learning',
+        ],
+        'کتابخانه دیجیتال': [
+            'کتابخانه', 'دیجیتال', 'Digital Library', 'آرشیو دیجیتال', 'منابع دیجیتال',
+        ],
+
+        # ────────────── بهبود بهره‌وری ──────────────
+        'روش‌های بهبود بهره‌وری': [
+            'بهره‌وری', 'بهبود', 'Productivity', 'کارایی', 'بهینه سازی', 'Improvement',
+        ],
+        'بهبود بهره‌وری (ناب/شش‌سیگما)': [
+            'بهره‌وری', 'ناب', 'شش سیگما', 'Lean', 'Six Sigma', 'بهبود فرآیند',
+        ],
+        'تکنیک‌های کاهش هزینه عملیاتی': [
+            'کاهش هزینه', 'هزینه عملیاتی', 'Cost Reduction', 'صرفه جویی', 'بهینه سازی هزینه',
+        ],
+
+        # ────────────── سیستم تحلیل ──────────────
+        'سیستم تحلیل عملکرد': [
+            'تحلیل عملکرد', 'Performance', 'KPI', 'شاخص عملکرد', 'داشبورد عملکرد',
+        ],
+        'سیستم تحلیل عملکرد (KPI)': [
+            'KPI', 'تحلیل عملکرد', 'شاخص کلیدی', 'Performance Indicator', 'داشبورد KPI',
+        ],
+        'سیستم تحلیل عملکرد (داشبورد شاخص‌های کلیدی)': [
+            'KPI', 'داشبورد', 'شاخص کلیدی', 'Dashboard', 'شاخص عملکرد',
+        ],
+
+        # ────────────── سیستم مالی ──────────────
+        'سیستم مالی': [
+            'مالی', 'Financial', 'حسابداری', 'Accounting', 'سیستم مالی', 'نرم‌افزار مالی',
+        ],
+        'سیستم مالی (نرم‌افزار حسابداری)': [
+            'مالی', 'حسابداری', 'Accounting', 'نرم‌افزار مالی', 'Financial System',
+        ],
+
+        # ────────────── ابزار AI/BI ──────────────
+        'ابزارهای AI/ML': [
+            'AI', 'ML', 'هوش مصنوعی', 'یادگیری ماشین', 'Artificial Intelligence', 'Machine Learning',
+            'ابزار هوشمند', 'الگوریتم یادگیری',
+        ],
+        'ابزارهای BI': [
+            'BI', 'هوش تجاری', 'Business Intelligence', 'تحلیل داده', 'گزارش‌ساز',
+        ],
+        'ابزارهای BI و تحلیل داده': [
+            'BI', 'هوش تجاری', 'تحلیل داده', 'Data Analysis', 'Business Intelligence',
+        ],
+        'ابزارهای شبیه‌سازی و مدل‌سازی': [
+            'شبیه‌سازی', 'مدل‌سازی', 'Simulation', 'Modeling', 'ابزار مدل', 'نرم‌افزار شبیه‌ساز',
+        ],
+
+        # ────────────── استانداردها ──────────────
+        'استانداردهای مصرف آب/انرژی': [
+            'استاندارد', 'مصرف آب', 'انرژی', 'Water', 'Energy', 'بهینه مصرف',
+        ],
+        'گواهینامه ESG (ایزو 14001)': [
+            'ESG', 'ایزو', 'ISO', '14001', 'محیط زیست', 'گواهینامه', 'پایداری',
+        ],
+        'دستورالعمل مدیریت ضایعات': [
+            'ضایعات', 'مدیریت ضایعات', 'Waste', 'بازیافت', 'پسماند',
+        ],
+        'سیستم بازیافت عملیاتی': [
+            'بازیافت', 'Recycling', 'سیستم بازیافت', 'عملیات بازیافت',
+        ],
+
+        # ────────────── فرهنگ ──────────────
+        'سیستم مدیریت فرهنگ سازمانی': [
+            'فرهنگ', 'Culture', 'فرهنگ سازمانی', 'مدیریت فرهنگ', 'Cultural',
+        ],
+        'سند فلسفه و ارزش‌های سازمانی': [
+            'فلسفه', 'ارزش', 'Values', 'Philosophy', 'سند ارزش', 'منشور ارزش',
+        ],
+        'سیستم رهبری تحول': [
+            'رهبری', 'تحول', 'Leadership', 'Transformation', 'مدیریت تحول',
+        ],
+        'کدهای اخلاقی مصوب': [
+            'اخلاق', 'کد اخلاق', 'Ethics', 'Code of Conduct', 'منشور اخلاقی',
+        ],
+
+        # ────────────── مدیریت دانش ──────────────
+        'سیستم مدیریت دانش (KMS)': [
+            'مدیریت دانش', 'KMS', 'Knowledge Management', 'دانش سازمانی', 'سیستم دانش',
+        ],
+        'ویکی/دانش‌نامه داخلی': [
+            'ویکی', 'دانش‌نامه', 'Wiki', 'Knowledge Base', 'دانشنامه', 'پایگاه دانش',
+        ],
+        'سیستم مدیریت محتوا (CMS)': [
+            'مدیریت محتوا', 'CMS', 'Content Management', 'سیستم محتوا',
+        ],
+        'سیستم مدیریت مستندات (DMS)': [
+            'مدیریت مستندات', 'DMS', 'Document Management', 'آرشیو اسناد', 'سیستم اسناد',
+        ],
+        'سیستم مدیریت ارتباط با ذی‌نفعان': [
+            'ذی‌نفعان', 'Stakeholder', 'ارتباط با ذی‌نفعان', 'مدیریت ذی‌نفعان',
+        ],
+
+        # ────────────── استراتژیک ──────────────
+        'شیوه‌نامه تصمیم‌گیری استراتژیک': [
+            'تصمیم‌گیری', 'استراتژیک', 'شیوه‌نامه', 'Decision Making', 'Strategic Decision',
+        ],
+        'بهترین شیوه‌های غیررسمی (Best Practices)': [
+            'بهترین شیوه', 'Best Practice', 'تجربه موفق', 'روش برتر',
+        ],
+    }
 
     
     def __init__(self, answers, asset_name=None, organization_type=None):
@@ -1182,25 +436,51 @@ class DiscoveryAnalyzer:
         ).exclude(
             discovery_scores__exact={}
         )
-        
+
+        # نگاشت فارسی → انگلیسی
         if self.organization_type:
-            templates = templates.filter(
-                organization_type__name=self.organization_type
-            )
-        
+            ORG_TYPE_MAP = {
+                'تولیدی': 'manufacturing', 'manufacturing': 'manufacturing',
+                'خدماتی': 'service', 'service': 'service',
+                'هلدینگ': 'holding', 'holding': 'holding',
+                'پژوهشی': 'rto', 'rto': 'rto', 'دانشگاهی': 'rto',
+            }
+            mapped_type = ORG_TYPE_MAP.get(self.organization_type, self.organization_type)
+            filtered = templates.filter(organization_type__name=mapped_type)
+            if not filtered.exists():
+                filtered = templates.filter(organization_type__name=self.organization_type)
+            if filtered.exists():
+                templates = filtered
+
         best_score = 0
         best_template = None
-        
+
         for template in templates:
             score_match = self.calculate_match_score(template)
             name_score = self.calculate_name_score(template)
+
+            if name_score < 0.05:
+                continue
             
-            final_score = (score_match * 0.5) + (name_score * 0.5)
-            
+            # 🔥 اسم ۹۵٪
+            final_score = (name_score * 0.95) + (score_match * 0.05)
+
             if final_score > best_score:
                 best_score = final_score
                 best_template = template
-        
+
+        # fallback
+        if not best_template:
+            for template in templates:
+                score_match = self.calculate_match_score(template)
+                name_score = self.calculate_name_score(template)
+                if name_score < 0.01:
+                    continue
+                final_score = (name_score * 0.9) + (score_match * 0.1)
+                if final_score > best_score:
+                    best_score = final_score
+                    best_template = template
+
         return best_template
     
     def calculate_match_score(self, template):
@@ -1233,38 +513,183 @@ class DiscoveryAnalyzer:
         if not self.asset_name:
             return 0
         
-        template_name = template.item_name
-        input_lower = self.asset_name.lower()
-        template_lower = template_name.lower()
+        template_name = template.item_name or ''
+        input_norm = self.normalize(self.asset_name)
+        template_norm = self.normalize(template_name)
         
-        similarity = SequenceMatcher(None, input_lower, template_lower).ratio()
-        keyword_score = self.check_keywords(input_lower, template_name)
+        if not input_norm or not template_norm:
+            return 0
+
+        # ۱. similarity
+        similarity = SequenceMatcher(None, input_norm, template_norm).ratio()
+
+        # ۲. word_score
+        input_words = [w for w in input_norm.split() if len(w) >= 3]
+        template_words = [w for w in template_norm.split() if len(w) >= 3]
         
-        final_name_score = (similarity * 0.3) + (keyword_score * 0.7)
+        word_matches = 0
+        for iw in input_words:
+            for tw in template_words:
+                if iw == tw or iw in tw or tw in iw:
+                    word_matches += 1
+                    break
+                if SequenceMatcher(None, iw, tw).ratio() > 0.8:
+                    word_matches += 1
+                    break
         
-        return min(final_name_score, 1.0)
+        word_score = word_matches / max(len(input_words), 1)
+
+        # ۳. reverse
+        reverse_matches = 0
+        for tw in template_words:
+            for iw in input_words:
+                if tw == iw or tw in iw or iw in tw:
+                    reverse_matches += 1
+                    break
+        reverse_score = reverse_matches / max(len(template_words), 1)
+
+        # ۴. keyword_score
+        keyword_score = self.check_keywords(input_norm, template_name)
+
+        # ۵. synonym
+        synonym_score = self.check_synonyms(input_norm, template_name)
+
+        # ۶. 🆕 semantic_match — چک کلمات هم‌معنی توی اسم
+        semantic_score = self.check_semantic_match(input_norm, template_norm)
+
+        return min(
+            similarity * 0.05 +
+            word_score * 0.25 +
+            reverse_score * 0.15 +
+            keyword_score * 0.25 +
+            synonym_score * 0.15 +
+            semantic_score * 0.15,
+            1.0
+        )
+
+    def check_semantic_match(self, input_norm, template_norm):
+        """چک هم‌معنی‌های دقیق بین input و template"""
+        EQUIVALENTS = {
+            'برند': ['نشان', 'نام تجاری', 'لوگو', 'علامت تجاری', 'trademark', 'brand'],
+            'نشان': ['برند', 'نام تجاری', 'لوگو', 'علامت تجاری', 'trademark'],
+            'نام تجاری': ['برند', 'نشان', 'لوگو', 'علامت تجاری', 'trademark'],
+            'لوگو': ['برند', 'نشان', 'نام تجاری', 'علامت تجاری'],
+            'علامت تجاری': ['برند', 'نشان', 'نام تجاری', 'لوگو', 'trademark'],
+            'ت trademark': ['برند', 'نشان', 'نام تجاری', 'لوگو'],
+            'شهرت': ['گودویل', 'goodwill', 'سرقفلی', 'اعتبار', 'reputation', 'حسن شهرت', 'آبرو', 'پرستیژ', 'خوشنامی'],
+            'گودویل': ['شهرت', 'goodwill', 'سرقفلی', 'حسن شهرت'],
+            'سرقفلی': ['شهرت', 'گودویل', 'goodwill', 'اعتبار'],
+            'goodwill': ['شهرت', 'گودویل', 'سرقفلی', 'اعتبار'],
+            'حسن شهرت': ['شهرت', 'گودویل', 'اعتبار', 'goodwill'],
+            'اعتبار': ['شهرت', 'گودویل', 'سرقفلی', 'reputation'],
+            'خوشنامی': ['شهرت', 'گودویل', 'اعتبار'],
+            'آبرو': ['شهرت', 'اعتبار', 'گودویل'],
+            'پتنت': ['اختراع', 'patent', 'حقوق اختراع'],
+            'اختراع': ['پتنت', 'patent'],
+            'patent': ['پتنت', 'اختراع'],
+            'نرم‌افزار': ['software', 'برنامه', 'اپلیکیشن', 'سیستم'],
+            'سیستم': ['system', 'سامانه', 'نرم‌افزار'],
+            'قرارداد': ['contract', 'توافق', 'پیمان'],
+            'قراردادها': ['قرارداد', 'contract'],
+            'دانش فنی': ['know-how', 'دانش', 'knowledge', 'اسرار تجاری'],
+            'اسرار تجاری': ['trade secret', 'دانش فنی', 'know-how'],
+            'درس‌آموخته': ['lessons learned', 'تجربه', 'درس آموخته'],
+            'درس‌آموخته‌ها': ['lessons learned', 'تجربیات'],
+        }
+        
+        score = 0
+        count = 0
+        
+        for fa, equivalents in EQUIVALENTS.items():
+            # چک کن input شامل fa باشه
+            input_has = fa in input_norm or any(eq in input_norm for eq in equivalents)
+            template_has = fa in template_norm or any(eq in template_norm for eq in equivalents)
+            
+            if input_has:
+                count += 1
+                if template_has:
+                    score += 1
+        
+        return score / count if count > 0 else 0
+
+    def check_synonyms(self, input_lower, template_name):
+        SYNONYMS = {
+            'نرم‌افزار': ['software', 'برنامه', 'اپلیکیشن', 'application', 'سیستم'],
+            'سیستم': ['system', 'سامانه', 'نرم‌افزار'],
+            'برند': ['brand', 'نشان', 'علامت', 'logo', 'trademark'],
+            'پتنت': ['patent', 'اختراع', 'innovation'],
+            'قرارداد': ['contract', 'توافق', 'agreement', 'پیمان'],
+            'مشتری': ['customer', 'client', 'crm'],
+            'داده': ['data', 'اطلاعات', 'پایگاه داده', 'database'],
+            'دانش': ['knowledge', 'know-how', 'kms'],
+            'فرآیند': ['process', 'رویه', 'sop', 'procedure'],
+            'مدل': ['model', 'الگو', 'bmc', 'canvas'],
+            'استراتژی': ['strategy', 'راهبرد'],
+            'شبکه': ['network', 'partnership'],
+            'شراکت': ['partnership', 'همکاری', 'jv', 'mou'],
+            'فرهنگ': ['culture', 'cultural'],
+            'آموزش': ['training', 'education', 'lms'],
+            'شهرت': ['reputation', 'goodwill', 'سرقفلی'],
+            'پایگاه': ['database', 'base'],
+            'درس': ['lesson', 'learned'],
+            'پیش‌بینی': ['forecast', 'predict', 'simulation'],
+        }
+        
+        score = 0
+        count = 0
+        t_lower = template_name.lower()
+        for fa, syns in SYNONYMS.items():
+            if fa in input_lower or any(s in input_lower for s in syns):
+                if fa in t_lower or any(s in t_lower for s in syns):
+                    score += 1
+                count += 1
+        return score / count if count > 0 else 0
     
-    def check_keywords(self, input_lower, template_name):
-        # بررسی کلمات کلیدی برای این قالب خاص
+    def check_keywords(self, input_norm, template_name):
+        """بررسی کلمات کلیدی — نسخه بهبود‌یافته"""
         best_score = 0
-        
+        template_norm = self.normalize(template_name)
+
         for template_key, keywords in self.KEYWORDS.items():
-            # بررسی تطابق نام قالب
-            if template_key in template_name or template_name in template_key:
+            key_norm = self.normalize(template_key)
+            if not key_norm or not template_norm:
+                continue
+            
+            # چک تطابق بین key و template_name
+            matched = False
+            if key_norm in template_norm or template_norm in key_norm:
+                matched = True
+            elif SequenceMatcher(None, key_norm, template_norm).ratio() > 0.5:
+                matched = True
+            else:
+                key_words = set(key_norm.split())
+                template_words = set(template_norm.split())
+                common = key_words & template_words
+                if key_words and len(common) / len(key_words) >= 0.5:
+                    matched = True
+
+            if matched:
                 found = 0
-                total = len(keywords)
-                
                 for keyword in keywords:
-                    if keyword.lower() in input_lower:
+                    kw_norm = self.normalize(keyword)
+                    if not kw_norm:
+                        continue
+                    if kw_norm in input_norm:
                         found += 1
-                
-                if total > 0:
-                    score = found / total
+                    else:
+                        kw_words = set(kw_norm.split())
+                        input_words = set(input_norm.split())
+                        if kw_words & input_words:
+                            found += 1
+
+                if keywords:
+                    score = found / len(keywords)
+                    if found > 0:
+                        score = min(score * 5, 1.0)
                     if score > best_score:
                         best_score = score
-        
+
         return min(best_score, 1.0)
-    
     def find_errors(self, template):
         scores = template.discovery_scores
         if not scores:

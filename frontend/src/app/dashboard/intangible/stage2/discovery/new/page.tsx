@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { JalaliDatePicker } from '@/components/ui/jalali-date-picker';
+import { toast } from 'sonner';
 
 interface AssetRow {
   name: string;
@@ -232,7 +233,7 @@ export default function NewDiscoveryFormPage() {
         </div>
       </div>
       
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6" noValidate>
         {/* ========== اطلاعات کلی ========== */}
         <Card>
           <CardHeader><CardTitle>اطلاعات کلی</CardTitle></CardHeader>

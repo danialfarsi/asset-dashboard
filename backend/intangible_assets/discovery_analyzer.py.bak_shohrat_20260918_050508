@@ -1,0 +1,863 @@
+from .models import ScreeningTemplate
+import re
+from difflib import SequenceMatcher
+
+class DiscoveryAnalyzer:
+    """تحلیل‌گر موتور شناسایی برای پیشنهاد هوشمند قالب دارایی"""
+    
+    @staticmethod
+    def normalize(text):
+        """نرمال‌سازی متن برای مقایسه بهتر"""
+        if not text:
+            return ''
+        text = str(text).lower()
+        # حذف نیم‌فاصله
+        text = text.replace('\u200c', '')
+        # یکسان‌سازی فاصله‌ها
+        text = re.sub(r'\s+', ' ', text)
+        # حذف پرانتز و محتوای داخلش
+        text = re.sub(r'\([^)]*\)', '', text)
+        # حذف کاراکترهای اضافی
+        text = re.sub(r'[/\\،,،؛;\-—–_]', ' ', text)
+        # حذف کاراکترهای نگارشی
+        text = re.sub(r'[.؟!«»"\'\'\(\)\[\]{}]', '', text)
+        # یکسان‌سازی فاصله
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+    
+    QUESTION_DESC = {
+    'n1': 'محصول فکری است (نتیجه تفکر و خلاقیت)',
+    'n2': 'هویت غیرفیزیکی دارد (قابل لمس نیست)',
+    'n3': 'قابل مشاهده نیست (غیرملموس است)',
+    'n4': 'قابل لمس نیست (فیزیکی نیست)',
+    'n5': 'اندازه فیزیکی ندارد',
+    'n6': 'وزن فیزیکی ندارد',
+    'i1': 'نام مشخص دارد (شناخته شده است)',
+    'i2': 'کد شناسایی دارد (ثبت شده است)',
+    'i3': 'در اسناد ثبت شده (مستند است)',
+    'i4': 'قابل تمایز است (از دیگران جدا است)',
+    'i5': 'قابل ردیابی است (تاریخچه دارد)',
+    'i6': 'در سیستم ثبت است (سیستماتیک است)',
+    'i7': 'تاریخ ثبت دارد (قدمت دارد)',
+    'c1': 'قابل کنترل است (مدیریت‌پذیر است)',
+    'c2': 'مالکیت مشخص دارد (صاحب دارد)',
+    'c3': 'قرارداد دارد (قانونی است)',
+    'c4': 'ثبت قانونی دارد (رسمی است)',
+    'c5': 'حمایت قانونی دارد (محافظت شده است)',
+    'c6': 'منافع اقتصادی دارد (سودآور است)',
+    'c7': 'قابل انتقال است (قابل فروش است)',
+    'v1': 'ارزش اقتصادی دارد (قیمت دارد)',
+    'v2': 'درآمدزا است (پول می‌سازد)',
+    'v3': 'هزینه‌زا است (هزینه دارد)',
+    'v4': 'مزیت رقابتی دارد (از رقبا جلوتر است)',
+    'v5': 'ارتقاءدهنده است (بهتر می‌کند)',
+    'v6': 'توسعه‌دهنده است (رشد می‌دهد)',
+    'v7': 'نوآورانه است (جدید است)',
+    'v8': 'کاربردی است (مفید است)',
+    'v9': 'مفید است (به کار می‌آید)'
+}
+    
+    # کلمات کلیدی کامل برای هر دارایی بر اساس فایل PDF
+    KEYWORDS = {
+        # ────────────── برند ──────────────
+        'برند ثبت‌شده': [
+            'برند', 'ثبت', 'لوگو', 'علامت تجاری', 'نشان تجاری', 'برند ثبت', 'علائم تجاری',
+            'Brand', 'Trademark', 'لوگوی انحصاری', 'نام تجاری', 'هویت برند', 'برند سازمان',
+            'سبد علائم', 'حقوق انحصاری برند', 'گواهی ثبت برند', 'ثبت علامت تجاری', 'Service Mark',
+            'نشان', 'نماد', 'embleم', 'sign', 'logo', 'نام نشان', 'نشان سازمان',
+        ],
+        'برند ثبت‌شده/سبد علائم تجاری': [
+            'برند', 'ثبت', 'لوگو', 'علامت تجاری', 'نشان تجاری', 'سبد علائم', 'علائم تجاری',
+            'Brand', 'Trademark', 'نام تجاری', 'هویت بصری', 'پرونده ثبت', 'طبقه بندی نیس',
+        ],
+        'داستان برند مستند': [
+            'داستان برند', 'Story Brand', 'روایت برند', 'داستان سازمان', 'هویت روایی',
+            'برند مستند', 'Brand Story', 'روایت تجاری',
+        ],
+        'داستان برند مستندشده': [
+            'داستان برند', 'Story Brand', 'روایت برند', 'داستان سازمان', 'Brand Story',
+        ],
+        'شبکه سفیران برند': [
+            'سفیر برند', 'شبکه سفیران', 'سفیران', 'Ambassador', 'برند سفیر', 'نماینده برند',
+        ],
+
+        # ────────────── قرارداد ──────────────
+        'قراردادهای انحصاری بلندمدت': [
+            'قرارداد', 'انحصار', 'بلندمدت', 'توافق', 'پیمان', 'Exclusive', 'Long-term',
+            'قرارداد انحصاری', 'حق انحصار', 'تامین انحصاری', 'توزیع انحصاری', 'Offtake',
+        ],
+        'قراردادهای زنجیره تأمین': [
+            'قرارداد', 'زنجیره تامین', 'زنجیره تأمین', 'تامین', 'Supplier', 'Supply Chain',
+            'توافق تامین', 'قرارداد تامین', 'پیمان تامین',
+        ],
+        'قراردادهای همکاری بین‌شرکتی': [
+            'قرارداد', 'همکاری', 'بین‌شرکتی', 'بین شرکتی', 'مشارکت', 'JV', 'Joint Venture',
+            'توافق همکاری', 'پیمان همکاری', 'شراکت شرکتی',
+        ],
+
+        # ────────────── مدل کسب‌وکار ──────────────
+        'مدل کسب‌وکار مستند (BMC)': [
+            'مدل کسب', 'BMC', 'Business Model', 'کسب و کار', 'کسب‌وکار', 'مدل تجاری',
+            'جریان درآمد', 'خلق ارزش', 'ساختار هزینه', 'ارزش پیشنهادی', 'بخش بندی مشتریان',
+            'مدل درآمدی', 'Business Model Canvas', 'مدل عملیاتی',
+        ],
+
+        # ────────────── فرمول قیمت‌گذاری ──────────────
+        'فرمول‌های قیمت‌گذاری اختصاصی': [
+            'فرمول', 'قیمت‌گذاری', 'قیمت گذاری', 'Pricing', 'الگوریتم قیمت', 'محاسبات قیمت',
+            'فرمول قیمت', 'مدل قیمت', 'Price Optimization', 'Pricing Formula', 'سود ناخالص',
+        ],
+        'الگوریتم‌های قیمت‌گذاری پویا': [
+            'الگوریتم', 'قیمت‌گذاری پویا', 'قیمت گذاری پویا', 'Dynamic Pricing', 'DYN',
+            'قیمت پویا', 'Rule-based', 'Yield Management', 'Revenue Management',
+        ],
+
+        # ────────────── شهرت تجاری ──────────────
+        'شهرت تجاری/سرقفلی (Goodwill)': [
+            'شهرت', 'گودویل', 'Goodwill', 'سرقفلی', 'اعتبار', 'Reputation', 'شهرت تجاری',
+            'ارزش برند', 'M&A', 'Enterprise Value', 'Purchase Price Allocation',
+            'شهرت سازمانی', 'اعتبار تجاری', 'اعتبار سازمان', 'نام نیک', 'حسن شهرت',
+        ],
+
+        # ────────────── مشتریان ──────────────
+        'پورتفولیوی مشتریان استراتژیک': [
+            'مشتری', 'پورتفولیو', 'استراتژیک', 'CRM', 'Key Account', 'KAM', 'Customer',
+            'مشتریان کلیدی', 'مشتریان راهبردی', 'پورتفولیو مشتری',
+        ],
+        'پایگاه داده مشتریان (CRM Database)': [
+            'مشتری', 'CRM', 'پایگاه داده', 'Database', 'Customer Database', 'بانک اطلاعات مشتریان',
+            'اطلاعات مشتریان', 'داده مشتریان',
+        ],
+        'پایگاه داده مشتریان (CRM)': [
+            'مشتری', 'CRM', 'پایگاه داده', 'Customer Database',
+        ],
+        'نرم‌افزار ERP/CRM': [
+            'ERP', 'CRM', 'نرم‌افزار', 'سیستم جامع', 'یکپارچه', 'Enterprise Resource Planning',
+        ],
+        'نرم‌افزارهای ERP/CRM': [
+            'ERP', 'CRM', 'نرم‌افزار', 'سیستم جامع', 'یکپارچه',
+        ],
+        'نرم‌افزارهای ERP/CRM یکپارچه': [
+            'ERP', 'CRM', 'نرم‌افزار', 'یکپارچه', 'سیستم جامع', 'Integrated',
+        ],
+        'سامانه بازخورد مشتریان': [
+            'بازخورد', 'مشتری', 'Feedback', 'نظرسنجی', 'صدای مشتری', 'رضایت مشتری',
+        ],
+
+        # ────────────── شراکت ──────────────
+        'شبکه شراکت‌های استراتژیک': [
+            'شبکه', 'شراکت', 'استراتژیک', 'همکاری', 'Partnership', 'Network', 'JV', 'MoU',
+            'شبکه شراکت', 'شرکای استراتژیک',
+        ],
+        'شبکه شراکت‌های استراتژیک (JV/MoU)': [
+            'شبکه', 'شراکت', 'استراتژیک', 'JV', 'MoU', 'Joint Venture', 'Memorandum',
+        ],
+        'شبکه شراکت‌های استراتژیک (MoU/JV)': [
+            'شبکه', 'شراکت', 'استراتژیک', 'MoU', 'JV', 'Joint Venture',
+        ],
+
+        # ────────────── CSR و شوراها ──────────────
+        'رتبه‌بندی‌های CSR معتبر': [
+            'CSR', 'رتبه‌بندی', 'مسئولیت اجتماعی', 'Corporate Social Responsibility', 'پایداری',
+        ],
+        'عضویت در شوراهای ملی/بین‌المللی': [
+            'عضویت', 'شورا', 'انجمن', 'Council', 'Association', 'اتحادیه', 'شورای ملی',
+            'شورای بین‌المللی',
+        ],
+
+        # ────────────── پروتکل ──────────────
+        'پروتکل‌های همکاری با دولت/دانشگاه': [
+            'پروتکل', 'همکاری', 'دولت', 'دانشگاه', 'Protocol', 'Government', 'University',
+            'تفاهم نامه', 'MoU دانشگاه',
+        ],
+
+        # ────────────── پتنت ──────────────
+        'پتنت‌ها و حقوق اختراع': [
+            'پتنت', 'اختراع', 'Patent', 'حقوق اختراع', 'ثبت اختراع', 'Innovation Patent',
+        ],
+        'پتنت‌ها و حقوق اختراع ثبت‌شده': [
+            'پتنت', 'اختراع', 'Patent', 'ثبت اختراع', 'حقوق اختراع',
+        ],
+
+        # ────────────── نرم‌افزار ──────────────
+        'نرم‌افزارهای اختصاصی (کد منبع)': [
+            'نرم‌افزار', 'کد منبع', 'Source Code', 'اختصاصی', 'Software', 'Application',
+            'نرم افزار', 'کد اختصاصی', 'توسعه نرم‌افزار',
+        ],
+        'زیرساخت سرور/ابری': [
+            'سرور', 'ابری', 'Cloud', 'Server', 'زیرساخت', 'Infrastructure', 'Hosting',
+        ],
+
+        # ────────────── R&D و مستند ──────────────
+        'مستند خط لوله R&D': [
+            'R&D', 'تحقیق و توسعه', 'خط لوله', 'Pipeline', 'پروژه تحقیق', 'Research',
+            'مستند R&D', 'تحقیقات', 'توسعه محصول',
+        ],
+        'مستندات پروژه‌های اجرایی': [
+            'مستندات', 'پروژه', 'اجرایی', 'Documentation', 'Project', 'مستند پروژه',
+        ],
+
+        # ────────────── پیش‌بینی و شبیه‌سازی ──────────────
+        'مدل‌های پیش‌بینی/شبیه‌سازی': [
+            'پیش‌بینی', 'شبیه‌سازی', 'Simulation', 'Forecasting', 'مدل پیش‌بینی', 'مدل‌سازی',
+        ],
+        'مدل‌های پیش‌بینی/شبیه‌سازی منحصربه‌فرد': [
+            'پیش‌بینی', 'شبیه‌سازی', 'Simulation', 'منحصربه‌فرد', 'مدل اختصاصی', 'Modeling',
+        ],
+
+        # ────────────── دانش فنی ──────────────
+        'دانش فنی غیرقابل تقلید (اسرار تجاری)': [
+            'دانش فنی', 'اسرار تجاری', 'Trade Secret', 'Know-How', 'غیرقابل تقلید', 'محرمانه',
+            'دانش اختصاصی', 'تکنولوژی اختصاصی',
+        ],
+        'دانش فنی/متدولوژی غیرقابل تقلید': [
+            'دانش فنی', 'متدولوژی', 'روش اختصاصی', 'Know-How', 'Methodology', 'غیرقابل تقلید',
+        ],
+        'دانش فنی منحصربه‌فرد کارشناسان کلیدی': [
+            'دانش فنی', 'کارشناس کلیدی', 'Expert Knowledge', 'تخصص', 'خبره', 'منحصربه‌فرد',
+            'دانش کارشناسان',
+        ],
+        'دانش ضمنی کارکنان خبره': [
+            'دانش ضمنی', 'Tacit Knowledge', 'کارکنان خبره', 'تجربه کارکنان', 'دانش پنهان',
+        ],
+
+        # ────────────── تجربه ──────────────
+        'تجربه حل مسائل پیچیده': [
+            'تجربه', 'حل مسئله', 'مسائل پیچیده', 'Problem Solving', 'تجربه عملیاتی',
+        ],
+
+        # ────────────── پایگاه داده ──────────────
+        'پایگاه داده تحلیلی استراتژیک': [
+            'پایگاه داده', 'تحلیلی', 'استراتژیک', 'Analytical Database', 'داده تحلیلی',
+            'Data Warehouse', 'انبار داده', 'داده کاوی',
+        ],
+        'پایگاه داده مقالات/تحقیقات': [
+            'پایگاه داده', 'مقالات', 'تحقیقات', 'Research Database', 'آرشیو تحقیقات',
+        ],
+        'پایگاه داده درس‌آموخته‌ها': [
+            'پایگاه داده', 'درس‌آموخته', 'Lessons Learned', 'تجربیات',
+        ],
+        'پایگاه درس‌آموخته‌ها': [
+            'درس‌آموخته', 'Lessons Learned', 'تجربیات', 'پایگاه دانش تجربی',
+        ],
+
+        # ────────────── فرآیند و SOP ──────────────
+        'فرآیندهای استاندارد (SOPs)': [
+            'فرآیند', 'استاندارد', 'SOP', 'رویه', 'Procedure', 'Process', 'فرایند',
+            'دستورالعمل استاندارد',
+        ],
+        'فرآیندهای استاندارد بهینه‌شده (SOPs)': [
+            'فرآیند', 'بهینه', 'SOP', 'Optimized', 'Process', 'بهبود یافته',
+        ],
+
+        # ────────────── تیم‌ها ──────────────
+        'تیم‌های پروژه‌ای مستند': [
+            'تیم', 'پروژه', 'Team', 'Project Team', 'تیم پروژه', 'گروه پروژه',
+        ],
+
+        # ────────────── آموزش ──────────────
+        'پلتفرم LMS': [
+            'LMS', 'آموزش', 'پلتفرم آموزشی', 'Learning Management', 'سامانه آموزش',
+            'آموزش الکترونیکی', 'e-learning',
+        ],
+        'پلتفرم LMS (سامانه آموزش)': [
+            'LMS', 'آموزش', 'سامانه آموزش', 'پلتفرم آموزشی', 'e-learning',
+        ],
+        'کتابخانه دیجیتال': [
+            'کتابخانه', 'دیجیتال', 'Digital Library', 'آرشیو دیجیتال', 'منابع دیجیتال',
+        ],
+
+        # ────────────── بهبود بهره‌وری ──────────────
+        'روش‌های بهبود بهره‌وری': [
+            'بهره‌وری', 'بهبود', 'Productivity', 'کارایی', 'بهینه سازی', 'Improvement',
+        ],
+        'بهبود بهره‌وری (ناب/شش‌سیگما)': [
+            'بهره‌وری', 'ناب', 'شش سیگما', 'Lean', 'Six Sigma', 'بهبود فرآیند',
+        ],
+        'تکنیک‌های کاهش هزینه عملیاتی': [
+            'کاهش هزینه', 'هزینه عملیاتی', 'Cost Reduction', 'صرفه جویی', 'بهینه سازی هزینه',
+        ],
+
+        # ────────────── سیستم تحلیل ──────────────
+        'سیستم تحلیل عملکرد': [
+            'تحلیل عملکرد', 'Performance', 'KPI', 'شاخص عملکرد', 'داشبورد عملکرد',
+        ],
+        'سیستم تحلیل عملکرد (KPI)': [
+            'KPI', 'تحلیل عملکرد', 'شاخص کلیدی', 'Performance Indicator', 'داشبورد KPI',
+        ],
+        'سیستم تحلیل عملکرد (داشبورد شاخص‌های کلیدی)': [
+            'KPI', 'داشبورد', 'شاخص کلیدی', 'Dashboard', 'شاخص عملکرد',
+        ],
+
+        # ────────────── سیستم مالی ──────────────
+        'سیستم مالی': [
+            'مالی', 'Financial', 'حسابداری', 'Accounting', 'سیستم مالی', 'نرم‌افزار مالی',
+        ],
+        'سیستم مالی (نرم‌افزار حسابداری)': [
+            'مالی', 'حسابداری', 'Accounting', 'نرم‌افزار مالی', 'Financial System',
+        ],
+
+        # ────────────── ابزار AI/BI ──────────────
+        'ابزارهای AI/ML': [
+            'AI', 'ML', 'هوش مصنوعی', 'یادگیری ماشین', 'Artificial Intelligence', 'Machine Learning',
+            'ابزار هوشمند', 'الگوریتم یادگیری',
+        ],
+        'ابزارهای BI': [
+            'BI', 'هوش تجاری', 'Business Intelligence', 'تحلیل داده', 'گزارش‌ساز',
+        ],
+        'ابزارهای BI و تحلیل داده': [
+            'BI', 'هوش تجاری', 'تحلیل داده', 'Data Analysis', 'Business Intelligence',
+        ],
+        'ابزارهای شبیه‌سازی و مدل‌سازی': [
+            'شبیه‌سازی', 'مدل‌سازی', 'Simulation', 'Modeling', 'ابزار مدل', 'نرم‌افزار شبیه‌ساز',
+        ],
+
+        # ────────────── استانداردها ──────────────
+        'استانداردهای مصرف آب/انرژی': [
+            'استاندارد', 'مصرف آب', 'انرژی', 'Water', 'Energy', 'بهینه مصرف',
+        ],
+        'گواهینامه ESG (ایزو 14001)': [
+            'ESG', 'ایزو', 'ISO', '14001', 'محیط زیست', 'گواهینامه', 'پایداری',
+        ],
+        'دستورالعمل مدیریت ضایعات': [
+            'ضایعات', 'مدیریت ضایعات', 'Waste', 'بازیافت', 'پسماند',
+        ],
+        'سیستم بازیافت عملیاتی': [
+            'بازیافت', 'Recycling', 'سیستم بازیافت', 'عملیات بازیافت',
+        ],
+
+        # ────────────── فرهنگ ──────────────
+        'سیستم مدیریت فرهنگ سازمانی': [
+            'فرهنگ', 'Culture', 'فرهنگ سازمانی', 'مدیریت فرهنگ', 'Cultural',
+        ],
+        'سند فلسفه و ارزش‌های سازمانی': [
+            'فلسفه', 'ارزش', 'Values', 'Philosophy', 'سند ارزش', 'منشور ارزش',
+        ],
+        'سیستم رهبری تحول': [
+            'رهبری', 'تحول', 'Leadership', 'Transformation', 'مدیریت تحول',
+        ],
+        'کدهای اخلاقی مصوب': [
+            'اخلاق', 'کد اخلاق', 'Ethics', 'Code of Conduct', 'منشور اخلاقی',
+        ],
+
+        # ────────────── مدیریت دانش ──────────────
+        'سیستم مدیریت دانش (KMS)': [
+            'مدیریت دانش', 'KMS', 'Knowledge Management', 'دانش سازمانی', 'سیستم دانش',
+        ],
+        'ویکی/دانش‌نامه داخلی': [
+            'ویکی', 'دانش‌نامه', 'Wiki', 'Knowledge Base', 'دانشنامه', 'پایگاه دانش',
+        ],
+        'سیستم مدیریت محتوا (CMS)': [
+            'مدیریت محتوا', 'CMS', 'Content Management', 'سیستم محتوا',
+        ],
+        'سیستم مدیریت مستندات (DMS)': [
+            'مدیریت مستندات', 'DMS', 'Document Management', 'آرشیو اسناد', 'سیستم اسناد',
+        ],
+        'سیستم مدیریت ارتباط با ذی‌نفعان': [
+            'ذی‌نفعان', 'Stakeholder', 'ارتباط با ذی‌نفعان', 'مدیریت ذی‌نفعان',
+        ],
+
+        # ────────────── استراتژیک ──────────────
+        'شیوه‌نامه تصمیم‌گیری استراتژیک': [
+            'تصمیم‌گیری', 'استراتژیک', 'شیوه‌نامه', 'Decision Making', 'Strategic Decision',
+        ],
+        'بهترین شیوه‌های غیررسمی (Best Practices)': [
+            'بهترین شیوه', 'Best Practice', 'تجربه موفق', 'روش برتر',
+        ],
+    }
+
+    
+    def __init__(self, answers, asset_name=None, organization_type=None):
+        self.answers = answers
+        self.asset_name = asset_name
+        self.organization_type = organization_type
+    
+    def analyze(self):
+        best_template = self.find_best_template()
+        if not best_template:
+            return None
+        
+        errors = self.find_errors(best_template)
+        alternative = self.find_alternative(best_template, errors)
+        
+        return {
+            'best_template': self._serialize_template(best_template, errors),
+            'errors': errors,
+            'alternative': self._serialize_template(alternative, []) if alternative else None,
+            'summary': self.generate_summary(best_template, errors, alternative)
+        }
+    
+    def _serialize_template(self, template, errors=None):
+        if not template:
+            return None
+        return {
+            'id': template.id,
+            'name': template.item_name,
+            'organization_type': template.organization_type.display_name if template.organization_type else None,
+            'category': template.category,
+            'valuation_method': template.valuation_method,
+            'total_score': 15,
+            'max_score': 29,
+            'match_percentage': self.calculate_match_percentage(template),
+            'asset_type_id': template.asset_type.id if template.asset_type else None
+        }
+    
+    def calculate_match_percentage(self, template):
+        scores = template.discovery_scores
+        if not scores:
+            return 0
+        
+        total_match = 0
+        total_items = 0
+        
+        categories = ['non_physicality', 'identifiability', 'controllability', 'value_creation']
+        
+        for category in categories:
+            if category not in scores:
+                continue
+            
+            category_data = scores[category]
+            for key, expected_value in category_data.items():
+                if key in ['score', 'max']:
+                    continue
+                
+                user_value = 1 if self.answers.get(key, False) else 0
+                if user_value == expected_value:
+                    total_match += 1
+                total_items += 1
+        
+        return int((total_match / total_items * 100)) if total_items > 0 else 0
+    
+    def find_best_template(self):
+        templates = ScreeningTemplate.objects.exclude(
+            discovery_scores__isnull=True
+        ).exclude(
+            discovery_scores__exact={}
+        )
+
+        # نگاشت فارسی → انگلیسی
+        if self.organization_type:
+            ORG_TYPE_MAP = {
+                'تولیدی': 'manufacturing', 'manufacturing': 'manufacturing',
+                'خدماتی': 'service', 'service': 'service',
+                'هلدینگ': 'holding', 'holding': 'holding',
+                'پژوهشی': 'rto', 'rto': 'rto', 'دانشگاهی': 'rto',
+            }
+            mapped_type = ORG_TYPE_MAP.get(self.organization_type, self.organization_type)
+            filtered = templates.filter(organization_type__name=mapped_type)
+            if not filtered.exists():
+                filtered = templates.filter(organization_type__name=self.organization_type)
+            if filtered.exists():
+                templates = filtered
+
+        best_score = 0
+        best_template = None
+
+        for template in templates:
+            score_match = self.calculate_match_score(template)
+            name_score = self.calculate_name_score(template)
+
+            if name_score < 0.05:
+                continue
+            
+            # 🔥 اسم ۹۵٪
+            final_score = (name_score * 0.95) + (score_match * 0.05)
+
+            if final_score > best_score:
+                best_score = final_score
+                best_template = template
+
+        # fallback
+        if not best_template:
+            for template in templates:
+                score_match = self.calculate_match_score(template)
+                name_score = self.calculate_name_score(template)
+                if name_score < 0.01:
+                    continue
+                final_score = (name_score * 0.9) + (score_match * 0.1)
+                if final_score > best_score:
+                    best_score = final_score
+                    best_template = template
+
+        return best_template
+    
+    def calculate_match_score(self, template):
+        scores = template.discovery_scores
+        if not scores:
+            return 0
+        
+        total_match = 0
+        total_items = 0
+        
+        categories = ['non_physicality', 'identifiability', 'controllability', 'value_creation']
+        
+        for category in categories:
+            if category not in scores:
+                continue
+            
+            category_data = scores[category]
+            for key, expected_value in category_data.items():
+                if key in ['score', 'max']:
+                    continue
+                
+                user_value = 1 if self.answers.get(key, False) else 0
+                if user_value == expected_value:
+                    total_match += 1
+                total_items += 1
+        
+        return total_match / total_items if total_items > 0 else 0
+    
+    def calculate_name_score(self, template):
+        if not self.asset_name:
+            return 0
+        
+        template_name = template.item_name or ''
+        input_norm = self.normalize(self.asset_name)
+        template_norm = self.normalize(template_name)
+        
+        if not input_norm or not template_norm:
+            return 0
+
+        # ۱. similarity
+        similarity = SequenceMatcher(None, input_norm, template_norm).ratio()
+
+        # ۲. word_score
+        input_words = [w for w in input_norm.split() if len(w) >= 3]
+        template_words = [w for w in template_norm.split() if len(w) >= 3]
+        
+        word_matches = 0
+        for iw in input_words:
+            for tw in template_words:
+                if iw == tw or iw in tw or tw in iw:
+                    word_matches += 1
+                    break
+                if SequenceMatcher(None, iw, tw).ratio() > 0.8:
+                    word_matches += 1
+                    break
+        
+        word_score = word_matches / max(len(input_words), 1)
+
+        # ۳. reverse
+        reverse_matches = 0
+        for tw in template_words:
+            for iw in input_words:
+                if tw == iw or tw in iw or iw in tw:
+                    reverse_matches += 1
+                    break
+        reverse_score = reverse_matches / max(len(template_words), 1)
+
+        # ۴. keyword_score
+        keyword_score = self.check_keywords(input_norm, template_name)
+
+        # ۵. synonym
+        synonym_score = self.check_synonyms(input_norm, template_name)
+
+        # ۶. 🆕 semantic_match — چک کلمات هم‌معنی توی اسم
+        semantic_score = self.check_semantic_match(input_norm, template_norm)
+
+        return min(
+            similarity * 0.05 +
+            word_score * 0.25 +
+            reverse_score * 0.15 +
+            keyword_score * 0.25 +
+            synonym_score * 0.15 +
+            semantic_score * 0.15,
+            1.0
+        )
+
+    def check_semantic_match(self, input_norm, template_norm):
+        """چک هم‌معنی‌های دقیق بین input و template"""
+        EQUIVALENTS = {
+            'برند': ['نشان', 'نام تجاری', 'لوگو', 'علامت تجاری', 'trademark', 'brand'],
+            'نشان': ['برند', 'نام تجاری', 'لوگو', 'علامت تجاری', 'trademark'],
+            'نام تجاری': ['برند', 'نشان', 'لوگو', 'علامت تجاری', 'trademark'],
+            'لوگو': ['برند', 'نشان', 'نام تجاری', 'علامت تجاری'],
+            'علامت تجاری': ['برند', 'نشان', 'نام تجاری', 'لوگو', 'trademark'],
+            'ت trademark': ['برند', 'نشان', 'نام تجاری', 'لوگو'],
+            'شهرت': ['گودویل', 'goodwill', 'سرقفلی', 'اعتبار', 'reputation'],
+            'گودویل': ['شهرت', 'goodwill', 'سرقفلی'],
+            'سرقفلی': ['شهرت', 'گودویل', 'goodwill'],
+            'goodwill': ['شهرت', 'گودویل', 'سرقفلی'],
+            'پتنت': ['اختراع', 'patent', 'حقوق اختراع'],
+            'اختراع': ['پتنت', 'patent'],
+            'patent': ['پتنت', 'اختراع'],
+            'نرم‌افزار': ['software', 'برنامه', 'اپلیکیشن', 'سیستم'],
+            'سیستم': ['system', 'سامانه', 'نرم‌افزار'],
+            'قرارداد': ['contract', 'توافق', 'پیمان'],
+            'قراردادها': ['قرارداد', 'contract'],
+            'دانش فنی': ['know-how', 'دانش', 'knowledge', 'اسرار تجاری'],
+            'اسرار تجاری': ['trade secret', 'دانش فنی', 'know-how'],
+            'درس‌آموخته': ['lessons learned', 'تجربه', 'درس آموخته'],
+            'درس‌آموخته‌ها': ['lessons learned', 'تجربیات'],
+        }
+        
+        score = 0
+        count = 0
+        
+        for fa, equivalents in EQUIVALENTS.items():
+            # چک کن input شامل fa باشه
+            input_has = fa in input_norm or any(eq in input_norm for eq in equivalents)
+            template_has = fa in template_norm or any(eq in template_norm for eq in equivalents)
+            
+            if input_has:
+                count += 1
+                if template_has:
+                    score += 1
+        
+        return score / count if count > 0 else 0
+
+    def check_synonyms(self, input_lower, template_name):
+        SYNONYMS = {
+            'نرم‌افزار': ['software', 'برنامه', 'اپلیکیشن', 'application', 'سیستم'],
+            'سیستم': ['system', 'سامانه', 'نرم‌افزار'],
+            'برند': ['brand', 'نشان', 'علامت', 'logo', 'trademark'],
+            'پتنت': ['patent', 'اختراع', 'innovation'],
+            'قرارداد': ['contract', 'توافق', 'agreement', 'پیمان'],
+            'مشتری': ['customer', 'client', 'crm'],
+            'داده': ['data', 'اطلاعات', 'پایگاه داده', 'database'],
+            'دانش': ['knowledge', 'know-how', 'kms'],
+            'فرآیند': ['process', 'رویه', 'sop', 'procedure'],
+            'مدل': ['model', 'الگو', 'bmc', 'canvas'],
+            'استراتژی': ['strategy', 'راهبرد'],
+            'شبکه': ['network', 'partnership'],
+            'شراکت': ['partnership', 'همکاری', 'jv', 'mou'],
+            'فرهنگ': ['culture', 'cultural'],
+            'آموزش': ['training', 'education', 'lms'],
+            'شهرت': ['reputation', 'goodwill', 'سرقفلی'],
+            'پایگاه': ['database', 'base'],
+            'درس': ['lesson', 'learned'],
+            'پیش‌بینی': ['forecast', 'predict', 'simulation'],
+        }
+        
+        score = 0
+        count = 0
+        t_lower = template_name.lower()
+        for fa, syns in SYNONYMS.items():
+            if fa in input_lower or any(s in input_lower for s in syns):
+                if fa in t_lower or any(s in t_lower for s in syns):
+                    score += 1
+                count += 1
+        return score / count if count > 0 else 0
+    
+    def check_keywords(self, input_norm, template_name):
+        """بررسی کلمات کلیدی — نسخه بهبود‌یافته"""
+        best_score = 0
+        template_norm = self.normalize(template_name)
+
+        for template_key, keywords in self.KEYWORDS.items():
+            key_norm = self.normalize(template_key)
+            if not key_norm or not template_norm:
+                continue
+            
+            # چک تطابق بین key و template_name
+            matched = False
+            if key_norm in template_norm or template_norm in key_norm:
+                matched = True
+            elif SequenceMatcher(None, key_norm, template_norm).ratio() > 0.5:
+                matched = True
+            else:
+                key_words = set(key_norm.split())
+                template_words = set(template_norm.split())
+                common = key_words & template_words
+                if key_words and len(common) / len(key_words) >= 0.5:
+                    matched = True
+
+            if matched:
+                found = 0
+                for keyword in keywords:
+                    kw_norm = self.normalize(keyword)
+                    if not kw_norm:
+                        continue
+                    if kw_norm in input_norm:
+                        found += 1
+                    else:
+                        kw_words = set(kw_norm.split())
+                        input_words = set(input_norm.split())
+                        if kw_words & input_words:
+                            found += 1
+
+                if keywords:
+                    score = found / len(keywords)
+                    if found > 0:
+                        score = min(score * 5, 1.0)
+                    if score > best_score:
+                        best_score = score
+
+        return min(best_score, 1.0)
+    def find_errors(self, template):
+        scores = template.discovery_scores
+        if not scores:
+            return []
+        
+        errors = []
+        categories = ['non_physicality', 'identifiability', 'controllability', 'value_creation']
+        
+        for category in categories:
+            if category not in scores:
+                continue
+            
+            category_data = scores[category]
+            category_errors = []
+            
+            for key, expected_value in category_data.items():
+                if key in ['score', 'max']:
+                    continue
+                
+                user_value = 1 if self.answers.get(key, False) else 0
+                if user_value != expected_value:
+                    category_errors.append({
+                        'key': key,
+                        'expected': expected_value,
+                        'user_value': user_value,
+                        'description': self.QUESTION_DESC.get(key, key),
+                        'is_critical': self.is_critical_question(key)
+                    })
+            
+            if category_errors:
+                errors.append({
+                    'category': category,
+                    'title': self.get_category_title(category),
+                    'errors': category_errors
+                })
+        
+        return errors
+    
+    def is_critical_question(self, key):
+        critical = {
+            'non_physicality': ['n1', 'n3', 'n4', 'n5'],
+            'identifiability': ['i1', 'i5', 'i6', 'i7'],
+            'controllability': ['c2', 'c5', 'c6'],
+            'value_creation': ['v1', 'v4', 'v6', 'v8']
+        }
+        
+        key_lower = key.lower()
+        for category, keys in critical.items():
+            if key_lower in keys:
+                return True
+        return False
+    
+    def get_category_title(self, category):
+        titles = {
+            'non_physicality': 'غیرفیزیکی بودن',
+            'identifiability': 'شناسایی‌پذیری',
+            'controllability': 'کنترل منافع',
+            'value_creation': 'ارزش‌آفرینی'
+        }
+        return titles.get(category, category)
+    
+    def find_alternative(self, best_template, errors):
+        if not errors:
+            return None
+        
+        critical_errors = []
+        for error_group in errors:
+            for error in error_group['errors']:
+                if error['is_critical']:
+                    critical_errors.append(error['key'])
+        
+        if not critical_errors:
+            return None
+        
+        templates = ScreeningTemplate.objects.exclude(
+            id=best_template.id
+        ).exclude(
+            discovery_scores__isnull=True
+        ).exclude(
+            discovery_scores__exact={}
+        )
+        
+        if self.organization_type:
+            templates = templates.filter(
+                organization_type__name=self.organization_type
+            )
+        
+        best_alternative = None
+        best_score = 0
+        
+        for template in templates:
+            score_match = self.calculate_match_score(template)
+            name_score = self.calculate_name_score(template)
+            final_score = (score_match * 0.5) + (name_score * 0.5)
+            
+            if final_score > best_score:
+                best_score = final_score
+                best_alternative = template
+        
+        return best_alternative
+    
+    def generate_summary(self, best_template, errors, alternative):
+        """تولید خلاصه مناسب برای نمایش به کاربر"""
+        if not errors:
+            return {
+                'type': 'perfect',
+                'message': f'✅ عالی! دارایی شما کاملاً با قالب "{best_template.item_name}" مطابقت دارد.',
+                'suggestions': [],
+                'alternative_message': None
+            }
+        
+        critical_errors = []
+        normal_errors = []
+        
+        for error_group in errors:
+            for error in error_group['errors']:
+                if error.get('is_critical', False):
+                    critical_errors.append(error)
+                else:
+                    normal_errors.append(error)
+        
+        if critical_errors:
+            # تولید پیام‌های خوانا با توضیحات کامل از QUESTION_DESC
+            suggestions = []
+            for e in critical_errors:
+                key = e['key'].lower()
+                # دریافت توضیحات از QUESTION_DESC
+                desc = self.QUESTION_DESC.get(key, e.get('description', key))
+                expected = 'بله' if e.get('expected', 1) == 1 else 'خیر'
+                user = 'بله' if e.get('user_value', 0) == 1 else 'خیر'
+                # اضافه کردن توضیحات کامل به جای کلید
+                suggestions.append(f"• {desc} (وضعیت فعلی: {user} | باید: {expected})")
+            
+            # پیام اصلی
+            if len(critical_errors) == 1:
+                message = f'دارایی شما به "{best_template.item_name}" نزدیک است، فقط یک مورد نیاز به اصلاح دارد:'
+            elif len(critical_errors) <= 3:
+                message = f'دارایی شما به "{best_template.item_name}" نزدیک است، این موارد را اصلاح کنید:'
+            else:
+                message = f'برای تطابق بهتر با "{best_template.item_name}"، این موارد ضروری را بررسی کنید:'
+            
+            if alternative:
+                alt_message = f'💡 پیشنهاد: اگر این موارد را ندارید، "{alternative.item_name}" می‌تواند گزینه مناسبی باشد.'
+            else:
+                alt_message = None
+            
+            return {
+                'type': 'fixable',
+                'message': message,
+                'suggestions': suggestions,
+                'alternative_message': alt_message
+            }
+        else:
+            # فقط خطاهای غیرضروری
+            if normal_errors:
+                suggestions = []
+                for e in normal_errors[:5]:
+                    key = e['key'].lower()
+                    desc = self.QUESTION_DESC.get(key, e.get('description', key))
+                    suggestions.append(f"• {desc}")
+                
+                if len(normal_errors) > 5:
+                    suggestions.append(f"• ... و {len(normal_errors) - 5} مورد دیگر")
+                
+                return {
+                    'type': 'good',
+                    'message': f'✅ دارایی شما با "{best_template.item_name}" تطابق خوبی دارد، اما چند نکته جزئی وجود دارد:',
+                    'suggestions': suggestions,
+                    'alternative_message': None
+                }
+            else:
+                return {
+                    'type': 'perfect',
+                    'message': f'✅ عالی! دارایی شما کاملاً با قالب "{best_template.item_name}" مطابقت دارد.',
+                    'suggestions': [],
+                    'alternative_message': None
+                }

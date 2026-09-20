@@ -1,0 +1,480 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Check, ShieldCheck, Building2, User, Mail, Key } from 'lucide-react';
+import api from '@/lib/api';
+import Image from 'next/image';
+import { toast } from 'sonner';
+
+export default function RegisterOrgPage() {
+  const router = useRouter();
+
+  const [form, setForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    username: '',
+    password: '',
+    password_confirm: '',
+    organization_name: '',
+    organization_code: '',
+    organization_type: 'manufacturing',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [agree, setAgree] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [successEmail, setSuccessEmail] = useState('');
+  const [successOrg, setSuccessOrg] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // 🆕 اعتبارسنجی خودکار فارسی
+    const form = e.currentTarget as HTMLFormElement;
+    const requiredInputs = form.querySelectorAll('[required]');
+    const invalidFields: { label: string; element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement }[] = [];
+    
+    requiredInputs.forEach((input: any) => {
+      if (!input.value || input.value.trim() === '') {
+        const label = input.getAttribute('data-label') || input.getAttribute('placeholder') || input.getAttribute('name') || 'این فیلد';
+        invalidFields.push({ label: label.replace('*', '').trim(), element: input });
+        input.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+      } else {
+        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+      }
+    });
+    
+    if (invalidFields.length > 0) {
+      const labels = invalidFields.map(f => f.label).join('، ');
+      toast.error('لطفاً فیلدهای الزامی را پر کنید', {
+        description: `این فیلدها خالی هستند: ${labels}`,
+      });
+      invalidFields[0].element.focus();
+      invalidFields[0].element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    setError(null);
+
+    if (!form.first_name || !form.last_name) {
+      setError('نام و نام خانوادگی الزامی است');
+      return;
+    }
+    if (!form.email || !form.username || !form.password) {
+      setError('ایمیل، نام کاربری و رمز عبور الزامی است');
+      return;
+    }
+    if (form.password.length < 6) {
+      setError('رمز عبور باید حداقل ۶ کاراکتر باشد');
+      return;
+    }
+    if (form.password !== form.password_confirm) {
+      setError('رمز عبور و تکرار آن یکسان نیستند');
+      return;
+    }
+    if (!form.organization_name) {
+      setError('نام سازمان الزامی است');
+      return;
+    }
+    if (!agree) {
+      setError('برای ثبت‌نام باید شرایط را بپذیرید');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/register-org/', {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        username: form.username,
+        password: form.password,
+        organization_name: form.organization_name,
+        organization_code: form.organization_code || undefined,
+        organization_type: form.organization_type,
+      });
+
+      setSuccessEmail(res.data.user.email);
+      setSuccessOrg(res.data.user.organization_name);
+      setSuccess(true);
+
+      setTimeout(() => {
+        router.push('/login');
+      }, 5000);
+    } catch (err: any) {
+      console.error('Register error:', err);
+      const errorMsg = err.response?.data?.error || 'خطا در ثبت‌نام';
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // صفحه موفقیت
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F3EC] p-6" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-100 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-60" />
+          <div className="absolute bottom-0 left-0 w-32 h-32 bg-green-100 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 opacity-60" />
+
+          <div className="relative">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-100 to-green-100 flex items-center justify-center mx-auto mb-5 shadow-lg">
+              <svg className="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">✅ درخواست شما ثبت شد!</h1>
+            <div className="w-12 h-1 bg-gradient-to-r from-yellow-400 to-green-500 rounded-full mx-auto mb-4" />
+            <p className="text-gray-600 text-sm leading-6 mb-6">
+              درخواست تأسیس سازمان شما با موفقیت ثبت شد.
+              پس از <strong className="text-gray-800">تأیید مدیر پلتفرم</strong>،
+              می‌توانید با اطلاعات خود وارد شوید.
+            </p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6 text-right">
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                <span>🏢</span>
+                <span>سازمان:</span>
+              </div>
+              <p className="text-sm text-gray-800 font-medium mb-3">{successOrg}</p>
+
+              <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                <span>📧</span>
+                <span>ایمیل ثبت‌نام:</span>
+              </div>
+              <p className="font-mono text-sm text-gray-800 bg-white px-3 py-2 rounded-lg border border-gray-200" dir="ltr">
+                {successEmail}
+              </p>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-right">
+              <p className="text-xs font-bold text-yellow-800 mb-2 flex items-center gap-1">
+                <span>⏳</span>
+                <span>مراحل بعدی:</span>
+              </p>
+              <ul className="space-y-1.5 text-xs text-yellow-700">
+                <li className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-yellow-200 flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">۱</span>
+                  <span>مدیر پلتفرم درخواست شما را بررسی می‌کند</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-yellow-200 flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">۲</span>
+                  <span>پس از تأیید، می‌توانید وارد شوید</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-yellow-200 flex items-center justify-center text-[9px] font-bold flex-shrink-0 mt-0.5">۳</span>
+                  <span>سپس واحدها و کاربران خود را تعریف کنید</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                <span>در حال انتقال به صفحه ورود...</span>
+              </div>
+
+              <button
+                onClick={() => router.push('/login')}
+                className="w-full bg-[#04241D] hover:bg-[#062E24] text-white font-medium text-sm py-3 rounded-xl transition shadow-lg"
+              >
+                رفتن به صفحه ورود →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex bg-[#F5F3EC]" dir="rtl">
+      {/* RIGHT PANEL */}
+      <div className="w-full lg:w-[46%] flex items-center justify-center p-6 sm:p-12 relative overflow-y-auto">
+        <div className="pointer-events-none absolute -bottom-16 -left-16 w-72 h-72 opacity-[0.04] rotate-12">
+          <Image src="/logo.png" alt="" width={288} height={288} className="object-contain" />
+        </div>
+
+        <div className="w-full max-w-[440px] relative">
+          <div className="flex items-center gap-3 mb-10">
+            <div className="w-11 h-11 relative shrink-0 bg-white rounded-xl shadow-[0_2px_10px_rgba(4,36,29,0.08)] border border-gray-100 flex items-center justify-center">
+              <Image src="/logo.png" alt="متا پلتفرم" width={26} height={26} className="object-contain" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#0B2C24] leading-tight">پلتفرم مدیریت دارایی‌های نامشهود</p>
+              <p className="text-[10px] text-gray-400 tracking-wide mt-0.5">دوقلو دیجیتال دارایی‌ها</p>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <p className="text-[11px] tracking-[0.25em] text-golden-amber font-bold uppercase mb-3">ثبت سازمان</p>
+            <h1 className="text-[28px] font-bold text-[#0B2C24] leading-tight">ایجاد سازمان جدید</h1>
+            <div className="w-10 h-[3px] bg-golden-amber rounded-full mt-3 mb-3" />
+            <p className="text-gray-500 text-sm leading-6">
+              با ثبت سازمان، درخواست شما برای بررسی و تأیید به مدیر پلتفرم ارسال می‌شود.
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">نام</label>
+                <input
+                  type="text"
+                  value={form.first_name}
+                  onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                  placeholder="محمد"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">نام خانوادگی</label>
+                <input
+                  type="text"
+                  value={form.last_name}
+                  onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                  placeholder="شیخی"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <Mail size={12} className="inline ml-1" /> ایمیل
+              </label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                placeholder="you@company.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <User size={12} className="inline ml-1" /> نام کاربری
+              </label>
+              <input
+                type="text"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                placeholder="mohammad"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">رمز عبور</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                    placeholder="••••••••"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-dark-green"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">تکرار رمز</label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password_confirm}
+                  onChange={(e) => setForm({ ...form, password_confirm: e.target.value })}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="pt-3 mt-3 border-t border-gray-200">
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <Building2 size={12} className="inline ml-1" /> نام سازمان
+              </label>
+              <input
+                type="text"
+                value={form.organization_name}
+                onChange={(e) => setForm({ ...form, organization_name: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                placeholder="مثال: شرکت ملی مس"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <Key size={12} className="inline ml-1" /> کد سازمان (اختیاری)
+              </label>
+              <input
+                type="text"
+                value={form.organization_code}
+                onChange={(e) => setForm({ ...form, organization_code: e.target.value.toUpperCase() })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all font-mono"
+                placeholder="NICICO"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">اگر خالی بگذارید، کد خودکار ساخته می‌شود</p>
+            </div>
+
+            {/* نوع سازمان */}
+            <div>
+              <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5">
+                <Building2 size={12} className="inline ml-1" /> نوع سازمان
+              </label>
+              <select
+                value={form.organization_type}
+                onChange={(e) => setForm({ ...form, organization_type: e.target.value })}
+                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+              >
+                <option value="manufacturing">تولیدی</option>
+                <option value="service">خدماتی</option>
+                <option value="rto">پژوهش و فناوری (RTO)</option>
+                <option value="holding">هلدینگ اقتصادی</option>
+              </select>
+              <p className="text-[10px] text-gray-400 mt-1">
+                این انتخاب بر RACI و مدل حکمرانی سازمان تأثیر می‌گذارد
+              </p>
+            </div>
+
+            <label className="flex items-start gap-2 cursor-pointer select-none pt-2">
+              <div className="relative mt-0.5">
+                <input
+                  type="checkbox"
+                  checked={agree}
+                  onChange={(e) => setAgree(e.target.checked)}
+                  className="sr-only"
+                />
+                <div className={`w-4 h-4 rounded-[5px] border flex items-center justify-center transition-all ${agree ? 'bg-dark-green border-dark-green' : 'border-gray-300'}`}>
+                  {agree && <Check size={10} className="text-white" strokeWidth={3} />}
+                </div>
+              </div>
+              <span className="text-xs text-gray-500 leading-5">
+                شرایط استفاده و سیاست حفظ حریم خصوصی پلتفرم را می‌پذیرم
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="relative w-full bg-[#04241D] hover:bg-[#062E24] disabled:opacity-50 text-white font-medium text-sm py-3.5 rounded-xl transition-all duration-200 shadow-[0_14px_34px_rgba(4,36,29,0.28)] overflow-hidden mt-2"
+            >
+              <span className="absolute inset-y-0 right-0 w-[3px] bg-golden-amber" />
+              {loading ? 'در حال ثبت...' : 'ثبت سازمان و ورود'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-xs text-gray-500">
+              قبلاً ثبت‌نام کرده‌اید؟{' '}
+              <a href="/login" className="text-dark-green hover:text-medium-green font-semibold">
+                وارد شوید
+              </a>
+            </p>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-gray-200/70 flex items-center justify-center gap-2 text-[10px] text-gray-400">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            اطلاعات شما با رمزنگاری استاندارد محافظت می‌شود
+          </div>
+        </div>
+      </div>
+
+      {/* LEFT PANEL */}
+      <div className="hidden lg:flex lg:w-[54%] relative overflow-hidden bg-[#04241D]">
+        <svg className="absolute inset-0 w-full h-full opacity-[0.15]" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <pattern id="grid2" width="44" height="44" patternUnits="userSpaceOnUse">
+              <circle cx="1" cy="1" r="1" fill="#8ECFAF" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid2)" />
+        </svg>
+
+        <div className="absolute top-0 right-0 w-[420px] h-[420px] bg-golden-amber/10 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4" />
+        <div className="absolute bottom-0 left-0 w-[360px] h-[360px] bg-aqua-green/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
+
+        <div className="relative z-10 flex flex-col justify-between w-full px-16 py-16 text-white">
+          <span className="text-xs tracking-[0.3em] text-white/50 uppercase">Meta Platform · New Organization</span>
+
+          <div className="max-w-md">
+            <div className="relative w-28 h-28 mb-10">
+              <svg viewBox="0 0 100 100" className="w-28 h-28 animate-[spin_50s_linear_infinite]">
+                <defs>
+                  <path id="sealCircle2" d="M 50,50 m -40,0 a 40,40 0 1,1 80,0 a 40,40 0 1,1 -80,0" />
+                </defs>
+                <circle cx="50" cy="50" r="47" fill="none" stroke="#D4A547" strokeOpacity="0.4" strokeWidth="0.75" />
+                <circle cx="50" cy="50" r="33" fill="none" stroke="#D4A547" strokeOpacity="0.25" strokeWidth="0.5" />
+                <text fill="#D4A547" fontSize="6.6" letterSpacing="2.2">
+                  <textPath href="#sealCircle2" startOffset="0%">
+                    · ثبت و ارزش‌گذاری رسمی دارایی نامشهود · پلتفرم متا ·
+                  </textPath>
+                </text>
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-white/10 backdrop-blur-sm border border-golden-amber/40 flex items-center justify-center">
+                  <Image src="/logo.png" alt="متا پلتفرم" width={30} height={30} className="object-contain brightness-0 invert" />
+                </div>
+              </div>
+            </div>
+
+            <h2 className="text-[36px] leading-[1.35] font-bold tracking-tight">
+              سازمان خود را<br />ثبت کنید.
+            </h2>
+            <p className="text-white/60 text-sm leading-7 mt-5 max-w-sm">
+              با ثبت سازمان، واحدهای خود را تعریف کنید و پس از تأیید مدیر پلتفرم،
+              داشبورد کامل مدیریت دارایی‌های نامشهود در اختیار شما قرار می‌گیرد.
+            </p>
+
+            <div className="mt-8 space-y-3">
+              {[
+                'ثبت سازمان و تعریف واحدها',
+                'تأیید توسط مدیر پلتفرم',
+                'دعوت مدیران واحدها',
+                'شروع مدیریت دارایی‌ها',
+              ].map((text, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-white/70">
+                  <div className="w-6 h-6 rounded-full bg-golden-amber/20 border border-golden-amber/40 flex items-center justify-center text-[10px] text-golden-amber font-bold">
+                    {['۱', '۲', '۳', '۴'][i]}
+                  </div>
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-8 text-white/45 text-[11px]">
+            <span>ویژه سازمان‌های بزرگ و متوسط</span>
+            <span className="w-1 h-1 rounded-full bg-white/25" />
+            <span>مطابق با استانداردهای ارزش‌گذاری</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
