@@ -1,41 +1,209 @@
 mapping_id,asset_type_id,project_type,risk_level,uncertainty_level,recommended_methodology,gate_count,description
-1,3,DEV,low,low,linear,1,برند — توسعه خطی
-2,3,INNO,high,high,stage_gate,3,برند — خلق مرحله‌ای
-3,4,DEV,low,low,linear,1,قرارداد — توسعه خطی
-4,4,INNO,high,high,stage_gate,3,قرارداد — خلق مرحله‌ای
-5,5,DEV,low,low,linear,1,BMC — توسعه خطی
-6,5,INNO,high,high,stage_gate,3,BMC — خلق مرحله‌ای
-7,6,DEV,medium,medium,stage_gate,2,فرمول — توسعه مرحله‌ای
-8,6,INNO,high,high,stage_gate,3,فرمول — خلق مرحله‌ای
-9,7,DEV,low,low,linear,1,مشتریان — توسعه خطی
-10,7,INNO,medium,medium,stage_gate,2,مشتریان — خلق مرحله‌ای
-11,8,DEV,low,low,linear,1,شراکت — توسعه خطی
-12,8,INNO,high,high,stage_gate,3,شراکت — خلق مرحله‌ای
-13,11,DEV,medium,medium,stage_gate,2,پروتکل — توسعه مرحله‌ای
-14,11,INNO,high,high,stage_gate,3,پروتکل — خلق مرحله‌ای
-15,14,DEV,medium,medium,stage_gate,2,پتنت — توسعه مرحله‌ای
-16,14,INNO,high,high,stage_gate,3,پتنت — خلق مرحله‌ای
-17,15,DEV,medium,medium,stage_gate,2,نرم‌افزار — توسعه مرحله‌ای
-18,15,INNO,high,high,stage_gate,3,نرم‌افزار — خلق مرحله‌ای
-19,18,DEV,high,high,stage_gate,3,دانش فنی — توسعه مرحله‌ای
-20,18,INNO,high,high,stage_gate,3,دانش فنی — خلق مرحله‌ای
-21,19,DEV,medium,medium,stage_gate,2,پایگاه داده — توسعه مرحله‌ای
-22,19,INNO,high,high,stage_gate,3,پایگاه داده — خلق مرحله‌ای
-23,32,DEV,low,low,linear,1,SOP — توسعه خطی
-24,32,INNO,medium,medium,stage_gate,2,SOP — خلق مرحله‌ای
-25,35,DEV,low,low,linear,1,زنجیره تأمین — توسعه خطی
-26,35,INNO,medium,medium,stage_gate,2,زنجیره تأمین — خلق مرحله‌ای
-27,39,DEV,low,low,linear,1,قرارداد بین‌شرکتی — توسعه خطی
-28,39,INNO,high,high,stage_gate,3,قرارداد بین‌شرکتی — خلق مرحله‌ای
-29,66,DEV,low,low,linear,1,CRM — توسعه خطی
-30,66,INNO,medium,medium,stage_gate,2,CRM — خلق مرحله‌ای
-31,70,DEV,low,low,linear,1,لایسنس — توسعه خطی
-32,70,INNO,medium,medium,stage_gate,2,لایسنس — خلق مرحله‌ای
-33,85,DEV,medium,medium,stage_gate,2,فرهنگ — توسعه مرحله‌ای
-34,85,INNO,high,high,stage_gate,3,فرهنگ — خلق مرحله‌ای
-35,98,DEV,low,low,linear,1,شهرت — توسعه خطی
-36,98,INNO,medium,high,stage_gate,2,شهرت — خلق مرحله‌ای
-37,100,DEV,medium,medium,stage_gate,2,دانش کارشناسان — توسعه مرحله‌ای
-38,100,INNO,high,high,stage_gate,3,دانش کارشناسان — خلق مرحله‌ای
-39,96,DEV,low,low,linear,1,سفیران برند — توسعه خطی
-40,96,INNO,medium,medium,stage_gate,2,سفیران برند — خلق مرحله‌ای
+1,3,DEV,low,low,linear,1,برند ثبت شده / سبد علائم تجاری — توسعه خطی
+2,3,INNO,high,high,stage_gate,3,برند ثبت شده / سبد علائم تجاری — خلق مرحله‌ای
+3,4,DEV,low,low,linear,1,قراردادهای انحصاری بلندمدت — توسعه خطی
+4,4,INNO,medium,high,stage_gate,3,قراردادهای انحصاری بلندمدت — خلق مرحله‌ای
+5,5,DEV,low,low,linear,1,مدل کسب‌وکار مستند (BMC) — توسعه خطی
+6,5,INNO,high,high,stage_gate,3,مدل کسب‌وکار مستند (BMC) — خلق مرحله‌ای
+7,6,DEV,medium,medium,stage_gate,2,فرمول‌های قیمت‌گذاری اختصاصی — خلق مرحله‌ای
+8,6,INNO,high,high,stage_gate,4,فرمول‌های قیمت‌گذاری اختصاصی — خلق مرحله‌ای
+9,7,DEV,low,low,linear,1,پورتفولیوی مشتریان استراتژیک — توسعه خطی
+10,7,INNO,high,high,stage_gate,3,پورتفولیوی مشتریان استراتژیک — خلق مرحله‌ای
+11,8,DEV,low,low,linear,1,شبکه شراکت‌های استراتژیک (MoU/ — توسعه خطی
+12,8,INNO,high,high,stage_gate,3,شبکه شراکت‌های استراتژیک (MoU/ — خلق مرحله‌ای
+13,9,DEV,low,low,linear,1,رتبه‌بندی‌های CSR معتبر — توسعه خطی
+14,9,INNO,high,high,stage_gate,3,رتبه‌بندی‌های CSR معتبر — خلق مرحله‌ای
+15,10,DEV,low,low,linear,1,عضویت در شوراهای ملی/بین‌الملل — توسعه خطی
+16,10,INNO,high,high,stage_gate,3,عضویت در شوراهای ملی/بین‌الملل — خلق مرحله‌ای
+17,11,DEV,low,low,linear,1,پروتکل‌های همکاری با دولت/دانش — توسعه خطی
+18,11,INNO,high,high,stage_gate,3,پروتکل‌های همکاری با دولت/دانش — خلق مرحله‌ای
+19,13,DEV,low,low,linear,1,میزان اعتماد عمومی (نظرسنجی‌ها — توسعه خطی
+20,13,INNO,high,high,stage_gate,3,میزان اعتماد عمومی (نظرسنجی‌ها — خلق مرحله‌ای
+21,14,DEV,medium,low,stage_gate,2,پتنت‌ها و حقوق اختراع — خلق مرحله‌ای
+22,14,INNO,high,high,stage_gate,4,پتنت‌ها و حقوق اختراع — خلق مرحله‌ای
+23,15,DEV,high,medium,stage_gate,3,نرم‌افزارهای اختصاصی (کد منبع) — خلق مرحله‌ای
+24,15,INNO,high,high,stage_gate,4,نرم‌افزارهای اختصاصی (کد منبع) — خلق مرحله‌ای
+25,16,DEV,low,low,linear,1,مستند خط لوله R&D — توسعه خطی
+26,16,INNO,high,high,stage_gate,3,مستند خط لوله R&D — خلق مرحله‌ای
+27,17,DEV,low,low,linear,1,مدل‌های پیش‌بینی/شبیه‌سازی منح — توسعه خطی
+28,17,INNO,high,high,stage_gate,3,مدل‌های پیش‌بینی/شبیه‌سازی منح — خلق مرحله‌ای
+29,18,DEV,low,low,linear,1,دانش فنی غیرقابل تقلید (Trade  — توسعه خطی
+30,18,INNO,high,high,stage_gate,3,دانش فنی غیرقابل تقلید (Trade  — خلق مرحله‌ای
+31,19,DEV,low,low,linear,1,پایگاه داده تحلیلی استراتژیک — توسعه خطی
+32,19,INNO,high,high,stage_gate,3,پایگاه داده تحلیلی استراتژیک — خلق مرحله‌ای
+33,20,DEV,low,low,linear,1,سند فلسفه و ارزش‌های سازمانی — توسعه خطی
+34,20,INNO,high,high,stage_gate,3,سند فلسفه و ارزش‌های سازمانی — خلق مرحله‌ای
+35,21,DEV,low,low,linear,1,Story Brand مستندشده — توسعه خطی
+36,21,INNO,high,high,stage_gate,3,Story Brand مستندشده — خلق مرحله‌ای
+37,22,DEV,low,low,linear,1,سیستم رهبری تحول — توسعه خطی
+38,22,INNO,high,high,stage_gate,3,سیستم رهبری تحول — خلق مرحله‌ای
+39,23,DEV,low,low,linear,1,آیین‌های کلان — توسعه خطی
+40,23,INNO,high,high,stage_gate,3,آیین‌های کلان — خلق مرحله‌ای
+41,24,DEV,low,low,linear,1,شیوه‌نامه تصمیم‌گیری استراتژیک — توسعه خطی
+42,24,INNO,high,high,stage_gate,3,شیوه‌نامه تصمیم‌گیری استراتژیک — خلق مرحله‌ای
+43,25,DEV,low,low,linear,1,کدهای اخلاقی مصوب — توسعه خطی
+44,25,INNO,high,high,stage_gate,3,کدهای اخلاقی مصوب — خلق مرحله‌ای
+45,26,DEV,low,low,linear,1,گواهینامه‌های ESG (ISO 14001) — توسعه خطی
+46,26,INNO,high,high,stage_gate,3,گواهینامه‌های ESG (ISO 14001) — خلق مرحله‌ای
+47,27,DEV,low,low,linear,1,سند استراتژی پایداری ۲۰۳۰ — توسعه خطی
+48,27,INNO,high,high,stage_gate,3,سند استراتژی پایداری ۲۰۳۰ — خلق مرحله‌ای
+49,28,DEV,low,low,linear,1,سیاست Net Zero مصوب — توسعه خطی
+50,28,INNO,high,high,stage_gate,3,سیاست Net Zero مصوب — خلق مرحله‌ای
+51,29,DEV,low,low,linear,1,گزارش‌های پایداری منتشرشده — توسعه خطی
+52,29,INNO,high,high,stage_gate,3,گزارش‌های پایداری منتشرشده — خلق مرحله‌ای
+53,30,DEV,low,low,linear,1,اعتبارات کربنی (Carbon Credits — توسعه خطی
+54,30,INNO,high,high,stage_gate,3,اعتبارات کربنی (Carbon Credits — خلق مرحله‌ای
+55,31,DEV,low,low,linear,1,برنامه اقتصاد گردشی — توسعه خطی
+56,31,INNO,high,high,stage_gate,3,برنامه اقتصاد گردشی — خلق مرحله‌ای
+57,32,DEV,low,low,linear,1,فرآیندهای استاندارد بهینه‌شده  — توسعه خطی
+58,32,INNO,medium,medium,stage_gate,2,فرآیندهای استاندارد بهینه‌شده  — خلق مرحله‌ای
+59,33,DEV,low,low,linear,1,الگوریتم‌های قیمت‌گذاری پویا — توسعه خطی
+60,33,INNO,high,high,stage_gate,3,الگوریتم‌های قیمت‌گذاری پویا — خلق مرحله‌ای
+61,34,DEV,low,low,linear,1,سیستم تحلیل عملکرد (KPI Dashbo — توسعه خطی
+62,34,INNO,high,high,stage_gate,3,سیستم تحلیل عملکرد (KPI Dashbo — خلق مرحله‌ای
+63,35,DEV,low,low,linear,1,قراردادهای فعال زنجیره تأمین — توسعه خطی
+64,35,INNO,high,high,stage_gate,3,قراردادهای فعال زنجیره تأمین — خلق مرحله‌ای
+65,36,DEV,low,low,linear,1,تکنیک‌های کاهش هزینه عملیاتی — توسعه خطی
+66,36,INNO,high,high,stage_gate,3,تکنیک‌های کاهش هزینه عملیاتی — خلق مرحله‌ای
+67,37,DEV,low,low,linear,1,روش‌های بهبود بهره‌وری (ناب/شش — توسعه خطی
+68,37,INNO,high,high,stage_gate,3,روش‌های بهبود بهره‌وری (ناب/شش — خلق مرحله‌ای
+69,38,DEV,low,low,linear,1,تیم‌های پروژه‌ای مستند — توسعه خطی
+70,38,INNO,high,high,stage_gate,3,تیم‌های پروژه‌ای مستند — خلق مرحله‌ای
+71,39,DEV,low,low,linear,1,قراردادهای همکاری بین‌شرکتی — توسعه خطی
+72,39,INNO,high,high,stage_gate,3,قراردادهای همکاری بین‌شرکتی — خلق مرحله‌ای
+73,41,DEV,low,low,linear,1,انجمن‌های صنفی داخلی — توسعه خطی
+74,41,INNO,high,high,stage_gate,3,انجمن‌های صنفی داخلی — خلق مرحله‌ای
+75,42,DEV,low,low,linear,1,شبکه کاری بین‌بخشی فعال — توسعه خطی
+76,42,INNO,high,high,stage_gate,3,شبکه کاری بین‌بخشی فعال — خلق مرحله‌ای
+77,43,DEV,low,low,linear,1,پایگاه داده Lessons Learned — توسعه خطی
+78,43,INNO,high,high,stage_gate,3,پایگاه داده Lessons Learned — خلق مرحله‌ای
+79,44,DEV,low,low,linear,1,پلتفرم LMS (سامانه آموزش) — توسعه خطی
+80,44,INNO,high,high,stage_gate,3,پلتفرم LMS (سامانه آموزش) — خلق مرحله‌ای
+81,45,DEV,low,low,linear,1,ویکی/دانش‌نامه داخلی — توسعه خطی
+82,45,INNO,high,high,stage_gate,3,ویکی/دانش‌نامه داخلی — خلق مرحله‌ای
+83,46,DEV,low,low,linear,1,مستندات پروژه‌های اجرایی — توسعه خطی
+84,46,INNO,high,high,stage_gate,3,مستندات پروژه‌های اجرایی — خلق مرحله‌ای
+85,47,DEV,low,low,linear,1,کتابخانه فیلم‌های آموزشی — توسعه خطی
+86,47,INNO,high,high,stage_gate,3,کتابخانه فیلم‌های آموزشی — خلق مرحله‌ای
+87,48,DEV,low,low,linear,1,سیستم مدیریت محتوا (CMS) — توسعه خطی
+88,48,INNO,high,high,stage_gate,3,سیستم مدیریت محتوا (CMS) — خلق مرحله‌ای
+89,50,DEV,low,low,linear,1,مهارت‌های تخصصی غیرمستند — توسعه خطی
+90,50,INNO,high,high,stage_gate,3,مهارت‌های تخصصی غیرمستند — خلق مرحله‌ای
+91,51,DEV,low,low,linear,1,تکنیک‌های عملی آموخته‌شده از ت — توسعه خطی
+92,51,INNO,high,high,stage_gate,3,تکنیک‌های عملی آموخته‌شده از ت — خلق مرحله‌ای
+93,52,DEV,low,low,linear,1,بهترین شیوه‌های غیررسمی — توسعه خطی
+94,52,INNO,high,high,stage_gate,3,بهترین شیوه‌های غیررسمی — خلق مرحله‌ای
+95,53,DEV,low,low,linear,1,دستورالعمل‌های تعامل و ارتباط — توسعه خطی
+96,53,INNO,high,high,stage_gate,3,دستورالعمل‌های تعامل و ارتباط — خلق مرحله‌ای
+97,54,DEV,low,low,linear,1,زبان و اصطلاحات مشترک (Glossar — توسعه خطی
+98,54,INNO,high,high,stage_gate,3,زبان و اصطلاحات مشترک (Glossar — خلق مرحله‌ای
+99,55,DEV,low,low,linear,1,آیین‌های روزمره (Stand-ups) — توسعه خطی
+100,55,INNO,high,high,stage_gate,3,آیین‌های روزمره (Stand-ups) — خلق مرحله‌ای
+101,56,DEV,low,low,linear,1,قوانین لباس و رفتار (Dress Cod — توسعه خطی
+102,56,INNO,high,high,stage_gate,3,قوانین لباس و رفتار (Dress Cod — خلق مرحله‌ای
+103,57,DEV,low,low,linear,1,سنت‌های جشن/تقدیر — توسعه خطی
+104,57,INNO,high,high,stage_gate,3,سنت‌های جشن/تقدیر — خلق مرحله‌ای
+105,58,DEV,low,low,linear,1,نمادهای بصری (لوگو، رنگ، معمار — توسعه خطی
+106,58,INNO,high,high,stage_gate,3,نمادهای بصری (لوگو، رنگ، معمار — خلق مرحله‌ای
+107,59,DEV,low,low,linear,1,دستورالعمل‌های مدیریت ضایعات — توسعه خطی
+108,59,INNO,high,high,stage_gate,3,دستورالعمل‌های مدیریت ضایعات — خلق مرحله‌ای
+109,60,DEV,low,low,linear,1,سیستم بازیافت عملیاتی — توسعه خطی
+110,60,INNO,high,high,stage_gate,3,سیستم بازیافت عملیاتی — خلق مرحله‌ای
+111,61,DEV,low,low,linear,1,استانداردهای مصرف آب/انرژی — توسعه خطی
+112,61,INNO,high,high,stage_gate,3,استانداردهای مصرف آب/انرژی — خلق مرحله‌ای
+113,62,DEV,low,low,linear,1,روش‌های کاهش آلودگی — توسعه خطی
+114,62,INNO,high,high,stage_gate,3,روش‌های کاهش آلودگی — خلق مرحله‌ای
+115,63,DEV,low,low,linear,1,چک‌لیست‌های محیط‌زیستی — توسعه خطی
+116,63,INNO,high,high,stage_gate,3,چک‌لیست‌های محیط‌زیستی — خلق مرحله‌ای
+117,64,DEV,low,low,linear,1,سیاست خرید سبز — توسعه خطی
+118,64,INNO,high,high,stage_gate,3,سیاست خرید سبز — خلق مرحله‌ای
+119,65,DEV,low,low,linear,1,نرم‌افزارهای ERP/CRM — توسعه خطی
+120,65,INNO,high,high,stage_gate,3,نرم‌افزارهای ERP/CRM — خلق مرحله‌ای
+121,66,DEV,low,low,linear,1,پایگاه داده مشتریان (CRM Datab — توسعه خطی
+122,66,INNO,high,high,stage_gate,3,پایگاه داده مشتریان (CRM Datab — خلق مرحله‌ای
+123,67,DEV,low,low,linear,1,ابزارهای BI و تحلیل داده — توسعه خطی
+124,67,INNO,high,high,stage_gate,3,ابزارهای BI و تحلیل داده — خلق مرحله‌ای
+125,68,DEV,low,low,linear,1,سیستم مالی (Accounting Softwar — توسعه خطی
+126,68,INNO,high,high,stage_gate,3,سیستم مالی (Accounting Softwar — خلق مرحله‌ای
+127,69,DEV,low,low,linear,1,زیرساخت Cloud/Server — توسعه خطی
+128,69,INNO,high,high,stage_gate,3,زیرساخت Cloud/Server — خلق مرحله‌ای
+129,70,DEV,low,low,linear,1,لایسنس‌های نرم‌افزاری — توسعه خطی
+130,70,INNO,low,low,linear,2,لایسنس‌های نرم‌افزاری — توسعه خطی
+131,71,DEV,low,low,linear,1,پلتفرم‌های ارتباط داخلی (Teams — توسعه خطی
+132,71,INNO,high,high,stage_gate,3,پلتفرم‌های ارتباط داخلی (Teams — خلق مرحله‌ای
+133,72,DEV,low,low,linear,1,سامانه‌های بازخورد مشتریان — توسعه خطی
+134,72,INNO,high,high,stage_gate,3,سامانه‌های بازخورد مشتریان — خلق مرحله‌ای
+135,73,DEV,low,low,linear,1,شبکه‌های اجتماعی داخلی — توسعه خطی
+136,73,INNO,high,high,stage_gate,3,شبکه‌های اجتماعی داخلی — خلق مرحله‌ای
+137,74,DEV,low,low,linear,1,سیستم مدیریت ارتباط با ذی‌نفعا — توسعه خطی
+138,74,INNO,high,high,stage_gate,3,سیستم مدیریت ارتباط با ذی‌نفعا — خلق مرحله‌ای
+139,75,DEV,low,low,linear,1,پورتال کارکنان — توسعه خطی
+140,75,INNO,high,high,stage_gate,3,پورتال کارکنان — خلق مرحله‌ای
+141,76,DEV,low,low,linear,1,ابزارهای نظرسنجی — توسعه خطی
+142,76,INNO,high,high,stage_gate,3,ابزارهای نظرسنجی — خلق مرحله‌ای
+143,77,DEV,low,low,linear,1,سیستم مدیریت دانش (KMS) — توسعه خطی
+144,77,INNO,high,high,stage_gate,3,سیستم مدیریت دانش (KMS) — خلق مرحله‌ای
+145,78,DEV,low,low,linear,1,ابزارهای AI/ML — توسعه خطی
+146,78,INNO,high,high,stage_gate,3,ابزارهای AI/ML — خلق مرحله‌ای
+147,79,DEV,low,low,linear,1,کتابخانه دیجیتال — توسعه خطی
+148,79,INNO,high,high,stage_gate,3,کتابخانه دیجیتال — خلق مرحله‌ای
+149,80,DEV,low,low,linear,1,پایگاه داده مقالات/تحقیقات — توسعه خطی
+150,80,INNO,high,high,stage_gate,3,پایگاه داده مقالات/تحقیقات — خلق مرحله‌ای
+151,81,DEV,low,low,linear,1,سیستم مدیریت اسناد (DMS) — توسعه خطی
+152,81,INNO,high,high,stage_gate,3,سیستم مدیریت اسناد (DMS) — خلق مرحله‌ای
+153,82,DEV,low,low,linear,1,ابزارهای شبیه‌سازی و مدل‌سازی — توسعه خطی
+154,82,INNO,high,high,stage_gate,3,ابزارهای شبیه‌سازی و مدل‌سازی — خلق مرحله‌ای
+155,83,DEV,low,low,linear,1,راهنمای سبک بصری (Brand Guidel — توسعه خطی
+156,83,INNO,high,high,stage_gate,3,راهنمای سبک بصری (Brand Guidel — خلق مرحله‌ای
+157,84,DEV,low,low,linear,1,دستورالعمل ارتباطات (Tone of V — توسعه خطی
+158,84,INNO,high,high,stage_gate,3,دستورالعمل ارتباطات (Tone of V — خلق مرحله‌ای
+159,85,DEV,low,medium,linear,2,سیستم مدیریت فرهنگ سازمانی — توسعه خطی
+160,85,INNO,medium,high,stage_gate,3,سیستم مدیریت فرهنگ سازمانی — خلق مرحله‌ای
+161,86,DEV,low,low,linear,1,اساسنامه فرهنگی — توسعه خطی
+162,86,INNO,high,high,stage_gate,3,اساسنامه فرهنگی — خلق مرحله‌ای
+163,87,DEV,low,low,linear,1,پلتفرم Onboarding — توسعه خطی
+164,87,INNO,high,high,stage_gate,3,پلتفرم Onboarding — خلق مرحله‌ای
+165,88,DEV,low,low,linear,1,قالب‌های ارائه (Templates) — توسعه خطی
+166,88,INNO,high,high,stage_gate,3,قالب‌های ارائه (Templates) — خلق مرحله‌ای
+167,89,DEV,low,low,linear,1,سیستم مانیتورینگ محیط‌زیستی — توسعه خطی
+168,89,INNO,high,high,stage_gate,3,سیستم مانیتورینگ محیط‌زیستی — خلق مرحله‌ای
+169,90,DEV,low,low,linear,1,ابزار محاسبه ردپای کربنی — توسعه خطی
+170,90,INNO,high,high,stage_gate,3,ابزار محاسبه ردپای کربنی — خلق مرحله‌ای
+171,91,DEV,low,low,linear,1,داشبورد ESG — توسعه خطی
+172,91,INNO,high,high,stage_gate,3,داشبورد ESG — خلق مرحله‌ای
+173,92,DEV,low,low,linear,1,گزارش‌دهی محیط‌زیستی (Reportin — توسعه خطی
+174,92,INNO,high,high,stage_gate,3,گزارش‌دهی محیط‌زیستی (Reportin — خلق مرحله‌ای
+175,93,DEV,low,low,linear,1,استانداردهای سبز (Green Buildi — توسعه خطی
+176,93,INNO,high,high,stage_gate,3,استانداردهای سبز (Green Buildi — خلق مرحله‌ای
+177,94,DEV,low,low,linear,1,سیستم مدیریت انرژی (EnMS) — توسعه خطی
+178,94,INNO,high,high,stage_gate,3,سیستم مدیریت انرژی (EnMS) — خلق مرحله‌ای
+179,95,DEV,low,low,linear,1,سیستم ارزیابی ۳۶۰ درجه — توسعه خطی
+180,95,INNO,high,high,stage_gate,3,سیستم ارزیابی ۳۶۰ درجه — خلق مرحله‌ای
+181,96,DEV,low,low,linear,1,برنامه سفیران داخلی برند — توسعه خطی
+182,96,INNO,high,high,stage_gate,3,برنامه سفیران داخلی برند — خلق مرحله‌ای
+183,97,DEV,low,low,linear,1,دانش ضمنی کارکنان خبره — توسعه خطی
+184,97,INNO,high,high,stage_gate,3,دانش ضمنی کارکنان خبره — خلق مرحله‌ای
+185,98,DEV,low,low,linear,1,شهرت تجاری قابل ارزش‌گذاری (Go — توسعه خطی
+186,98,INNO,low,medium,linear,2,شهرت تجاری قابل ارزش‌گذاری (Go — توسعه خطی
+187,99,DEV,low,low,linear,1,تجربه حل مسائل پیچیده — توسعه خطی
+188,99,INNO,high,high,stage_gate,3,تجربه حل مسائل پیچیده — خلق مرحله‌ای
+189,100,DEV,low,low,linear,1,دانش فنی منحصربه‌فرد کارشناسان — توسعه خطی
+190,100,INNO,high,high,stage_gate,3,دانش فنی منحصربه‌فرد کارشناسان — خلق مرحله‌ای
+191,101,DEV,low,low,linear,1,طرح‌های مهندسی و نقشه‌های فنی — توسعه خطی
+192,101,INNO,high,high,stage_gate,3,طرح‌های مهندسی و نقشه‌های فنی — خلق مرحله‌ای
+193,102,DEV,low,low,linear,1,کتابخانه فیلم‌های آموزشی — توسعه خطی
+194,102,INNO,high,high,stage_gate,3,کتابخانه فیلم‌های آموزشی — خلق مرحله‌ای
+195,103,DEV,low,low,linear,1,سیستم مدیریت محتوا (CMS) — توسعه خطی
+196,103,INNO,high,high,stage_gate,3,سیستم مدیریت محتوا (CMS) — خلق مرحله‌ای
+197,104,DEV,low,low,linear,1,دستورالعمل‌های تعامل و ارتباط — توسعه خطی
+198,104,INNO,high,high,stage_gate,3,دستورالعمل‌های تعامل و ارتباط — خلق مرحله‌ای
+199,105,DEV,low,low,linear,1,برنامه کاهش انتشار کربن — توسعه خطی
+200,105,INNO,high,high,stage_gate,3,برنامه کاهش انتشار کربن — خلق مرحله‌ای
+201,106,DEV,low,low,linear,1,سیستم مدیریت محیط‌زیست (EMS) — توسعه خطی
+202,106,INNO,high,high,stage_gate,3,سیستم مدیریت محیط‌زیست (EMS) — خلق مرحله‌ای
+203,107,DEV,low,low,linear,1,دستورالعمل‌های تعامل و ارتباط — توسعه خطی
+204,107,INNO,high,high,stage_gate,3,دستورالعمل‌های تعامل و ارتباط — خلق مرحله‌ای
+205,108,DEV,low,low,linear,1,اساسنامه فرهنگی (Cultural Char — توسعه خطی
+206,108,INNO,high,high,stage_gate,3,اساسنامه فرهنگی (Cultural Char — خلق مرحله‌ای
+207,109,DEV,low,low,linear,1,مهارت‌های تخصصی غیرمستند (Undo — توسعه خطی
+208,109,INNO,high,high,stage_gate,3,مهارت‌های تخصصی غیرمستند (Undo — خلق مرحله‌ای

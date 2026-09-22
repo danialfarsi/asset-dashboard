@@ -164,6 +164,85 @@ class DevelopmentOpportunityViewSet(viewsets.ModelViewSet):
         return Response(result)
 
 
+    @action(detail=True, methods=['post'], url_path='create-project')
+    def create_project(self, request, pk=None):
+        """
+        🎯 تبدیل یه فرصت به پروژه (گام ۱ → گام ۲)
+        """
+        from .services.score_engine import score_engine_service
+        from .serializers import PrioritizedProjectSerializer
+        
+        opp = self.get_object()
+        
+        # business_type از user یا request
+        business_type = request.data.get('business_type', 'manufacturing')
+        if hasattr(request.user, 'organization_type') and request.user.organization_type:
+            business_type = request.user.organization_type
+        
+        from .services.score_engine import BelowThresholdError
+        
+        try:
+            project = score_engine_service.create_project_from_opportunity(
+                opp, business_type=business_type, user=request.user
+            )
+            return Response(
+                PrioritizedProjectSerializer(project).data,
+                status=status.HTTP_201_CREATED,
+            )
+        except BelowThresholdError as e:
+            return Response(
+                {'error': str(e), 'code': 'BELOW_THRESHOLD'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    @action(detail=True, methods=['post'], url_path='restore')
+    def restore(self, request, pk=None):
+        """
+        🆕 بازگرداندن فرصت از backlog به identified
+        """
+        opp = self.get_object()
+        
+        if opp.status != 'backlog':
+            return Response(
+                {'error': f'این فرصت در backlog نیست (وضعیت فعلی: {opp.get_status_display()})'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        opp.status = 'identified'
+        opp.save(update_fields=['status'])
+        
+        return Response({
+            'status': 'restored',
+            'message': f'فرصت «{opp.asset_name}» به لیست اصلی بازگشت',
+            'opportunity': DevelopmentOpportunitySerializer(opp).data,
+        })
+
+    @action(detail=False, methods=['post'], url_path='bulk-restore')
+    def bulk_restore(self, request):
+        """
+        🆕 بازگرداندن چند فرصت از backlog
+        """
+        ids = request.data.get('ids', [])
+        if not ids:
+            return Response(
+                {'error': 'هیچ فرصتی انتخاب نشده'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
+        queryset = self.get_queryset().filter(id__in=ids, status='backlog')
+        count = queryset.update(status='identified')
+        
+        return Response({
+            'restored': count,
+            'message': f'{count} فرصت بازگشت',
+        })
+
+
 class InnovationIdeaViewSet(viewsets.ModelViewSet):
     """
     ViewSet ایده‌های نوآوری (گام ۱ موتور ۴)
@@ -319,6 +398,78 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
         })
     
 
+    @action(detail=False, methods=['get'], url_path='suggested-approach')
+    def suggested_approach(self, request):
+        """
+        متدولوژی پیشنهادی بر اساس asset_type_id + project_type
+
+        استفاده:
+            GET /api/.../projects/suggested-approach/?project_id=4
+            GET /api/.../projects/suggested-approach/?asset_type_id=3&project_type=DEV
+            GET /api/.../projects/suggested-approach/?asset_type_id=3&project_type=INNO
+        """
+        from .services.approach_mapping import approach_mapping_service
+
+        asset_type_id = request.query_params.get('asset_type_id')
+        project_type = request.query_params.get('project_type', 'DEV')
+        project_id = request.query_params.get('project_id')
+
+        # اگه project_id داده شد، از پروژه استخراج کن
+        if not asset_type_id and project_id:
+            try:
+                project = self.get_queryset().select_related(
+                    'opportunity__asset__asset_type'
+                ).get(pk=project_id)
+
+                # asset_type از opportunity.asset
+                if project.opportunity and project.opportunity.asset:
+                    asset_type = getattr(project.opportunity.asset, 'asset_type', None)
+                    if asset_type:
+                        asset_type_id = asset_type.id
+
+                # project_type از خود پروژه
+                if project.project_type:
+                    project_type = project.project_type
+
+            except PrioritizedProject.DoesNotExist:
+                return Response(
+                    {'error': 'پروژه پیدا نشد'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        if not asset_type_id:
+            return Response(
+                {'error': 'asset_type_id یا project_id لازم است'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = approach_mapping_service.suggest(
+                asset_type_id=int(asset_type_id),
+                project_type=project_type,
+            )
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        if not result:
+            return Response(
+                {'error': 'توصیه‌ای یافت نشد'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        return Response({
+            'asset_type_id': int(asset_type_id),
+            'project_type': project_type,
+            'recommended_methodology': result['recommended_methodology'],
+            'gate_count': result['gate_count'],
+            'risk_level': result['risk_level'],
+            'uncertainty_level': result['uncertainty_level'],
+            'description': result['description'],
+        })
+
     @action(detail=False, methods=['get'], url_path='suggested-kpis')
     def suggested_kpis(self, request):
         """
@@ -338,7 +489,7 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
         # اگه project_id داده شد، asset_type_id رو از مسیر پروژه استخراج کن
         if not asset_type_id and project_id:
             try:
-                project = PrioritizedProject.objects.select_related(
+                project = self.get_queryset().select_related(
                     'opportunity__asset__asset_type'
                 ).get(pk=project_id)
                 if project.opportunity and project.opportunity.asset:
@@ -579,6 +730,7 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
             if hasattr(user, 'organization_type') and user.organization_type:
                 business_type = user.organization_type
         
+        # Note: bulk mode فقط فرصت‌های بالای آستانه رو تبدیل می‌کنه (score_engine خودش چک می‌کنه)
         result = score_engine_service.create_all_projects(
             organization=organization,
             business_type=business_type,

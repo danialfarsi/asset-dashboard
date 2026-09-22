@@ -99,6 +99,14 @@ export interface FullProtectionData {
 export const protectionApi = {
   list: () => api.get<{results: ProtectionProfile[]; count: number}>('/intangible/protection/'),
   get: (id: number) => api.get<ProtectionProfile>(`/intangible/protection/${id}/`),
+  // 🆕 لیست دارایی‌های حفاظت‌شده (یه درخواست)
+  getProtectedAssets: async (): Promise<{count: number; results: any[]}> => {
+    const response = await api.get<{count: number; results: any[]}>(
+      '/intangible/protection/protected-assets/'
+    );
+    return response.data;
+  },
+
   getFull: async (id: number): Promise<FullProtectionData> => {
     const response = await api.get<FullProtectionData>(`/intangible/protection/${id}/full/`);
     console.log('📡 API getFull raw response:', response);

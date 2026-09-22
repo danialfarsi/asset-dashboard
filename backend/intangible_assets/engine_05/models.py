@@ -26,7 +26,7 @@ class DevelopmentOpportunity(models.Model):
         IDENTIFIED = 'identified', 'شناسایی شده'
         SCORED = 'scored', 'امتیازدهی شده'
         APPROVED = 'approved', 'تأیید شده'
-        BACKLOG = 'backlog', 'در انتظار'
+        BACKLOG = 'backlog', 'در انتظار بازیابی'
         REJECTED = 'rejected', 'رد شده'
         IN_PROGRESS = 'in_progress', 'در حال اجرا'
         COMPLETED = 'completed', 'تکمیل شده'
@@ -186,7 +186,7 @@ class InnovationIdea(models.Model):
         SUBMITTED = 'submitted', 'ارسال شده'
         SCORED = 'scored', 'امتیازدهی شده'
         APPROVED = 'approved', 'تأیید شده'
-        BACKLOG = 'backlog', 'در انتظار'
+        BACKLOG = 'backlog', 'در انتظار بازیابی'
         REJECTED = 'rejected', 'رد شده'
         IN_PROGRESS = 'in_progress', 'در حال اجرا'
         COMPLETED = 'completed', 'تکمیل شده'
@@ -277,7 +277,7 @@ class PrioritizedProject(models.Model):
     class ApprovalStatus(models.TextChoices):
         PENDING = 'pending', 'در انتظار تصمیم'
         APPROVED = 'approved', 'تأیید شده'
-        BACKLOG = 'backlog', 'در انتظار'
+        BACKLOG = 'backlog', 'در انتظار بازیابی'
         REJECTED = 'rejected', 'رد شده'
     
     class ProjectType(models.TextChoices):

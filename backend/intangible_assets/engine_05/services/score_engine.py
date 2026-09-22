@@ -14,6 +14,11 @@ from django.db import transaction
 from django.utils import timezone
 from .thresholds import get_threshold
 
+
+class BelowThresholdError(Exception):
+    """امتیاز پروژه زیر آستانه مجاز"""
+    pass
+
 from ..models import (
     DevelopmentOpportunity,
     InnovationIdea,
@@ -299,6 +304,23 @@ class ScoreEngineService:
         
         # محاسبه امتیاز
         scores = self.calculate_opportunity_score(opportunity, business_type)
+        
+        # 🆕 چک آستانه min_approval_score
+        min_score = get_threshold(business_type, 'min_approval_score', default=3.5)
+        # اگه dict برگشت، از 'min' استفاده کن
+        if isinstance(min_score, dict):
+            min_score = min_score.get('min', 3.5)
+        min_score = float(min_score) if min_score is not None else 3.5
+        
+        if scores['priority_score'] < min_score:
+            # فرصت به backlog منتقل می‌شه
+            if opportunity.status != 'backlog':
+                opportunity.status = 'backlog'
+                opportunity.save(update_fields=['status'])
+            raise BelowThresholdError(
+                f'امتیاز اولویت ({scores["priority_score"]}) کمتر از حداقل مورد نیاز ({min_score}) است. '
+                f'فرصت به لیست backlog منتقل شد.'
+            )
         
         # تعیین بودجه تخمینی (فرمول ترکیبی)
         estimated_budget = self.calculate_estimated_budget(

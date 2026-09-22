@@ -227,7 +227,7 @@ export function Step12Pilot({ onComplete, initialData }: Step12PilotProps) {
         <label className="block text-sm font-medium text-gray-700 mb-1">
           تاریخ شروع <span className="text-red-500">*</span>
         </label>
-        <JalaliDatePicker value={startDate} onChange={(date) => setStartDate(date)} />
+        <JalaliDatePicker value={startDate} onChange={(date) => {setStartDate(e.target.value)}} />
         {startDate && duration && (
           <p className="text-xs text-gray-500 mt-1">
             📅 تاریخ پایان:{' '}

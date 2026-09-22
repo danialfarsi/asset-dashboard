@@ -52,6 +52,7 @@ export default function NewScreeningPage() {
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
   const orgType = searchParams.get('type') || '';
+  const assetTypeParam = searchParams.get('asset_type') || '';
   
   const [items, setItems] = useState<ScreeningItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
@@ -61,11 +62,13 @@ export default function NewScreeningPage() {
   const [orgDisplayName, setOrgDisplayName] = useState('');
 
   useEffect(() => {
-    if (orgType) {
-      // 🎯 موازی به جای waterfall
+    if (assetTypeParam) {
+      // حالت asset_type — فقط fetchItems کافیه
+      fetchItems();
+    } else if (orgType) {
       Promise.all([fetchOrgType(), fetchItems()]);
     }
-  }, [orgType]);
+  }, [orgType, assetTypeParam]);
 
   const fetchOrgType = async () => {
     try {
@@ -86,6 +89,35 @@ export default function NewScreeningPage() {
   const fetchItems = async () => {
     try {
       setLoading(true);
+
+      // 🆕 اگه asset_type از URL داده شده، فقط همون یه AssetType
+      if (assetTypeParam) {
+        const { data: at } = await api.get(`/intangible/asset-types/${assetTypeParam}/`);
+
+        const item: ScreeningItem = {
+          id: -1,
+          item_name: at.name,
+          category: at.category || 'strategic_knowledge',
+          category_label: at.category || '',
+          default_result: 'confirmed',
+          result_label: 'دارایی قطعی',
+          asset_type_id: at.id,
+          valuation_method: at.valuation_method || 'DCF',
+        };
+
+        setItems([item]);
+        setSelectedItems(new Set([-1]));
+        setAssetEntries({
+          [-1]: [{
+            id: `asset--1-${Date.now()}`,
+            name: '',
+            valuationType: '',
+          }],
+        });
+        return;
+      }
+
+      // حالت عادی
       const { data } = await api.get(`/intangible/screening-templates/?organization_type=${orgType}`);
       const itemsData = data.results || data || [];
       setItems(itemsData);

@@ -19,6 +19,9 @@ export const engine05Api = {
   getOpportunity: (id: number) =>
     api.get(`${BASE}/opportunities/${id}/`),
   
+  createProjectFromOpportunity: (oppId: number, data?: { business_type?: string }) =>
+    api.post(`${BASE}/opportunities/${oppId}/create-project/`, data || {}),
+  
   createOpportunity: (data: any) =>
     api.post(`${BASE}/opportunities/`, data),
   
@@ -33,6 +36,16 @@ export const engine05Api = {
   
   getOpportunitiesStats: () =>
     api.get(`${BASE}/opportunities/stats/`),
+  
+  // 🆕 بازگرداندن فرصت از backlog
+  restoreOpportunity: (id: number) =>
+    api.post(`${BASE}/opportunities/${id}/restore/`),
+  
+  bulkRestoreOpportunities: (ids: number[]) =>
+    api.post(`${BASE}/opportunities/bulk-restore/`, { ids }),
+
+  analyzeAll: (data: { business_type?: string } = {}) =>
+    api.post(`${BASE}/opportunities/analyze-all/`, data),
   
   recalculateGap: (id: number, weights?: any) =>
     api.post(`${BASE}/opportunities/${id}/recalculate_gap/`, { weights }),
@@ -102,6 +115,10 @@ export const engine05Api = {
   
   recalculateRanks: () =>
     api.post(`${BASE}/projects/recalculate_ranks/`),
+
+  // ساخت پروژه از فرصت‌ها و ایده‌ها (تبدیل گام ۱ به گام ۲)
+  createFromOpportunities: (data?: { business_type?: string }) =>
+    api.post(`${BASE}/projects/create-from-opportunities/`, data || {}),
   
   // ═══════════════════════════════════════════════════════
   // گام ۳: طراحی و برنامه‌ریزی

@@ -20,6 +20,46 @@ class AssetTypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AssetTypeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['get'], url_path='for-innovation')
+    def for_innovation(self, request):
+        """
+        🎯 AssetTypeهایی که توی قالب‌های فعال این سازمان نیستن
+        → برای ایده و نوآوری
+
+        Query params:
+            organization_type: name یا id نوع سازمان (پیش‌فرض manufacturing)
+        """
+        from .models import ScreeningTemplate, OrganizationType
+
+        org_type_param = request.query_params.get('organization_type', 'manufacturing')
+
+        try:
+            if str(org_type_param).isdigit():
+                org_type = OrganizationType.objects.get(id=int(org_type_param))
+            else:
+                org_type = OrganizationType.objects.get(name=org_type_param)
+        except OrganizationType.DoesNotExist:
+            return Response({
+                'count': 0,
+                'results': [],
+                'message': f'نوع سازمان {org_type_param} یافت نشد',
+            })
+
+        # AssetTypeهای توی قالب‌های فعال
+        used_ids = ScreeningTemplate.objects.filter(
+            organization_type=org_type, is_active=True
+        ).exclude(asset_type__isnull=True).values_list('asset_type_id', flat=True)
+
+        # باقی‌مونده
+        remaining = self.get_queryset().exclude(id__in=used_ids).order_by('name')
+
+        serializer = self.get_serializer(remaining, many=True)
+        return Response({
+            'count': remaining.count(),
+            'organization_type': org_type.name,
+            'results': serializer.data,
+        })
+
 
 class ValuationDimensionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ValuationDimension.objects.all()

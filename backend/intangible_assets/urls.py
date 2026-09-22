@@ -72,6 +72,7 @@ router.register(r'graph', GraphViewSet, basename='graph')
 
 urlpatterns = [
     path('viam/', include('intangible_assets.viam.urls')),
+    path('maturity/', include('intangible_assets.engine_05.maturity_urls')),
     path('external/discovery/', ExternalDiscoveryView.as_view(), name='external-discovery'),
     path('claim-external-assets/', ClaimExternalAssetsView.as_view(), name='claim-external-assets'),
     path('', include(router.urls)),

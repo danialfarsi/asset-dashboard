@@ -56,21 +56,12 @@ export default function Step5_Map({ id, data, profile, onComplete }: Step5MapPro
   const step5Mutation = useProtectionStep5();
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // 🆕 استفاده از is_completed و steps_status که از serializer میان
-  const profileAny = profile as any;
-  const isCompleted = profileAny?.is_completed === true;
-  const stepsStatus = profileAny?.steps_status || {};
+  const step1Complete = profile?.step1_result && Object.keys(profile.step1_result).length > 0;
+  const step2Complete = profile?.step2_result && Object.keys(profile.step2_result).length > 0;
+  const step3Complete = profile?.step3_result && Object.keys(profile.step3_result).length > 0;
+  const step4Complete = profile?.step4_result && Object.keys(profile.step4_result).length > 0;
 
-  const step1Complete = stepsStatus.step1 === 'completed';
-  const step2Complete = stepsStatus.step2 === 'completed';
-  const step3Complete = stepsStatus.step3 === 'completed';
-  const step4Complete = stepsStatus.step4 === 'completed';
-
-  const allStepsComplete = isCompleted || (step1Complete && step2Complete && step3Complete && step4Complete);
-
-  console.log('🔍 Step5_Map - isCompleted:', isCompleted);
-  console.log('🔍 Step5_Map - stepsStatus:', stepsStatus);
-  console.log('🔍 Step5_Map - allStepsComplete:', allStepsComplete);
+  const allStepsComplete = step1Complete && step2Complete && step3Complete && step4Complete;
 
   const handleSubmit = () => {
     if (!allStepsComplete) {

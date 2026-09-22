@@ -10,16 +10,16 @@ import { GapAnalysisPanel } from '@/components/engine05/GapAnalysisPanel';
 import { PrioritizationPanel } from '@/components/engine05/PrioritizationPanel';
 import { PlanningPanel } from '@/components/engine05/PlanningPanel';
 import { ExecutionPanel } from '@/components/engine05/ExecutionPanel';
-import { CompletionPanel } from '@/components/engine05/CompletionPanel';
+import { InnovationGallery } from '@/components/engine05/InnovationGallery';
 
-type Tab = 'gap' | 'prioritization' | 'planning' | 'execution' | 'completion';
+type Tab = 'gap' | 'prioritization' | 'planning' | 'execution' | 'innovation';
 
 const TABS = [
   { key: 'gap', label: 'گام ۱: تحلیل شکاف', icon: Target, color: 'text-blue-600' },
   { key: 'prioritization', label: 'گام ۲: اولویت‌بندی', icon: BarChart3, color: 'text-purple-600' },
   { key: 'planning', label: 'گام ۳: برنامه‌ریزی', icon: FileText, color: 'text-teal-600' },
   { key: 'execution', label: 'گام ۴: اجرا و پایش', icon: Activity, color: 'text-amber-600' },
-  { key: 'completion', label: 'گام ۵: تکمیل', icon: CheckCircle, color: 'text-green-600' },
+  { key: 'innovation', label: 'ایده و نوآوری', icon: Lightbulb, color: 'text-purple-600' },
 ];
 
 export default function Stage5Page() {
@@ -85,7 +85,7 @@ export default function Stage5Page() {
           {activeTab === 'prioritization' && <PrioritizationPanel />}
           {activeTab === 'planning' && <PlanningPanel />}
           {activeTab === 'execution' && <ExecutionPanel />}
-          {activeTab === 'completion' && <CompletionPanel />}
+          {activeTab === 'innovation' && <InnovationGallery />}
         </div>
       </div>
     </div>

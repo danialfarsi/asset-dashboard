@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, Shield, Star, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
-import { protectionApi } from '@/lib/protection-api';
 
 const toPersianNumber = (num: number): string => {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -18,10 +17,9 @@ export default function ProtectedAssetsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['protected-assets', 'completed'],
     queryFn: async () => {
-      // گرفتن همه پروفایل‌ها (بدون pagination)
-      const response = await api.get('/intangible/protection/?page_size=500');
+      // گرفتن همه پروفایل‌ها
+      const response = await api.get('/intangible/protection/');
       const allProfiles = response.data.results || [];
-      console.log(`📊 دریافت ${allProfiles.length} profile`);
       
       // فیلتر کردن برای پروفایل‌هایی که گام ۵ تکمیل شده
       const completedProfiles = [];
@@ -146,7 +144,7 @@ export default function ProtectedAssetsPage() {
                       <span>{new Date(profile.step5.updated_at).toLocaleDateString('fa-IR')}</span>
                     </div>
                   )}
-                  <Link href={`/dashboard/intangible/protection/${profile.asset_id}`}>
+                  <Link href={`/dashboard/intangible/protection/${profile.id}`}>
                     <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                       مشاهده جزئیات حفاظت
                     </Button>

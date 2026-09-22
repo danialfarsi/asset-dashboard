@@ -21,6 +21,11 @@ class DevelopmentOpportunitySerializer(serializers.ModelSerializer):
     organization_name = serializers.CharField(source='organization.name', read_only=True, allow_null=True)
     created_by_name = serializers.SerializerMethodField()
     
+    # 🆕 فیلدهای computed (تبدیل‌پذیری به پروژه)
+    is_convertible = serializers.SerializerMethodField()
+    min_approval_score = serializers.SerializerMethodField()
+    predicted_priority_score = serializers.SerializerMethodField()
+    
     class Meta:
         model = DevelopmentOpportunity
         fields = [
@@ -37,6 +42,7 @@ class DevelopmentOpportunitySerializer(serializers.ModelSerializer):
             'description', 'recommendation',
             'created_by', 'created_by_name',
             'created_at', 'updated_at',
+            'is_convertible', 'min_approval_score', 'predicted_priority_score',
         ]
         read_only_fields = ['id', 'gap_score', 'created_at', 'updated_at', 'created_by']
     
@@ -45,6 +51,49 @@ class DevelopmentOpportunitySerializer(serializers.ModelSerializer):
             name = f"{obj.created_by.first_name} {obj.created_by.last_name}".strip()
             return name or obj.created_by.username
         return None
+    
+    # ═══════════════════════════════════════════════════════
+    # 🆕 محاسبه تبدیل‌پذیری به پروژه (گام ۱ → گام ۲)
+    # ═══════════════════════════════════════════════════════
+    
+    def _get_business_type(self, obj):
+        """نوع کسب‌وکار سازمان — با cache توی context"""
+        cache = self.context.setdefault('_business_type_cache', {})
+        org_id = obj.organization_id
+        if org_id not in cache:
+            if obj.organization and hasattr(obj.organization, 'type') and obj.organization.type:
+                cache[org_id] = obj.organization.type
+            else:
+                cache[org_id] = 'manufacturing'
+        return cache[org_id]
+    
+    def get_min_approval_score(self, obj):
+        """حداقل امتیاز مورد نیاز برای تبدیل به پروژه"""
+        from .services.thresholds import get_threshold
+        bt = self._get_business_type(obj)
+        ms = get_threshold(bt, 'min_approval_score', default=3.5)
+        if isinstance(ms, dict):
+            ms = ms.get('min', 3.5)
+        return float(ms) if ms is not None else 3.5
+    
+    def get_predicted_priority_score(self, obj):
+        """امتیاز MCDM پیش‌بینی‌شده (بدون ذخیره)"""
+        from .services.score_engine import score_engine_service
+        bt = self._get_business_type(obj)
+        try:
+            scores = score_engine_service.calculate_opportunity_score(obj, bt)
+            return scores['priority_score']
+        except Exception:
+            return 0.0
+    
+    def get_is_convertible(self, obj):
+        """آیا این فرصت قابل تبدیل به پروژه است؟"""
+        # فقط status های identified/scored قابل تبدیلن
+        if obj.status not in ['identified', 'scored']:
+            return False
+        min_s = self.get_min_approval_score(obj)
+        pred = self.get_predicted_priority_score(obj)
+        return pred >= min_s
 
 
 class InnovationIdeaSerializer(serializers.ModelSerializer):

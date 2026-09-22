@@ -197,30 +197,10 @@ export default function Step1_Analysis({ id, data, archetype, onComplete, assetN
     icon: Shield,
   };
 
-  // 🆕 فیکس چندلایه برای available_tools
-  console.log('🔍 Step1_Analysis render - result:', result);
-  console.log('🔍 Step1_Analysis render - data:', data);
-  
-  const apiTools = 
-    result?.available_tools?.legal ||
-    result?.analysis_result?.available_tools?.legal ||
-    data?.available_tools?.legal ||
-    data?.analysis_result?.available_tools?.legal ||
-    [];
-  
-  const apiTechTools = 
-    result?.available_tools?.technical ||
-    result?.analysis_result?.available_tools?.technical ||
-    data?.available_tools?.technical ||
-    data?.analysis_result?.available_tools?.technical ||
-    [];
-  
+  const apiTools = result?.available_tools?.legal || [];
+  const apiTechTools = result?.available_tools?.technical || [];
   const allApiTools = [...apiTools, ...apiTechTools];
   const tools = allApiTools.length > 0 ? allApiTools : [];
-  
-  console.log('🔍 Step1 - apiTools:', apiTools);
-  console.log('🔍 Step1 - apiTechTools:', apiTechTools);
-  console.log('🔍 Step1 - tools:', tools);
 
   // 🔥 امتیاز پتانسیل حفاظتی (گام ۱)
   const scores = calculateScores(tools);

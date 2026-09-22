@@ -1,0 +1,271 @@
+"""
+🎯 مدل‌های سنجش بلوغ نظام مدیریت دارایی‌های نامشهود (IAMS)
+مسیر: engine_05/maturity_models.py
+"""
+from django.db import models
+from django.conf import settings
+import json
+
+
+class MaturityComponent(models.Model):
+    """۱۶ مؤلفه سنجش بلوغ"""
+    
+    DOMAIN_CHOICES = [
+        ('hardware', 'سخت‌افزار (ساختار، حکمرانی و راهبری)'),
+        ('brainware', 'مغزافزار (سرمایه انسانی، دانش و فرهنگ)'),
+        ('orgware', 'سازمان‌افزار (فرآیند، مستندسازی و انطباق)'),
+        ('software', 'نرم‌افزار (فناوری، داده و هوشمندی)'),
+    ]
+    
+    code = models.CharField(max_length=10, unique=True, verbose_name='کد مؤلفه')
+    number = models.IntegerField(verbose_name='شماره مؤلفه')
+    name = models.CharField(max_length=200, verbose_name='نام مؤلفه')
+    domain = models.CharField(max_length=20, choices=DOMAIN_CHOICES, verbose_name='بخش')
+    description = models.TextField(blank=True, verbose_name='توضیحات')
+    
+    class Meta:
+        ordering = ['number']
+        verbose_name = 'مؤلفه بلوغ'
+        verbose_name_plural = 'مؤلفه‌های بلوغ'
+    
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class MaturityQuestion(models.Model):
+    """۵۰ پرسش سنجش بلوغ (۴۸ سنجش + ۲ لنگر)"""
+    
+    QUESTION_TYPE_CHOICES = [
+        ('measure', 'سنجش'),
+        ('anchor', 'لنگر (اعتبارسنجی)'),
+    ]
+    
+    code = models.CharField(max_length=20, unique=True, verbose_name='کد پرسش')
+    component = models.ForeignKey(
+        MaturityComponent,
+        on_delete=models.CASCADE,
+        related_name='questions',
+        null=True, blank=True,
+        verbose_name='مؤلفه',
+        help_text='برای پرسش‌های لنگر، خالی است'
+    )
+    number = models.IntegerField(verbose_name='شماره پرسش')
+    text = models.TextField(verbose_name='متن پرسش')
+    question_type = models.CharField(
+        max_length=10,
+        choices=QUESTION_TYPE_CHOICES,
+        default='measure',
+        verbose_name='نوع پرسش'
+    )
+    anchor_level_3 = models.TextField(
+        blank=True,
+        verbose_name='لنگر سطح ۳',
+        help_text='شاهد مورد نیاز برای نمره ۳'
+    )
+    related_stage = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name='مرحله مرتبط',
+        help_text='مرحله مدیریت دارایی نامشهود'
+    )
+    
+    class Meta:
+        ordering = ['number']
+        verbose_name = 'پرسش بلوغ'
+        verbose_name_plural = 'پرسش‌های بلوغ'
+    
+    def __str__(self):
+        return f"{self.code} - {self.text[:50]}"
+
+
+class MaturityWeightProfile(models.Model):
+    """۵ پروفایل وزنی"""
+    
+    PROFILE_TYPE_CHOICES = [
+        ('base', 'پایه (متوازن)'),
+        ('manufacturing', 'تولیدی'),
+        ('service', 'خدماتی'),
+        ('rto', 'RTO (پژوهش و فناوری)'),
+        ('holding', 'هلدینگ صنعتی'),
+    ]
+    
+    profile_type = models.CharField(
+        max_length=20,
+        choices=PROFILE_TYPE_CHOICES,
+        unique=True,
+        verbose_name='نوع پروفایل'
+    )
+    name = models.CharField(max_length=100, verbose_name='نام')
+    description = models.TextField(blank=True, verbose_name='توضیحات')
+    
+    # وزن بخش‌ها (جمع = 1.0)
+    weight_hardware = models.FloatField(default=0.25, verbose_name='وزن سخت‌افزار')
+    weight_brainware = models.FloatField(default=0.25, verbose_name='وزن مغزافزار')
+    weight_orgware = models.FloatField(default=0.25, verbose_name='وزن سازمان‌افزار')
+    weight_software = models.FloatField(default=0.25, verbose_name='وزن نرم‌افزار')
+    
+    # وزن مؤلفه‌ها (JSON)
+    component_weights = models.JSONField(
+        default=dict,
+        verbose_name='وزن مؤلفه‌ها',
+        help_text='{"1": 0.20, "2": 0.35, ...}'
+    )
+    
+    class Meta:
+        verbose_name = 'پروفایل وزنی'
+        verbose_name_plural = 'پروفایل‌های وزنی'
+    
+    def __str__(self):
+        return self.name
+
+
+class MaturityAssessment(models.Model):
+    """ارزیابی بلوغ (یک نمونه)"""
+    
+    STATUS_CHOICES = [
+        ('draft', 'پیش‌نویس'),
+        ('in_progress', 'در حال انجام'),
+        ('calculated', 'محاسبه شده'),
+        ('approved', 'تأیید شده'),
+    ]
+    
+    MATURITY_LEVEL_CHOICES = [
+        (1, 'سطح ۱: اولیه / بحرانی'),
+        (2, 'سطح ۲: آغازین / موردی'),
+        (3, 'سطح ۳: تعریف‌شده / استاندارد'),
+        (4, 'سطح ۴: مدیریت‌شده / اندازه‌گیری‌شده'),
+        (5, 'سطح ۵: بهینه / هوشمند'),
+    ]
+    
+    organization = models.ForeignKey(
+        'accounts.Organization',
+        on_delete=models.CASCADE,
+        related_name='maturity_assessments',
+        verbose_name='سازمان'
+    )
+    weight_profile = models.ForeignKey(
+        MaturityWeightProfile,
+        on_delete=models.PROTECT,
+        related_name='assessments',
+        verbose_name='پروفایل وزنی'
+    )
+    
+    # نمرات
+    score_total = models.FloatField(default=0, verbose_name='نمره کل (0-5)')
+    index = models.FloatField(default=0, verbose_name='شاخص IAMS (0-100)')
+    maturity_level = models.IntegerField(
+        choices=MATURITY_LEVEL_CHOICES,
+        default=1,
+        verbose_name='سطح بلوغ'
+    )
+    
+    # نمرات بخش‌ها (0-5)
+    score_hardware = models.FloatField(default=0, verbose_name='نمره سخت‌افزار')
+    score_brainware = models.FloatField(default=0, verbose_name='نمره مغزافزار')
+    score_orgware = models.FloatField(default=0, verbose_name='نمره سازمان‌افزار')
+    score_software = models.FloatField(default=0, verbose_name='نمره نرم‌افزار')
+    
+    # نمرات مؤلفه‌ها (0-5)
+    component_scores = models.JSONField(
+        default=dict,
+        verbose_name='نمرات مؤلفه‌ها',
+        help_text='{"1": 3.0, "2": 2.3, ...}'
+    )
+    
+    # نتایج تحلیل
+    gate_rules_status = models.JSONField(
+        default=dict,
+        verbose_name='وضعیت قواعد دروازه‌ای',
+        help_text='{"G-A": false, "G-B": false, ...}'
+    )
+    gap_analysis = models.JSONField(
+        default=list,
+        verbose_name='تحلیل شکاف',
+        help_text='لیست اولویت‌دار اقدامات'
+    )
+    radar_data = models.JSONField(
+        default=list,
+        verbose_name='داده راداری',
+        help_text='برای نمودار راداری'
+    )
+    
+    # وضعیت
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft',
+        verbose_name='وضعیت'
+    )
+    
+    # متادیتا
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='maturity_assessments',
+        verbose_name='ایجادکننده'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ بروزرسانی')
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ تکمیل')
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'ارزیابی بلوغ'
+        verbose_name_plural = 'ارزیابی‌های بلوغ'
+    
+    def __str__(self):
+        return f"ارزیابی {self.organization.name} - سطح {self.maturity_level}"
+
+
+class MaturityResponse(models.Model):
+    """پاسخ به هر پرسش"""
+    
+    EVIDENCE_TYPES = [
+        ('document', 'سند مصوب'),
+        ('system', 'سامانه'),
+        ('meeting', 'صورت‌جلسه'),
+        ('data', 'داده عملکردی'),
+        ('interview', 'مصاحبه'),
+        ('other', 'سایر'),
+    ]
+    
+    assessment = models.ForeignKey(
+        MaturityAssessment,
+        on_delete=models.CASCADE,
+        related_name='responses',
+        verbose_name='ارزیابی'
+    )
+    question = models.ForeignKey(
+        MaturityQuestion,
+        on_delete=models.CASCADE,
+        related_name='responses',
+        verbose_name='پرسش'
+    )
+    
+    # نمره (1-5)
+    score = models.IntegerField(default=0, verbose_name='نمره (1-5)')
+    
+    # شاهد
+    has_evidence = models.BooleanField(default=False, verbose_name='شاهد دارد؟')
+    evidence_type = models.CharField(
+        max_length=20,
+        choices=EVIDENCE_TYPES,
+        blank=True,
+        verbose_name='نوع شاهد'
+    )
+    evidence_description = models.TextField(blank=True, verbose_name='توضیح شاهد')
+    
+    # یادداشت
+    note = models.TextField(blank=True, verbose_name='یادداشت')
+    
+    # متادیتا
+    responded_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ پاسخ')
+    
+    class Meta:
+        unique_together = [['assessment', 'question']]
+        verbose_name = 'پاسخ بلوغ'
+        verbose_name_plural = 'پاسخ‌های بلوغ'
+    
+    def __str__(self):
+        return f"{self.question.code}: {self.score}"

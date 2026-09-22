@@ -437,12 +437,3 @@ from .engine_05.models import (
     DevelopmentOpportunity,
     InnovationIdea,
 )
-
-# 🆕 مدل‌های بلوغ IAMS
-from .engine_05.maturity_models import (
-    MaturityComponent,
-    MaturityQuestion,
-    MaturityWeightProfile,
-    MaturityAssessment,
-    MaturityResponse,
-)

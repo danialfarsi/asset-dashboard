@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ShieldCheck, Shield, Star, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
-import { protectionApi } from '@/lib/protection-api';
 
 const toPersianNumber = (num: number): string => {
   const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
@@ -146,7 +145,7 @@ export default function ProtectedAssetsPage() {
                       <span>{new Date(profile.step5.updated_at).toLocaleDateString('fa-IR')}</span>
                     </div>
                   )}
-                  <Link href={`/dashboard/intangible/protection/${profile.asset_id}`}>
+                  <Link href={`/dashboard/intangible/protection/${profile.id}`}>
                     <Button variant="outline" className="w-full border-emerald-200 text-emerald-700 hover:bg-emerald-50">
                       مشاهده جزئیات حفاظت
                     </Button>
