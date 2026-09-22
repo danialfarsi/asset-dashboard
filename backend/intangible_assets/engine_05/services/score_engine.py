@@ -32,6 +32,27 @@ CONFIG_DIR = os.path.join(
 )
 
 
+def resolve_department(opportunity=None, idea=None, user=None):
+    """
+    🎯 تعیین خودکار واحد سازمانی پروژه
+
+    ترتیب اولویت:
+    ۱. از created_by فرصت (مدیر واحدی که توسعه داده)
+    ۲. از created_by ایده
+    ۳. از کاربر فعلی (fallback)
+    """
+    if opportunity and opportunity.created_by and opportunity.created_by.department_id:
+        return opportunity.created_by.department
+
+    if idea and idea.created_by and idea.created_by.department_id:
+        return idea.created_by.department
+
+    if user and hasattr(user, 'department') and user.department_id:
+        return user.department
+
+    return None
+
+
 class ScoreEngineService:
     """
     سرویس امتیازدهی و رتبه‌بندی
@@ -340,6 +361,13 @@ class ScoreEngineService:
             existing.save()
             return existing
         
+        # 🆕 تعیین department خودکار از کاربر یا فرصت
+        dept = None
+        if user and hasattr(user, 'department') and user.department:
+            dept = user.department
+        elif opportunity.organization and hasattr(opportunity, 'department'):
+            dept = opportunity.department
+
         # ساخت جدید
         project = PrioritizedProject.objects.create(
             opportunity=opportunity,
@@ -354,6 +382,7 @@ class ScoreEngineService:
             estimated_budget=estimated_budget,
             approval_status='pending',
             organization=opportunity.organization,
+            department=resolve_department(opportunity=opportunity, user=user),
             created_by=user,
         )
         
@@ -405,6 +434,7 @@ class ScoreEngineService:
             ),
             approval_status='pending',
             organization=idea.organization,
+            department=resolve_department(idea=idea, user=user),
             created_by=user,
         )
         

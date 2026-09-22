@@ -141,3 +141,4 @@ export const toPersianNumber = toFa;
 
 /** Alias برای toJalaliInput */
 export const toPersianInput = toJalaliInput;
+

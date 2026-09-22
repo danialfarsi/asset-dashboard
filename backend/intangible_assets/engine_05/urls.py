@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    UnitBudgetViewSet,
     DevelopmentOpportunityViewSet,
     InnovationIdeaViewSet,
     PrioritizedProjectViewSet,
@@ -20,6 +21,7 @@ router.register(r'ideas', InnovationIdeaViewSet, basename='innovation-idea')
 
 # گام ۲
 router.register(r'projects', PrioritizedProjectViewSet, basename='prioritized-project')
+router.register(r'unit-budgets', UnitBudgetViewSet, basename='unit-budget')
 
 # گام ۳
 router.register(r'charters', ProjectCharterViewSet, basename='project-charter')

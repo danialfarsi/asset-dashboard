@@ -26,6 +26,7 @@ interface ProgressReport {
   report_number: number;
   report_date: string;
   physical_progress_pct: number;
+  actual_cost: number;
   budget_consumed_pct: number;
   spi: number;
   cpi: number;
@@ -57,90 +58,15 @@ export function ExecutionPanel() {
 
   const [form, setForm] = useState({
     physical_progress_pct: 0,
-    budget_consumed_pct: 0,
-    spi: 1.0,
-    cpi: 1.0,
+    actual_cost: 0,
     gate_decision: 'na',
     gate_notes: '',
     notes: '',
   });
-  const [autoPreview, setAutoPreview] = useState<any>(null);
-  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
-
-  // محاسبه auto decision (هم‌راستا با Backend)
-  const computeAutoDecision = (spi: number, cpi: number, progress: number) => {
-    const alerts: string[] = [];
-
-    // KILL
-    if (spi < 0.70 || cpi < 0.65) {
-      const reasons = [];
-      if (spi < 0.70) reasons.push(`SPI=${spi.toFixed(2)}`);
-      if (cpi < 0.65) reasons.push(`CPI=${cpi.toFixed(2)}`);
-      if (spi < 0.70) alerts.push(`SPI بحرانی: ${spi.toFixed(2)}`);
-      if (cpi < 0.65) alerts.push(`CPI بحرانی: ${cpi.toFixed(2)}`);
-      return {
-        decision: 'kill',
-        reason: '🚨 توقف فوری: ' + reasons.join(' و '),
-        confidence: 0.95,
-        alerts,
-      };
-    }
-
-    // RECYCLE
-    if (spi < 0.85 || cpi < 0.80) {
-      const reasons = [];
-      if (spi < 0.85) {
-        reasons.push(`SPI=${spi.toFixed(2)}`);
-        alerts.push(`SPI پایین: ${spi.toFixed(2)}`);
-      }
-      if (cpi < 0.80) {
-        reasons.push(`CPI=${cpi.toFixed(2)}`);
-        alerts.push(`CPI پایین: ${cpi.toFixed(2)}`);
-      }
-      return {
-        decision: 'recycle',
-        reason: '⚠️ بازنگری لازم: ' + reasons.join(' و '),
-        confidence: 0.85,
-        alerts,
-      };
-    }
-
-    // GO
-    if (spi >= 0.95 && cpi >= 0.90) {
-      if (progress < 5) {
-        return {
-          decision: 'hold',
-          reason: '⏸ پیشرفت خیلی کم',
-          confidence: 0.70,
-          alerts: ['پیشرفت فیزیکی کمتر از ۵٪'],
-        };
-      }
-      return {
-        decision: 'go',
-        reason: `✅ عملکرد مطلوب (SPI=${spi.toFixed(2)}, CPI=${cpi.toFixed(2)})`,
-        confidence: 0.95,
-        alerts: [],
-      };
-    }
-
-    // HOLD
-    return {
-      decision: 'hold',
-      reason: `⏸ نگه‌داری (SPI=${spi.toFixed(2)}, CPI=${cpi.toFixed(2)})`,
-      confidence: 0.60,
-      alerts: [],
-    };
-  };
-
-  // به‌روزرسانی auto preview
-  const updateAutoPreview = (spi: number, cpi: number, progress: number) => {
-    const result = computeAutoDecision(spi, cpi, progress);
-    setAutoPreview(result);
   };
 
   const loadProjects = async () => {
@@ -195,17 +121,20 @@ export function ExecutionPanel() {
     if (!activeProject) return;
     setSaving(true);
     try {
+      // فقط فیلدهای دستی — بقیه در backend محاسبه می‌شن
       await engine05Api.createProgressReport({
-        ...form,
         project: activeProject.id,
+        physical_progress_pct: form.physical_progress_pct,
+        actual_cost: form.actual_cost,
+        gate_decision: form.gate_decision,
+        gate_notes: form.gate_notes,
+        notes: form.notes,
       });
       showToast('گزارش پیشرفت ثبت شد');
       setShowForm(false);
       setForm({
         physical_progress_pct: 0,
-        budget_consumed_pct: 0,
-        spi: 1.0,
-        cpi: 1.0,
+        actual_cost: 0,
         gate_decision: 'na',
         gate_notes: '',
         notes: '',
@@ -332,42 +261,16 @@ export function ExecutionPanel() {
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
-                            مصرف بودجه (%)
+                            هزینه واقعی تا الان (ریال)
                           </label>
-                          <input type="number" min="0" max="100"
-                            value={form.budget_consumed_pct}
-                            onChange={(e) => setForm({ ...form, budget_consumed_pct: Number(e.target.value) })}
+                          <input type="number" min="0"
+                            value={form.actual_cost}
+                            onChange={(e) => setForm({ ...form, actual_cost: Number(e.target.value) })}
+                            placeholder="مثلاً 1000000000"
                             className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#04241D] outline-none" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            SPI (شاخص زمان)
-                          </label>
-                          <input type="number" step="0.01" min="0.1" max="3"
-                            value={form.spi}
-                            onChange={(e) => {
-                              const v = Number(e.target.value);
-                              if (v >= 0.1 && v <= 3) {
-                                setForm({ ...form, spi: v });
-                                updateAutoPreview(v, form.cpi, form.physical_progress_pct);
-                              }
-                            }}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#04241D] outline-none" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            CPI (شاخص هزینه)
-                          </label>
-                          <input type="number" step="0.01" min="0.1" max="3"
-                            value={form.cpi}
-                            onChange={(e) => {
-                              const v = Number(e.target.value);
-                              if (v >= 0.1 && v <= 3) {
-                                setForm({ ...form, cpi: v });
-                                updateAutoPreview(form.spi, v, form.physical_progress_pct);
-                              }
-                            }}
-                            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#04241D] outline-none" />
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            مصرف بودجه، SPI و CPI خودکار محاسبه می‌شوند.
+                          </p>
                         </div>
                       </div>
 
@@ -376,56 +279,7 @@ export function ExecutionPanel() {
                           <label className="block text-xs font-medium text-gray-700">
                             تصمیم گیت (Stage-Gate)
                           </label>
-                          {autoPreview && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setForm({ ...form, gate_decision: autoPreview.decision });
-                                showToast('تصمیم خودکار اعمال شد');
-                              }}
-                              className="text-[10px] bg-[#04241D] text-white px-2 py-1 rounded hover:opacity-90"
-                            >
-                              ⚡ اعمال خودکار
-                            </button>
-                          )}
                         </div>
-
-                        {/* Auto Preview */}
-                        {autoPreview && (
-                          <div className={`mb-3 border-2 rounded-lg p-3 ${
-                            autoPreview.decision === 'go' ? 'bg-green-50 border-green-300' :
-                            autoPreview.decision === 'kill' ? 'bg-red-50 border-red-300' :
-                            autoPreview.decision === 'recycle' ? 'bg-amber-50 border-amber-300' :
-                            'bg-gray-50 border-gray-300'
-                          }`}>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xs font-bold">
-                                🤖 پیشنهاد خودکار:
-                              </span>
-                              <span className={`text-xs px-2 py-0.5 rounded font-bold ${
-                                autoPreview.decision === 'go' ? 'bg-green-200 text-green-800' :
-                                autoPreview.decision === 'kill' ? 'bg-red-200 text-red-800' :
-                                autoPreview.decision === 'recycle' ? 'bg-amber-200 text-amber-800' :
-                                'bg-gray-200 text-gray-800'
-                              }`}>
-                                {autoPreview.decision.toUpperCase()}
-                              </span>
-                              <span className="text-[10px] text-gray-500">
-                                (اطمینان: {(autoPreview.confidence * 100).toFixed(0)}%)
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-700">{autoPreview.reason}</p>
-                            {autoPreview.alerts && autoPreview.alerts.length > 0 && (
-                              <div className="mt-2 space-y-0.5">
-                                {autoPreview.alerts.map((a: string, i: number) => (
-                                  <div key={i} className="text-[10px] text-amber-700">
-                                    ⚠️ {a}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
 
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           {GATE_OPTIONS.map((opt) => {

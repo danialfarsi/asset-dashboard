@@ -14,7 +14,7 @@ from .models import (
     ProgressReport,
     DevelopedOrNewAsset,
     ProjectClosureReport,
-)
+    UnitBudget)
 from .serializers import (
     DevelopmentOpportunitySerializer,
     InnovationIdeaSerializer,
@@ -25,7 +25,7 @@ from .serializers import (
     ProgressReportSerializer,
     DevelopedOrNewAssetSerializer,
     ProjectClosureReportSerializer,
-)
+    UnitBudgetSerializer)
 from django.db import models
 
 
@@ -714,6 +714,113 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
             'count': count,
         })
     
+    @action(detail=False, methods=['get'], url_path='executable')
+    def executable(self, request):
+        """
+        🎯 لیست پروژه‌های قابل اجرا برای واحد کاربر
+        بر اساس بودجه + بازه زمانی واحد
+        """
+        user = request.user
+
+        if not user.department_id:
+            return Response({
+                'budget': None,
+                'projects': [],
+                'summary': None,
+                'message': 'کاربر به هیچ واحدی تخصیص داده نشده',
+            })
+
+        unit_budget = UnitBudget.objects.filter(
+            department_id=user.department_id
+        ).order_by('-start_date').first()
+
+        if not unit_budget:
+            return Response({
+                'budget': None,
+                'projects': [],
+                'summary': None,
+                'message': 'برای واحد شما بودجه‌ای تعریف نشده',
+            })
+
+        projects_qs = PrioritizedProject.objects.filter(
+            department_id=user.department_id,
+            approval_status='approved',
+        ).select_related('organization', 'department', 'opportunity')
+
+        result = []
+        total_allocated = 0
+
+        for p in projects_qs:
+            # 🆕 بودجه‌ی نهایی از AllocatedBudget (گام ۳)
+            allocated = getattr(p, 'allocated_budget', None)
+            if allocated and allocated.total_amount:
+                p_budget = float(allocated.total_amount)
+            else:
+                p_budget = float(p.approved_budget or p.estimated_budget or 0)
+
+            total_allocated += p_budget
+
+            gantt = getattr(p, 'gantt_schedule', None)
+            g_start = gantt.start_date if gantt else None
+            g_end = gantt.end_date if gantt else None
+
+            budget_ok = p_budget <= float(unit_budget.amount)
+            time_ok = True
+            if g_start and g_end:
+                time_ok = (
+                    g_start >= unit_budget.start_date and
+                    g_end <= unit_budget.end_date
+                )
+
+            reasons = []
+            if not budget_ok:
+                reasons.append(f'بودجه پروژه ({p_budget:,.0f}) از بودجه واحد بیشتره')
+            if not time_ok:
+                reasons.append('بازه زمانی پروژه خارج از بازه بودجه واحد است')
+
+            result.append({
+                'id': p.id,
+                'title': p.title,
+                'project_type': p.project_type,
+                'priority_score': p.priority_score,
+                'rank': p.rank,
+                'approved_budget': float(p.approved_budget or 0),
+                'estimated_budget': float(p.estimated_budget or 0),
+                'project_budget': p_budget,  # 🆕 بودجه مؤثر (از AllocatedBudget)
+                'department_name': p.department.name if p.department else None,
+                'organization_name': p.organization.name if p.organization else None,
+                'gantt': {
+                    'start_date': str(g_start) if g_start else None,
+                    'end_date': str(g_end) if g_end else None,
+                } if gantt else None,
+                'is_executable': budget_ok and time_ok,
+                'budget_ok': budget_ok,
+                'time_ok': time_ok,
+                'reasons': reasons,
+            })
+
+        result.sort(key=lambda x: (not x['is_executable'], x['rank'] or 9999))
+
+        over_budget = total_allocated > float(unit_budget.amount)
+
+        summary = {
+            'total_budget': float(unit_budget.amount),
+            'total_allocated': total_allocated,
+            'remaining': float(unit_budget.amount) - total_allocated,
+            'over_budget': over_budget,
+            'start_date': str(unit_budget.start_date),
+            'end_date': str(unit_budget.end_date),
+            'department_name': unit_budget.department.name,
+            'projects_count': len(result),
+            'executable_count': sum(1 for r in result if r['is_executable']),
+        }
+
+        return Response({
+            'budget': UnitBudgetSerializer(unit_budget).data,
+            'projects': result,
+            'summary': summary,
+        })
+
     @action(detail=False, methods=['post'], url_path='create-from-opportunities')
     def create_from_opportunities(self, request):
         """
@@ -1053,6 +1160,79 @@ class DevelopedOrNewAssetViewSet(viewsets.ModelViewSet):
 # ═══════════════════════════════════════════════════════════
 # گام ۵: ProjectClosureReport
 # ═══════════════════════════════════════════════════════════
+
+
+
+# ═══════════════════════════════════════════════════════════
+# 🆕 UnitBudgetViewSet — بودجه واحدها (org-admin)
+# ═══════════════════════════════════════════════════════════
+
+class UnitBudgetViewSet(viewsets.ModelViewSet):
+    """
+    مدیریت بودجه واحدها:
+    - org-admin: CRUD کامل (فقط واحدهای سازمان خودش)
+    - org_user: فقط خواندن (فقط بودجه واحد خودش)
+    - super_admin: همه
+    """
+    serializer_class = UnitBudgetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = UnitBudget.objects.all()
+
+        if user.role == 'super_admin':
+            pass
+        elif user.role == 'org_admin':
+            queryset = queryset.filter(organization=user.organization)
+        elif user.role == 'org_user':
+            if user.department_id:
+                queryset = queryset.filter(department_id=user.department_id)
+            else:
+                queryset = queryset.none()
+        else:
+            queryset = queryset.none()
+
+        dept_id = self.request.query_params.get('department')
+        if dept_id:
+            queryset = queryset.filter(department_id=dept_id)
+
+        return queryset.select_related('organization', 'department', 'created_by')
+
+    def perform_create(self, serializer):
+        from rest_framework.exceptions import PermissionDenied
+        user = self.request.user
+
+        if user.role not in ['org_admin', 'super_admin']:
+            raise PermissionDenied('فقط مدیر سازمان می‌تواند بودجه تعریف کند')
+
+        serializer.save(organization=user.organization, created_by=user)
+
+    @action(detail=False, methods=['get'], url_path='my-unit')
+    def my_unit(self, request):
+        """بودجه واحد کاربر فعلی"""
+        user = request.user
+        if not user.department_id:
+            return Response({
+                'budget': None,
+                'message': 'کاربر به هیچ واحدی تخصیص داده نشده',
+            })
+
+        budget = self.get_queryset().filter(
+            department_id=user.department_id
+        ).order_by('-start_date').first()
+
+        if not budget:
+            return Response({
+                'budget': None,
+                'message': 'برای واحد شما بودجه‌ای تعریف نشده',
+            })
+
+        return Response({
+            'budget': self.get_serializer(budget).data,
+        })
+
+
 
 class ProjectClosureReportViewSet(viewsets.ModelViewSet):
     queryset = ProjectClosureReport.objects.all()

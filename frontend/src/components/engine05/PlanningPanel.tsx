@@ -630,6 +630,29 @@ function GanttTab({ project, gantt, onReload }: any) {
 // ═══════════════════════════════════════════════════════════
 
 function BudgetTab({ project, budget, onReload }: any) {
+  // 🆕 fetch بودجه واحد
+  const [unitBudget, setUnitBudget] = useState<any>(null);
+  const [unitConsumed, setUnitConsumed] = useState<number>(0);
+  
+  useEffect(() => {
+    (async () => {
+      try {
+        const api = (await import('@/lib/api')).default;
+        const res = await api.get('/intangible/engine/asset-development/unit-budgets/my-unit/');
+        setUnitBudget(res.data?.budget || null);
+
+        // 🆕 همیشه executable رو بگیر
+        try {
+          const exec = await api.get('/intangible/engine/asset-development/projects/executable/');
+          setUnitConsumed(exec.data?.summary?.total_allocated || 0);
+        } catch (e2) {
+          console.warn('executable fetch failed:', e2);
+        }
+      } catch (e) {
+        console.error('Failed to load unit budget:', e);
+      }
+    })();
+  }, [project, budget]);
   const [form, setForm] = useState({
     capex: budget?.capex || 0,
     opex: budget?.opex || 0,
@@ -644,8 +667,16 @@ function BudgetTab({ project, budget, onReload }: any) {
         opex: parseFloat(budget.opex) || 0,
         contingency_reserve: parseFloat(budget.contingency_reserve) || 0,
       });
+    } else if (project) {
+      // 🆕 auto-fill: اگه بودجه‌ای ثبت نشده، بودجه مصوب رو پیش‌فرض بذار
+      const approved = parseFloat(project.approved_budget) || parseFloat(project.estimated_budget) || 0;
+      setForm({
+        capex: approved,
+        opex: 0,
+        contingency_reserve: 0,
+      });
     }
-  }, [budget]);
+  }, [budget, project]);
 
   const total = form.capex + form.opex + form.contingency_reserve;
 
@@ -672,9 +703,65 @@ function BudgetTab({ project, budget, onReload }: any) {
     return v.toLocaleString('fa-IR');
   };
 
+  // 🆕 سقف از UnitBudget (نه approved_budget)
+  const unitAmount = parseFloat(unitBudget?.amount) || 0;
+  const unitRemaining = unitAmount - unitConsumed;
+  const projectTotal = total;
+  
+  // این پروژه چقدر از بودجه واحد رو می‌گیره
+  const overBudget = unitAmount > 0 && unitConsumed > unitAmount;
+  const percentUsedByUnit = unitAmount > 0 ? (unitConsumed / unitAmount) * 100 : 0;
+  const percentOfUnit = unitAmount > 0 ? (projectTotal / unitAmount) * 100 : 0;
+
   return (
     <Card>
       <CardContent className="p-5 space-y-4">
+        {/* 🆕 بنر بودجه مصوب */}
+        {unitAmount > 0 && (
+          <div className={`border rounded-lg p-3 text-xs space-y-2 ${
+            overBudget 
+              ? 'bg-red-50 border-red-300 text-red-800' 
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <div className="flex items-start gap-2">
+              <span className="text-base">{overBudget ? '🚨' : 'ℹ️'}</span>
+              <div className="flex-1">
+                <b>بودجه کل واحد: {formatMoney(unitAmount)} ریال</b>
+                {unitBudget?.department_name && (
+                  <span className="text-[10px] opacity-70 mr-2">
+                    ({unitBudget.department_name})
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2 pt-2 border-t border-current/10">
+              <div>
+                <p className="text-[10px] opacity-70 mb-0.5">مصرف‌شده واحد</p>
+                <p className="font-bold">{formatMoney(unitConsumed)}</p>
+                <p className="text-[9px] opacity-70">({percentUsedByUnit.toFixed(1)}٪)</p>
+              </div>
+              <div>
+                <p className="text-[10px] opacity-70 mb-0.5">باقی‌مانده واحد</p>
+                <p className={`font-bold ${unitRemaining < 0 ? 'text-red-600' : ''}`}>
+                  {formatMoney(unitRemaining)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] opacity-70 mb-0.5">این پروژه</p>
+                <p className="font-bold">{formatMoney(projectTotal)}</p>
+                <p className="text-[9px] opacity-70">({percentOfUnit.toFixed(1)}٪ از واحد)</p>
+              </div>
+            </div>
+            
+            {overBudget && (
+              <p className="pt-2 border-t border-current/10 text-[10px]">
+                🚨 جمع بودجه پروژه‌های این واحد از سقف بودجه واحد بیشتر شده. با رئیس کمیته هماهنگ کنید.
+              </p>
+            )}
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 gap-3">
           <div>
             <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -721,8 +808,18 @@ function BudgetTab({ project, budget, onReload }: any) {
           )}
         </div>
 
-        <Button onClick={handleSave} disabled={saving} className="w-full bg-[#04241D]">
-          {saving ? 'در حال ذخیره...' : budget ? 'بروزرسانی بودجه' : 'ثبت بودجه'}
+        <Button 
+          onClick={handleSave} 
+          disabled={saving || overBudget} 
+          className={`w-full text-white ${overBudget ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#04241D]'}`}
+        >
+          {saving 
+            ? 'در حال ذخیره...' 
+            : overBudget 
+              ? '🚨 جمع بودجه بیشتر از مصوب' 
+              : budget 
+                ? 'بروزرسانی بودجه' 
+                : 'ثبت بودجه'}
         </Button>
       </CardContent>
     </Card>

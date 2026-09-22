@@ -9,6 +9,7 @@ from .models import (
     ProgressReport,
     DevelopedOrNewAsset,
     ProjectClosureReport,
+    UnitBudget,
 )
 
 
@@ -338,3 +339,36 @@ class ProjectClosureReportSerializer(serializers.ModelSerializer):
         if obj.created_by:
             return f"{obj.created_by.first_name} {obj.created_by.last_name}".strip() or obj.created_by.username
         return None
+
+
+class UnitBudgetSerializer(serializers.ModelSerializer):
+    """Serializer بودجه واحد — برای org-admin و کاربر واحد"""
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    department_code = serializers.CharField(source='department.code', read_only=True)
+    organization_name = serializers.CharField(source='organization.name', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    period_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UnitBudget
+        fields = [
+            'id',
+            'organization', 'organization_name',
+            'department', 'department_name', 'department_code',
+            'start_date', 'end_date', 'period_display',
+            'amount',
+            'description',
+            'created_by', 'created_by_name',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'organization', 'created_by', 'created_at', 'updated_at']
+
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            name = f"{obj.created_by.first_name} {obj.created_by.last_name}".strip()
+            return name or obj.created_by.username
+        return None
+
+    def get_period_display(self, obj):
+        return f"{obj.start_date} تا {obj.end_date}"
+

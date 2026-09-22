@@ -340,14 +340,22 @@ class PrioritizedProject(models.Model):
     )
     
     # سازمان
-    organization = models.ForeignKey(
-        'accounts.Organization',
+    organization = models.ForeignKey('accounts.Organization',
         on_delete=models.CASCADE,
         related_name='prioritized_projects',
         null=True, blank=True,
         verbose_name='سازمان'
     )
-    
+
+    # 🆕 واحد سازمانی صاحب پروژه
+    department = models.ForeignKey(
+        'accounts.Department',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='prioritized_projects_dept',
+        verbose_name='واحد سازمانی'
+    )
+
     # کامنت کمیته
     committee_comment = models.TextField(blank=True, verbose_name='نظر کمیته')
     
@@ -639,8 +647,18 @@ class AllocatedBudget(models.Model):
                         f'نسبت ذخیره احتمالی ({actual_ratio:.2%}) از حداکثر مجاز ({max_ratio:.2%}) بیشتر است'
                     )
         except ImportError:
-            # اگه سرویس نبود، از چک رد شو
             pass
+
+        # 🆕 اعتبارسنجی: جمع بودجه ≤ بودجه مصوب پروژه
+        if self.project and self.project.approved_budget:
+            approved = float(self.project.approved_budget)
+            total = float(self.total_amount)
+            if total > approved:
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    f'جمع بودجه ({total:,.0f} ریال) از بودجه مصوب پروژه '
+                    f'({approved:,.0f} ریال) بیشتر است'
+                )
 
         super().save(*args, **kwargs)
 
@@ -678,7 +696,13 @@ class ProgressReport(models.Model):
     # پیشرفت فیزیکی
     physical_progress_pct = models.FloatField(default=0, verbose_name='پیشرفت فیزیکی (%)')
     
-    # مصرف بودجه
+    # 🆕 هزینه واقعی (ورودی کاربر)
+    actual_cost = models.DecimalField(
+        max_digits=20, decimal_places=0, default=0,
+        verbose_name='هزینه واقعی تا الان (ریال)'
+    )
+
+    # مصرف بودجه — خودکار محاسبه می‌شود
     budget_consumed_pct = models.FloatField(default=0, verbose_name='مصرف بودجه (%)')
     
     # شاخص‌های EVM
@@ -728,26 +752,77 @@ class ProgressReport(models.Model):
 # ═══════════════════════════════════════════════════════════
 
     def save(self, *args, **kwargs):
-        """اعتبارسنجی SPI/CPI + محاسبه خودکار gate_decision"""
+        """محاسبه خودکار EVM (SPI/CPI/مصرف بودجه) + اعتبارسنجی + gate_decision"""
         from django.core.exceptions import ValidationError
         from .services.stage_gate import auto_gate_decision
+        from datetime import date as _date
 
-        # SPI و CPI باید بین 0.1 و 3 باشن
-        if self.spi is not None:
-            if self.spi < 0.1 or self.spi > 3:
-                raise ValidationError(f'SPI باید بین 0.1 و 3 باشد (فعلی: {self.spi})')
+        # ═══════════════════════════════════════════════════════
+        # 🆕 محاسبه خودکار EVM (Earned Value Management)
+        # ═══════════════════════════════════════════════════════
+        project = self.project
+        budget = float(project.approved_budget or project.estimated_budget or 0)
 
-        if self.cpi is not None:
-            if self.cpi < 0.1 or self.cpi > 3:
-                raise ValidationError(f'CPI باید بین 0.1 و 3 باشد (فعلی: {self.cpi})')
+        # ۱. مصرف بودجه = هزینه واقعی / بودجه پروژه × 100
+        if budget > 0:
+            self.budget_consumed_pct = round(
+                (float(self.actual_cost or 0) / budget) * 100, 2
+            )
+        else:
+            self.budget_consumed_pct = 0
+
+        # ۲. EV (Earned Value) = بودجه × پیشرفت فیزیکی
+        ev = budget * (float(self.physical_progress_pct or 0) / 100)
+
+        # ۳. AC (Actual Cost) = هزینه واقعی
+        ac = float(self.actual_cost or 0)
+
+        # ۴. PV (Planned Value) از گانت
+        pv = ev  # fallback: اگه گانت نبود، PV=EV
+        gantt = getattr(project, 'gantt_schedule', None)
+        if gantt and gantt.start_date and gantt.end_date:
+            today = _date.today()
+            total_days = (gantt.end_date - gantt.start_date).days
+            if today < gantt.start_date:
+                planned_pct = 0
+            elif today > gantt.end_date:
+                planned_pct = 100
+            else:
+                elapsed_days = (today - gantt.start_date).days
+                planned_pct = (elapsed_days / total_days) * 100 if total_days > 0 else 0
+            pv = budget * (planned_pct / 100)
+
+        # ۵. CPI = EV / AC
+        if ac > 0:
+            self.cpi = round(ev / ac, 2)
+        else:
+            self.cpi = 1.0
+
+        # ۶. SPI = EV / PV
+        if pv > 0:
+            self.spi = round(ev / pv, 2)
+        else:
+            self.spi = 1.0
+
+        # محدود کردن به بازه مجاز
+        self.cpi = max(0.1, min(3.0, self.cpi))
+        self.spi = max(0.1, min(3.0, self.spi))
+
+        # ═══════════════════════════════════════════════════════
+        # اعتبارسنجی
+        # ═══════════════════════════════════════════════════════
+
+        if self.spi < 0.1 or self.spi > 3:
+            raise ValidationError(f'SPI خارج از محدوده: {self.spi}')
+        if self.cpi < 0.1 or self.cpi > 3:
+            raise ValidationError(f'CPI خارج از محدوده: {self.cpi}')
 
         # پیشرفت فیزیکی 0-100
         if self.physical_progress_pct < 0 or self.physical_progress_pct > 100:
             raise ValidationError('پیشرفت فیزیکی باید بین 0 و 100 باشد')
 
-        # مصرف بودجه 0-100
-        if self.budget_consumed_pct < 0 or self.budget_consumed_pct > 100:
-            raise ValidationError('مصرف بودجه باید بین 0 و 100 باشد')
+        # مصرف بودجه 0-100 (اما ممکنه از 100 رد بشه اگه هزینه از بودجه بیشتر شد)
+        # پس چک نمی‌کنیم — بالای 100 یعنی بودجه تجاوز شده
 
         # ═══════════════════════════════════════════════════════
         # محاسبه خودکار gate_decision
@@ -929,3 +1004,56 @@ class ProjectClosureReport(models.Model):
     
     def __str__(self):
         return f"اختتام: {self.project.title}"
+
+
+# ═══════════════════════════════════════════════════════════
+# 🆕 UnitBudget — بودجه تخصیصی org-admin به هر واحد
+# ═══════════════════════════════════════════════════════════
+
+class UnitBudget(models.Model):
+    """
+    بودجه تخصیصی به یه واحد سازمانی در یه بازه زمانی مشخص.
+    org-admin این رو تعریف می‌کنه و کاربرهای واحد بر اساس اون
+    پروژه‌های قابل اجرا رو می‌بینن.
+    """
+    organization = models.ForeignKey(
+        'accounts.Organization',
+        on_delete=models.CASCADE,
+        related_name='unit_budgets',
+        verbose_name='سازمان'
+    )
+    department = models.ForeignKey(
+        'accounts.Department',
+        on_delete=models.CASCADE,
+        related_name='unit_budgets',
+        verbose_name='واحد'
+    )
+    start_date = models.DateField(verbose_name='تاریخ شروع')
+    end_date = models.DateField(verbose_name='تاریخ پایان')
+    amount = models.DecimalField(
+        max_digits=20, decimal_places=0,
+        verbose_name='مقدار بودجه (ریال)'
+    )
+    description = models.TextField(blank=True, verbose_name='توضیحات')
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='created_unit_budgets',
+        verbose_name='ایجادکننده'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'بودجه واحد'
+        verbose_name_plural = 'بودجه‌های واحدها'
+        ordering = ['-start_date']
+        indexes = [
+            models.Index(fields=['organization', 'department']),
+            models.Index(fields=['start_date', 'end_date']),
+        ]
+
+    def __str__(self):
+        return f"{self.department.name} — {self.amount:,.0f} ریال"
+
