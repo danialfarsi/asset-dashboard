@@ -778,12 +778,55 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
             if not time_ok:
                 reasons.append('بازه زمانی پروژه خارج از بازه بودجه واحد است')
 
+            # 🆕 asset_type از opportunity.asset
+            asset_type_id = None
+            asset_type_name = None
+            asset_type_code = None
+            category = None
+            category_label = None
+
+            if p.opportunity and p.opportunity.asset:
+                asset = p.opportunity.asset
+                if asset.asset_type:
+                    at = asset.asset_type
+                    asset_type_id = at.id
+                    asset_type_name = at.name
+                    asset_type_code = at.code
+
+                # 🆕 category از ScreenedAsset
+                category = getattr(asset, 'category', None)
+                if category:
+                    # تبدیل strategic_economic → استراتژیک
+                    cat_map = {
+                        'strategic_economic': 'استراتژیک',
+                        'strategic_social': 'استراتژیک',
+                        'strategic_knowledge': 'استراتژیک',
+                        'strategic_cultural': 'استراتژیک',
+                        'strategic_environmental': 'استراتژیک',
+                        'operational_economic': 'عملیاتی',
+                        'operational_social': 'عملیاتی',
+                        'operational_knowledge': 'عملیاتی',
+                        'operational_cultural': 'عملیاتی',
+                        'operational_environmental': 'عملیاتی',
+                        'support_economic': 'پشتیبان',
+                        'support_social': 'پشتیبان',
+                        'support_knowledge': 'پشتیبان',
+                        'support_cultural': 'پشتیبان',
+                        'support_environmental': 'پشتیبان',
+                    }
+                    category_label = cat_map.get(category, category)
+
             result.append({
                 'id': p.id,
                 'title': p.title,
                 'project_type': p.project_type,
                 'priority_score': p.priority_score,
                 'rank': p.rank,
+                'asset_type_id': asset_type_id,
+                'asset_type_name': asset_type_name,
+                'asset_type_code': asset_type_code,
+                'category': category,
+                'category_label': category_label,
                 'approved_budget': float(p.approved_budget or 0),
                 'estimated_budget': float(p.estimated_budget or 0),
                 'project_budget': p_budget,  # 🆕 بودجه مؤثر (از AllocatedBudget)
@@ -803,6 +846,53 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
 
         over_budget = total_allocated > float(unit_budget.amount)
 
+        # 🆕 دسته‌بندی بر اساس category (استراتژیک/عملیاتی/پشتیبان)
+        by_category = {}
+        for r in result:
+            key = r['category_label'] or 'نامشخص'
+            if key not in by_category:
+                by_category[key] = {
+                    'category': r['category'] or 'unknown',
+                    'category_label': key,
+                    'count': 0,
+                    'executable_count': 0,
+                    'total_budget': 0,
+                }
+            by_category[key]['count'] += 1
+            if r['is_executable']:
+                by_category[key]['executable_count'] += 1
+            by_category[key]['total_budget'] += r['project_budget']
+
+        by_category_list = sorted(
+            by_category.values(),
+            key=lambda x: x['count'],
+            reverse=True,
+        )
+
+        # 🆕 دسته‌بندی بر اساس asset_type
+        by_asset_type = {}
+        for r in result:
+            key = r['asset_type_id']
+            if key not in by_asset_type:
+                by_asset_type[key] = {
+                    'asset_type_id': key,
+                    'asset_type_name': r['asset_type_name'] or 'نامشخص',
+                    'asset_type_code': r['asset_type_code'] or 'N/A',
+                    'count': 0,
+                    'executable_count': 0,
+                    'total_budget': 0,
+                }
+            by_asset_type[key]['count'] += 1
+            if r['is_executable']:
+                by_asset_type[key]['executable_count'] += 1
+            by_asset_type[key]['total_budget'] += r['project_budget']
+
+        by_asset_type_list = sorted(
+            by_asset_type.values(),
+            key=lambda x: x['count'],
+            reverse=True,
+        )
+
         summary = {
             'total_budget': float(unit_budget.amount),
             'total_allocated': total_allocated,
@@ -813,6 +903,8 @@ class PrioritizedProjectViewSet(viewsets.ModelViewSet):
             'department_name': unit_budget.department.name,
             'projects_count': len(result),
             'executable_count': sum(1 for r in result if r['is_executable']),
+            'by_category': by_category_list,
+            'by_asset_type': by_asset_type_list,
         }
 
         return Response({

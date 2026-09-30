@@ -147,6 +147,14 @@ export function ExecutableProjectsPanel() {
         </div>
       )}
 
+      {/* 🆕 چارت Donut دسته‌بندی دارایی‌ها */}
+      {summary?.by_asset_type && summary.by_asset_type.length > 0 && (
+        <DonutChart 
+          data={summary.by_category || []}
+          totalProjects={summary.projects_count}
+        />
+      )}
+
       {/* هدر لیست */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-gray-800">
@@ -244,5 +252,182 @@ export function ExecutableProjectsPanel() {
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🍩 DonutChart — چارت دونات دسته‌بندی دارایی‌ها
+// ═══════════════════════════════════════════════════════════
+
+function DonutChart({ data, totalProjects }: { data: any[]; totalProjects: number }) {
+  const [hovered, setHovered] = useState<number | null>(null);
+
+  // پالت رنگ سازمانی
+  const COLORS = [
+    '#0B3D30',  // برند تیره
+    '#94D3B6',  // سبز روشن
+    '#B8860B',  // طلایی تیره
+    '#6BA368',  // سبز متوسط
+    '#8B6F47',  // قهوه‌ای
+    '#4A7C59',  // سبز جنگلی
+  ];
+
+  // ابعاد SVG
+  const SIZE = 220;
+  const STROKE = 32;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const CENTER = SIZE / 2;
+
+  // محاسبه مجموع
+  const total = data.reduce((sum, d) => sum + d.count, 0) || 1;
+
+  // محاسبه arc برای هر بخش
+  let cumulativeOffset = 0;
+  const segments = data.map((item, i) => {
+    const percentage = (item.count / total) * 100;
+    const length = (item.count / total) * CIRCUMFERENCE;
+    const offset = cumulativeOffset;
+    cumulativeOffset += length;
+
+    return {
+      ...item,
+      percentage,
+      length,
+      offset,
+      color: COLORS[i % COLORS.length],
+    };
+  });
+
+  const totalPct = 100;
+
+  return (
+    <Card className="border overflow-hidden">
+      <CardContent className="p-4">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+            📊 دسته‌بندی دارایی‌ها
+          </h3>
+          <span className="text-[10px] text-gray-500 bg-gray-50 px-2 py-1 rounded">
+            {data.length} نوع | {totalProjects} پروژه
+          </span>
+        </div>
+
+        <div className="flex flex-col md:flex-row items-center gap-6" dir="rtl">
+          {/* Donut */}
+          <div className="relative flex-shrink-0" style={{ width: SIZE, height: SIZE }}>
+            <svg 
+              viewBox={`0 0 ${SIZE} ${SIZE}`} 
+              className="w-full h-full -rotate-90"
+              style={{ transform: 'rotate(-90deg)' }}
+            >
+              {/* حلقه پس‌زمینه */}
+              <circle
+                cx={CENTER}
+                cy={CENTER}
+                r={RADIUS}
+                fill="none"
+                stroke="#f3f4f6"
+                strokeWidth={STROKE}
+              />
+
+              {/* بخش‌ها */}
+              {segments.map((seg, i) => {
+                const isHovered = hovered === i;
+                return (
+                  <circle
+                    key={i}
+                    cx={CENTER}
+                    cy={CENTER}
+                    r={RADIUS}
+                    fill="none"
+                    stroke={seg.color}
+                    strokeWidth={isHovered ? STROKE + 6 : STROKE}
+                    strokeDasharray={`${seg.length} ${CIRCUMFERENCE - seg.length}`}
+                    strokeDashoffset={-seg.offset}
+                    strokeLinecap="butt"
+                    className="transition-all duration-300 cursor-pointer"
+                    onMouseEnter={() => setHovered(i)}
+                    onMouseLeave={() => setHovered(null)}
+                    style={{
+                      filter: isHovered ? 'brightness(1.1)' : 'none',
+                    }}
+                  />
+                );
+              })}
+            </svg>
+
+            {/* مرکز — متن */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              {hovered !== null ? (
+                <div className="text-center">
+                  <p 
+                    className="text-2xl font-bold"
+                    style={{ color: segments[hovered].color }}
+                  >
+                    {segments[hovered].percentage.toFixed(0)}٪
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5 max-w-[80px] truncate">
+                    {segments[hovered].category_label || segments[hovered].asset_type_name}
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-[#04241D]">
+                    {totalProjects.toLocaleString('fa-IR')}
+                  </p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    پروژه
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex-1 min-w-0 w-full md:w-auto">
+            <div className="space-y-2">
+              {segments.map((seg, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between gap-3 p-2 rounded-lg transition ${
+                    hovered === i ? 'bg-gray-50' : ''
+                  }`}
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <span
+                      className="w-3 h-3 rounded-sm flex-shrink-0"
+                      style={{ backgroundColor: seg.color }}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700 truncate">
+                        {seg.category_label || seg.asset_type_name}
+                      </p>
+                      <p className="text-[10px] text-gray-400 font-mono">
+                        {seg.category_label && '' }
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-left flex-shrink-0">
+                    <p 
+                      className="text-sm font-bold"
+                      style={{ color: seg.color }}
+                    >
+                      {seg.percentage.toFixed(0)}٪
+                    </p>
+                    <p className="text-[10px] text-gray-500">
+                      {seg.count.toLocaleString('fa-IR')} پروژه
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
