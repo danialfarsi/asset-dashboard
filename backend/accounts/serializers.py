@@ -3,9 +3,11 @@ from .models import User, Organization, Department
 
 
 class OrganizationSerializer(serializers.ModelSerializer):
+    sub_type_display = serializers.CharField(source='get_sub_type_display', read_only=True)
+
     class Meta:
         model = Organization
-        fields = ['id', 'name', 'code', 'created_at']
+        fields = ['id', 'name', 'code', 'sub_type', 'sub_type_display', 'created_at']
 
 
 class DepartmentSerializer(serializers.ModelSerializer):

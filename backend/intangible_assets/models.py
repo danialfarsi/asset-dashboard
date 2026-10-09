@@ -184,6 +184,12 @@ class ScreeningTemplate(models.Model):
     ]
     
     organization_type = models.ForeignKey(OrganizationType, on_delete=models.CASCADE, related_name='templates')
+    organization_sub_type = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text='فقط برای org_type=rto: اگر university بود، فقط برای دانشگاه‌ها نمایش داده می‌شود'
+    )
     item_name = models.CharField(max_length=255)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     default_result = models.CharField(max_length=20, choices=RESULT_CHOICES, default='confirmed')

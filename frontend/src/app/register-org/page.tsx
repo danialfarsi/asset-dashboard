@@ -20,6 +20,7 @@ export default function RegisterOrgPage() {
     organization_name: '',
     organization_code: '',
     organization_type: 'manufacturing',
+    organization_sub_type: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [agree, setAgree] = useState(false);
@@ -94,6 +95,7 @@ export default function RegisterOrgPage() {
         organization_name: form.organization_name,
         organization_code: form.organization_code || undefined,
         organization_type: form.organization_type,
+        organization_sub_type: form.organization_sub_type || undefined,
       });
 
       setSuccessEmail(res.data.user.email);
@@ -361,6 +363,28 @@ export default function RegisterOrgPage() {
                 این انتخاب بر RACI و مدل حکمرانی سازمان تأثیر می‌گذارد
               </p>
             </div>
+
+            {/* 🆕 زیرگروه RTO */}
+            {form.organization_type === 'rto' && (
+              <div>
+                <label className="block text-xs font-semibold text-[#0B2C24]/70 mb-1.5 tracking-wide">
+                  نوع سازمان <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={form.organization_sub_type}
+                  onChange={(e) => setForm({ ...form, organization_sub_type: e.target.value })}
+                  required
+                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#0B2C24] focus:outline-none focus:ring-2 focus:ring-dark-green/60 focus:border-transparent transition-all"
+                >
+                  <option value="">— انتخاب کنید —</option>
+                  <option value="university">دانشگاه</option>
+                  <option value="research_institute">پژوهشگاه</option>
+                </select>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  نوع سازمان پژوهش و فناوری را مشخص کنید
+                </p>
+              </div>
+            )}
 
             <label className="flex items-start gap-2 cursor-pointer select-none pt-2">
               <div className="relative mt-0.5">

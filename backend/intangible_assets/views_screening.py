@@ -40,6 +40,23 @@ class ScreeningTemplateViewSet(viewsets.ModelViewSet):
                 except ValueError:
                     pass
         
+        # 🎯 فیلتر organization_sub_type بر اساس sub_type کاربر
+        from django.db.models import Q
+        user_sub_type = None
+        if user.is_authenticated and getattr(user, 'organization', None):
+            user_sub_type = user.organization.sub_type
+        
+        if user_sub_type == 'university':
+            # دانشگاه: هم None و هم university
+            queryset = queryset.filter(
+                Q(organization_sub_type__isnull=True) | Q(organization_sub_type='university')
+            )
+        else:
+            # RTO ساده یا سایر: فقط None یا خالی
+            queryset = queryset.filter(
+                Q(organization_sub_type__isnull=True) | Q(organization_sub_type='')
+            )
+        
         if user.role == 'super_admin':
             return queryset
         elif user.organization:

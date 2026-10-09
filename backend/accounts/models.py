@@ -26,7 +26,20 @@ class Organization(models.Model):
     )
     approved_at = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ تأیید')
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
+    # 🆕 زیرگروه سازمان (فقط برای RTO: دانشگاه / پژوهشگاه)
+    SUB_TYPE_CHOICES = [
+        ('university', 'دانشگاه'),
+        ('research_institute', 'پژوهشگاه'),
+    ]
+    sub_type = models.CharField(
+        max_length=30,
+        choices=SUB_TYPE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name='زیرگروه سازمان'
+    )
+
     class Meta:
         verbose_name = 'سازمان'
         verbose_name_plural = 'سازمان‌ها'

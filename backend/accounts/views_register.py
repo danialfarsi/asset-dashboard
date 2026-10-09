@@ -26,11 +26,17 @@ class RegisterOrganizationView(APIView):
         last_name = data.get("last_name", "").strip()
         org_name = data.get("organization_name", "").strip()
         org_code = data.get("organization_code", "").strip().upper()
+        org_sub_type = data.get("organization_sub_type", "").strip() or None
 
         if not email or not username or not password:
             return Response({"error": "ایمیل، نام کاربری و رمز عبور الزامی است"}, status=status.HTTP_400_BAD_REQUEST)
         if not org_name:
             return Response({"error": "نام سازمان الزامی است"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 🆕 اگه RTO بود، sub_type الزامیه
+        org_type = data.get("organization_type", "manufacturing").strip() or "manufacturing"
+        if org_type == "rto" and not org_sub_type:
+            return Response({"error": "برای سازمان پژوهش و فناوری، انتخاب نوع (دانشگاه/پژوهشگاه) الزامی است"}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(email=email).exists():
             return Response({"error": "این ایمیل قبلاً ثبت شده است"}, status=status.HTTP_400_BAD_REQUEST)
         if User.objects.filter(username=username).exists():
@@ -45,7 +51,12 @@ class RegisterOrganizationView(APIView):
         if Organization.objects.filter(code=org_code).exists():
             return Response({"error": f"کد سازمان {org_code} قبلاً استفاده شده است"}, status=status.HTTP_400_BAD_REQUEST)
 
-        organization = Organization.objects.create(name=org_name, code=org_code, status="pending")
+        organization = Organization.objects.create(
+            name=org_name,
+            code=org_code,
+            status="pending",
+            sub_type=org_sub_type,
+        )
 
         org_type = data.get("organization_type", "manufacturing").strip() or "manufacturing"
 
@@ -67,6 +78,7 @@ class RegisterOrganizationView(APIView):
                 "organization_name": organization.name,
                 "organization_code": organization.code,
                 "organization_status": organization.status,
+                "organization_sub_type": organization.sub_type,
             },
             "access": str(refresh.access_token),
             "refresh": str(refresh),

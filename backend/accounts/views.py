@@ -12,16 +12,7 @@ User = get_user_model()
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
-        email = attrs.get('email')
-        password = attrs.get('password')
-        
-        if email:
-            try:
-                user = User.objects.get(email=email)
-                attrs['username'] = user.username
-            except User.DoesNotExist:
-                pass
-        
+        # USERNAME_FIELD = 'email' است، پس DRF خودش email را چک می‌کند
         return super().validate(attrs)
 
 
@@ -54,6 +45,8 @@ class LoginView(TokenObtainPairView):
                     'department_id': user.department_id,
                     'department_name': user.department.name if user.department else None,
                     'organization_type': user.organization_type,
+                    'organization_sub_type': user.organization.sub_type if user.organization else None,
+                    'organization_sub_type_display': user.organization.get_sub_type_display() if user.organization and user.organization.sub_type else None,
                 }
             except Exception as e:
                 print(f"Error adding user to response: {e}")
