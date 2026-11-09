@@ -156,6 +156,7 @@ CORS_ALLOW_HEADERS = [
     "x-api-key",
     "x-source",
     "x-session-id",
+    "x-student-token",
 ]
 CORS_EXPOSE_HEADERS = [
     "content-type",
