@@ -346,6 +346,13 @@ const adminNavItems = [
     roles: ['super_admin'],
   },
   {
+    label: 'دانشجویان RTO',
+    href: '/admin/rto-students',
+    icon: Users,
+    id: 'admin-rto-students',
+    roles: ['super_admin', 'org_admin'],
+  },
+  {
     label: 'تایید VIAM',
     href: '/admin/viam-approvals',
     icon: CheckCircle,

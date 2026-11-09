@@ -33,8 +33,16 @@ import {
   Globe,
   Smartphone,
   Laptop,
-  ChevronRight
+  ChevronRight,
+  GraduationCap,
 } from 'lucide-react';
+
+import api from '@/lib/api';
+
+const toFa = (num: any): string => {
+  if (num === null || num === undefined) return '—';
+  return String(num).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d)]);
+};
 
 interface APIStats {
   summary: {
@@ -87,7 +95,8 @@ export default function APIDashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [externalUsers, setExternalUsers] = useState<ExternalUser[]>([]);
   const [externalAssets, setExternalAssets] = useState<ExternalAsset[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'assets' | 'logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'assets' | 'logs' | 'rto'>('overview');
+  const [rtoStudents, setRtoStudents] = useState<any[]>([]);
 
   const checkAuth = () => {
     const token = localStorage.getItem('access_token');
@@ -156,11 +165,24 @@ export default function APIDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  const fetchRTOStudents = async () => {
+    try {
+      console.log("🔄 fetchRTOStudents started");
+      const { data } = await api.get("/intangible/admin/rto-students/");
+      console.log("✅ RTO students data:", data);
+      setRtoStudents(data.results || []);
+      console.log("✅ rtoStudents set:", data.results?.length);
+    } catch (error) {
+      console.error("❌ Error fetching RTO students:", error);
+    }
+  };;
 
   useEffect(() => {
     if (!checkAuth()) return;
     fetchData();
+    fetchRTOStudents();
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -272,6 +294,18 @@ export default function APIDashboardPage() {
           <Package className="w-4 h-4 inline ml-1" />
           دارایی‌های خارجی
           <Badge className="mr-2 bg-emerald-100 text-emerald-700">{externalAssets.length}</Badge>
+        </button>
+        <button
+          onClick={() => setActiveTab('rto')}
+          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === 'rto'
+              ? 'border-dark-green text-dark-green'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4 inline ml-1" />
+          دانشجویان RTO
+          <Badge className="mr-2 bg-purple-100 text-purple-700">{rtoStudents.length}</Badge>
         </button>
         <button
           onClick={() => setActiveTab('logs')}
@@ -539,6 +573,92 @@ export default function APIDashboardPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* ============================================================ */}
+      {/* TAB: RTO STUDENTS */}
+      {/* ============================================================ */}
+      {activeTab === 'rto' && (
+        <div className="space-y-4">
+          {rtoStudents.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center text-gray-500">
+                <GraduationCap className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p>هیچ دانشجویی ثبت‌نام نکرده است</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3">
+              {rtoStudents.map((student) => (
+                <Card key={student.id} className="overflow-hidden">
+                  <CardContent className="p-0">
+                    <div className="p-4 space-y-3">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-bold text-base">{student.student_full_name}</span>
+                            <Badge variant="outline">#{toFa(student.student_id)}</Badge>
+                            {student.final_score > 0 && (
+                              <Badge className={
+                                student.final_score >= 70 ? "bg-emerald-100 text-emerald-700" :
+                                student.final_score >= 50 ? "bg-amber-100 text-amber-700" :
+                                "bg-red-100 text-red-700"
+                              }>
+                                امتیاز: {toFa(student.final_score.toFixed(1))}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">{student.asset_name}</p>
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(student.created_at).toLocaleDateString("fa-IR")}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+                        <span>📧 {student.student_email}</span>
+                        <span>📱 {toFa(student.student_phone)}</span>
+                        <span>📝 {toFa(student.total_answers)} پاسخ</span>
+                        <span>📎 {toFa(student.total_files)} فایل</span>
+                      </div>
+
+                      {student.answers && student.answers.length > 0 && (
+                        <details className="pt-2 border-t">
+                          <summary className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-800">
+                            مشاهده پاسخ‌ها و فایل‌ها ({toFa(student.answers.length)})
+                          </summary>
+                          <div className="mt-3 space-y-2 max-h-96 overflow-y-auto">
+                            {student.answers.map((ans: any, idx: number) => (
+                              <div key={ans.id} className="bg-gray-50 p-2 rounded text-xs">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex-1">
+                                    <p className="text-gray-700">{ans.question_text}</p>
+                                    <p className="text-[10px] text-gray-400 mt-1">{ans.dimension}</p>
+                                  </div>
+                                  <span className="font-bold text-emerald-600">{toFa(ans.score)}/۵</span>
+                                </div>
+                                {ans.has_file && ans.file_url && (
+                                  <a
+                                    href={ans.file_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline mt-1 inline-block"
+                                  >
+                                    📎 {ans.file_name || "مشاهده فایل"}
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       {/* ============================================================ */}

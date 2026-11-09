@@ -490,3 +490,9 @@ from intangible_assets.engine_06.readiness_models import (  # noqa: E402, F401
     ReadinessAssessmentV2,
     CommitteeDecision,
 )
+
+
+# ============================================================
+# RTO Student Info (فرم پابلیک)
+# ============================================================
+from intangible_assets.rto_models import RTOStudentInfo  # noqa: E402, F401

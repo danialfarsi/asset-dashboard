@@ -29,6 +29,9 @@ from .views_dashboard import DashboardPortfolioView
 
 # STEP 4 - Protection
 from .protection_views import ProtectionViewSet
+from .views_public_screening import RTOScreeningPublicView, RTOStudentListView
+from .views_public_valuation import PublicValuationQuestionsView, PublicValuationSubmitView
+from .views_admin_rto import AdminRTOStudentsListView
 
 router = DefaultRouter()
 
@@ -71,6 +74,15 @@ router.register(r'sensitivity', SensitivityAnalysisViewSet, basename='sensitivit
 router.register(r'graph', GraphViewSet, basename='graph')
 
 urlpatterns = [
+    # 👑 Admin RTO Students
+    path("admin/rto-students/", AdminRTOStudentsListView.as_view(), name="admin-rto-students"),
+
+    # 🌐 Public RTO Screening (بدون لاگین)
+    path("public/rto-screening/", RTOScreeningPublicView.as_view(), name="rto-public-screening"),
+    path("public/rto-students/", RTOStudentListView.as_view(), name="rto-students-list"),
+    path("public/rto-valuation/<int:asset_id>/questions/", PublicValuationQuestionsView.as_view(), name="rto-valuation-questions"),
+    path("public/rto-valuation/<int:asset_id>/submit/", PublicValuationSubmitView.as_view(), name="rto-valuation-submit"),
+
     path("engine/commercialization/", include("intangible_assets.engine_06.urls")),
     path('viam/', include('intangible_assets.viam.urls')),
     path('maturity/', include('intangible_assets.engine_05.maturity_urls')),
