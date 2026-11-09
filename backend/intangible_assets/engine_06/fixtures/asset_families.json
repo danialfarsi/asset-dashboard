@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "families": [
+    {
+      "code": "1F",
+      "name_fa": "دانش فنی و اسرار تجاری",
+      "name_en": "Technical Know-How & Trade Secrets",
+      "order": 1
+    },
+    {
+      "code": "2F",
+      "name_fa": "داده، مدل و نرم‌افزار",
+      "name_en": "Data, Models & Software",
+      "order": 2
+    },
+    {
+      "code": "3F",
+      "name_fa": "حقوق ثبت‌شده و مجوزها",
+      "name_en": "Registered Rights & Licenses",
+      "order": 3
+    },
+    {
+      "code": "4F",
+      "name_fa": "برند، شبکه و روابط بازار",
+      "name_en": "Brand, Network & Market Relations",
+      "order": 4
+    },
+    {
+      "code": "5F",
+      "name_fa": "دانش عملیاتی مدون و خدمات دانشی",
+      "name_en": "Codified Operational Knowledge & Knowledge Services",
+      "order": 5
+    },
+    {
+      "code": "6F",
+      "name_fa": "سرمایه انسانی تخصصی",
+      "name_en": "Specialized Human Capital",
+      "order": 6
+    }
+  ]
+}

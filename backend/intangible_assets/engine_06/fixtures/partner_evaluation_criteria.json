@@ -1,0 +1,49 @@
+{
+  "version": "1.0",
+  "criteria": [
+    {
+      "id": "financial_capacity",
+      "name_fa": "توان مالی",
+      "weight": 25
+    },
+    {
+      "id": "track_record",
+      "name_fa": "سابقه",
+      "weight": 20
+    },
+    {
+      "id": "strategic_alignment",
+      "name_fa": "هم‌راستایی راهبردی",
+      "weight": 25
+    },
+    {
+      "id": "market_access",
+      "name_fa": "دسترسی به بازار",
+      "weight": 15
+    },
+    {
+      "id": "reputation",
+      "name_fa": "اعتبار",
+      "weight": 15
+    }
+  ],
+  "disqualifiers": [
+    {
+      "id": "conflict_of_interest",
+      "name_fa": "تعارض منافع"
+    },
+    {
+      "id": "contract_breach_history",
+      "name_fa": "سابقه نقض قرارداد"
+    },
+    {
+      "id": "sanctioned",
+      "name_fa": "تحریم"
+    }
+  ],
+  "thresholds": {
+    "min_score_for_shortlist": 60,
+    "ideal_score": 80,
+    "max_shortlist_size": 7
+  }
+}

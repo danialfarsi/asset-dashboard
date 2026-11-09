@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "order": 1,
+      "condition_type": "blocker_exists",
+      "recommendation": "no_go",
+      "sub_state_fa": "مانع قطعی حقوقی یا مالکیتی",
+      "message_template": "گویه بحرانی «{criterion_code}» با پرچم مانع قطعی ثبت شده است. دلیل: {blocker_reason}",
+      "destination": ""
+    },
+    {
+      "order": 2,
+      "condition_type": "below_no_go",
+      "recommendation": "no_go",
+      "sub_state_fa": "آمادگی بسیار پایین",
+      "message_template": "امتیاز نهایی {final_score} از حد پایین توقف ({threshold}) کمتر است. ارزیابی مجدد پس از دوره تعیین‌شده پیشنهاد می‌شود.",
+      "destination": ""
+    },
+    {
+      "order": 3,
+      "condition_type": "critical_low_score",
+      "recommendation": "develop",
+      "sub_state_fa": "نقص در گویه بحرانی",
+      "message_template": "امتیاز نهایی {final_score} کافی است، اما گویه‌های بحرانی زیر سطح ۳: {critical_list}",
+      "destination": "تکمیل شواهد بحرانی"
+    },
+    {
+      "order": 4,
+      "condition_type": "confidence_low",
+      "recommendation": "develop",
+      "sub_state_fa": "تکمیل شواهد",
+      "message_template": "امتیاز نهایی {final_score} کافی است، اما سطح اطمینان {confidence} از حداقل {min_conf} کمتر است. شواهد الزامی بدون مستند: {missing_evidence}",
+      "destination": "تکمیل شواهد و مستندسازی"
+    },
+    {
+      "order": 5,
+      "condition_type": "between_thresholds",
+      "recommendation": "develop",
+      "sub_state_fa": "ارتقای آمادگی",
+      "message_template": "امتیاز نهایی {final_score} بین حد توقف و حداقل Go است. ۳ بعد ضعیف‌تر: {weak_dimensions}",
+      "destination": "به‌سازی مطابق با بعد ضعیف"
+    },
+    {
+      "order": 6,
+      "condition_type": "all_pass",
+      "recommendation": "go",
+      "sub_state_fa": "آماده ورود به گام ۲",
+      "message_template": "امتیاز نهایی {final_score}، اطمینان {confidence}. آماده ورود به گام ۲.",
+      "destination": "گام ۲ — انتخاب مدل تجاری‌سازی"
+    }
+  ]
+}

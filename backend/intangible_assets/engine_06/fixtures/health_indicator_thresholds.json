@@ -1,0 +1,48 @@
+{
+  "version": "1.0",
+  "indicators": {
+    "collection_rate": {
+      "name_fa": "نرخ وصول",
+      "green": 90,
+      "yellow": 70,
+      "red": 0
+    },
+    "revenue_vs_forecast": {
+      "name_fa": "درآمد نسبت به پیش‌بینی",
+      "green": 100,
+      "yellow": 75,
+      "red": 0
+    },
+    "contract_compliance": {
+      "name_fa": "ایفای تعهدات",
+      "green": 90,
+      "yellow": 70,
+      "red": 0
+    },
+    "payment_delays": {
+      "name_fa": "تأخیر در پرداخت (روز)",
+      "green": 0,
+      "yellow": 30,
+      "red": 60,
+      "inverted": true
+    }
+  },
+  "renewal_recommendations": {
+    "extend_as_is": {
+      "min_health_score": 85,
+      "label_fa": "تمدید بدون تغییر"
+    },
+    "extend_with_rate_review": {
+      "min_health_score": 70,
+      "label_fa": "تمدید با بازنگری نرخ"
+    },
+    "renegotiate": {
+      "min_health_score": 50,
+      "label_fa": "بازمذاکره"
+    },
+    "do_not_renew": {
+      "min_health_score": 0,
+      "label_fa": "عدم تمدید"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "contract_value_thresholds": [
+    {
+      "min": 0,
+      "max": 5000000000,
+      "approver": "bd_manager",
+      "title_fa": "مدیر توسعه کسب‌وکار"
+    },
+    {
+      "min": 5000000000,
+      "max": 50000000000,
+      "approver": "ceo",
+      "title_fa": "مدیرعامل"
+    },
+    {
+      "min": 50000000000,
+      "max": null,
+      "approver": "board",
+      "title_fa": "هیئت‌مدیره"
+    }
+  ],
+  "override_levels": {
+    "readiness_override": "commercialization_committee",
+    "business_model_override": "commercialization_committee",
+    "royalty_exception": {
+      "up_to_15": "committee",
+      "up_to_20": "board",
+      "above_20": "board_and_audit"
+    }
+  }
+}

@@ -113,7 +113,7 @@ export default function DepartmentDetailPage() {
   const [selectedList, setSelectedList] = useState<'all' | 'valuation' | 'protection'>('all');
   const [approving, setApproving] = useState<number | null>(null);
 
-  const departmentCode = params.code as string;
+  const departmentCode = decodeURIComponent(params.code as string);
   const isAdmin = user?.role === 'org_admin' || user?.role === 'super_admin';
 
   useEffect(() => {
@@ -134,7 +134,12 @@ export default function DepartmentDetailPage() {
       setLoading(true);
       const { data } = await api.get('/auth/departments/');
       const depts = data.results || data || [];
-      const found = depts.find((d: any) => d.code.toLowerCase() === departmentCode.toLowerCase());
+      console.log('🔍 departmentCode:', departmentCode);
+      console.log('🔍 depts:', depts.map((d: any) => d.code));
+      const found = depts.find((d: any) => 
+        d.code.toLowerCase() === departmentCode.toLowerCase()
+      );
+      console.log('🔍 found:', found);
       setDepartment(found || null);
     } catch (error) {
       console.error('Error fetching department:', error);

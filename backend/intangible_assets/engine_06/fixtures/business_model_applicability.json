@@ -1,0 +1,99 @@
+{
+  "version": "1.0",
+  "asset_category_to_models": {
+    "brand": [
+      "exclusive_license",
+      "non_exclusive_license",
+      "franchise"
+    ],
+    "patent": [
+      "exclusive_license",
+      "non_exclusive_license",
+      "full_sale",
+      "joint_venture"
+    ],
+    "software": [
+      "exclusive_license",
+      "non_exclusive_license",
+      "full_sale",
+      "knowledge_services"
+    ],
+    "trade_secret": [
+      "exclusive_license",
+      "joint_venture",
+      "full_sale"
+    ],
+    "customer_portfolio": [
+      "joint_venture",
+      "full_sale",
+      "knowledge_services"
+    ],
+    "goodwill": [
+      "full_sale",
+      "spin_off"
+    ],
+    "process": [
+      "exclusive_license",
+      "non_exclusive_license",
+      "knowledge_services"
+    ],
+    "contract": [
+      "exclusive_license",
+      "non_exclusive_license",
+      "joint_venture"
+    ],
+    "data": [
+      "exclusive_license",
+      "knowledge_services",
+      "joint_venture"
+    ],
+    "culture": [
+      "knowledge_services",
+      "non_exclusive_license"
+    ]
+  },
+  "model_attributes": {
+    "exclusive_license": {
+      "complexity": "medium",
+      "time_horizon_months": 24,
+      "revenue_potential": "high",
+      "risk": "medium"
+    },
+    "non_exclusive_license": {
+      "complexity": "low",
+      "time_horizon_months": 18,
+      "revenue_potential": "medium",
+      "risk": "low"
+    },
+    "full_sale": {
+      "complexity": "low",
+      "time_horizon_months": 6,
+      "revenue_potential": "high",
+      "risk": "low"
+    },
+    "joint_venture": {
+      "complexity": "high",
+      "time_horizon_months": 36,
+      "revenue_potential": "very_high",
+      "risk": "high"
+    },
+    "spin_off": {
+      "complexity": "very_high",
+      "time_horizon_months": 48,
+      "revenue_potential": "very_high",
+      "risk": "very_high"
+    },
+    "franchise": {
+      "complexity": "medium",
+      "time_horizon_months": 24,
+      "revenue_potential": "medium",
+      "risk": "medium"
+    },
+    "knowledge_services": {
+      "complexity": "low",
+      "time_horizon_months": 12,
+      "revenue_potential": "low",
+      "risk": "low"
+    }
+  }
+}

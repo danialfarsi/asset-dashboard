@@ -452,3 +452,41 @@ from .engine_05.maturity_models import (
     MaturityAssessment,
     MaturityResponse,
 )
+
+
+# ============================================================
+# موتور ۶ — تجاری‌سازی (Engine 06)
+# ============================================================
+from intangible_assets.engine_06.models import (  # noqa: E402, F401
+    Partner,
+    CommercializationCase,
+    ReadinessAssessment,
+    BusinessModelSelection,
+    PartnerShortlist,
+    CommercializationContract,
+    PaymentSchedule,
+    RevenueRecord,
+    CommercializationActivityLog,
+)
+
+
+# ============================================================
+# موتور ۶ — گام ۱ (Readiness Models V2)
+# ============================================================
+from intangible_assets.engine_06.readiness_models import (  # noqa: E402, F401
+    AssetFamily,
+    AssetFamilyMap,
+    ReadinessDimension,
+    ReadinessCriterion,
+    LikertScale,
+    EvidenceFactor,
+    DimensionWeight,
+    PartWeight,
+    ReadinessThreshold,
+    RecommendationRule,
+    RoutingRule,
+    ReadinessCriterionResponse,
+    CriterionEvidence,
+    ReadinessAssessmentV2,
+    CommitteeDecision,
+)

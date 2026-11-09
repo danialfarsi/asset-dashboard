@@ -78,23 +78,26 @@ class RegisteredAssetsView(APIView):
             if not valuation:
                 continue
             
-            # 🆕 is_registered: اگه case completed باشه و final_value داشته باشه
-            is_registered = (
-                asset_case.status == 'REGISTERED' or
-                asset_case.status == 'completed' or
-                getattr(asset_case, 'certificate_no', None) is not None
-            )
-            
             step4 = step4_map.get(asset_case.id)
             final_value = float(step4.final_value) if step4 else 0
             confidence_level = float(step4.confidence_level) if step4 and hasattr(step4, 'confidence_level') else 0
             qc_score = float(step4.qc_score) if step4 and hasattr(step4, 'qc_score') else 0
             token_value = float(step4.token_value) if step4 and step4.token_value else 0
-            
-            # فیلتر
-            if final_value == 0 and not is_registered:
+
+            # 🔥 is_registered: باید حتماً final_value > 0 باشه (نه فقط status)
+            is_registered = (
+                final_value > 0
+                and (
+                    asset_case.status == 'REGISTERED'
+                    or getattr(asset_case, 'certificate_no', None) is not None
+                    or step4 is not None
+                )
+            )
+
+            # 🔥 فیلتر اصلی: اگه final_value صفر یا منفی، نشون نده
+            if final_value <= 0:
                 continue
-            if final_value == 0 and qc_score == 0 and not is_registered:
+            if not step4:
                 continue
             
             result.append({

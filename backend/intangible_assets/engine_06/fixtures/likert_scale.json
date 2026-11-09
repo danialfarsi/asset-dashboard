@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "levels": [
+    {
+      "level": 1,
+      "label_fa": "وجود ندارد",
+      "meaning_fa": "هیچ اقدام یا مدرکی نیست",
+      "base_score": 0
+    },
+    {
+      "level": 2,
+      "label_fa": "ابتدایی",
+      "meaning_fa": "اقدام پراکنده، غیرمستند یا صرفاً شفاهی",
+      "base_score": 25
+    },
+    {
+      "level": 3,
+      "label_fa": "نسبی",
+      "meaning_fa": "بخشی انجام شده و ناقص است",
+      "base_score": 50
+    },
+    {
+      "level": 4,
+      "label_fa": "مناسب",
+      "meaning_fa": "کامل و مستند است و ایراد جزئی دارد",
+      "base_score": 75
+    },
+    {
+      "level": 5,
+      "label_fa": "کامل و راستی‌آزمایی‌شده",
+      "meaning_fa": "کامل، مستند و تأییدشده توسط مرجع مستقل یا ذی‌صلاح",
+      "base_score": 100
+    }
+  ],
+  "special_option": {
+    "code": "N/A",
+    "label_fa": "نامربوط",
+    "requires_reason": true,
+    "max_per_dimension": 1
+  }
+}

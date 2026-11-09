@@ -223,7 +223,16 @@ export default function Step1_Analysis({ id, data, archetype, onComplete, assetN
   console.log('🔍 Step1 - tools:', tools);
 
   // 🔥 امتیاز پتانسیل حفاظتی (گام ۱)
-  const scores = calculateScores(tools);
+  // 🆕 اگه tools خالی بود ولی step1_result.scores در دیتابیس هست، از اون استفاده کن
+  const scoresFromDB = result?.step1_result?.scores || data?.step1_result?.scores;
+  const scores = scoresFromDB 
+    ? {
+        overall: scoresFromDB.overall || 0,
+        legal: scoresFromDB.legal || 0,
+        procedural: scoresFromDB.procedural || 0,
+        technical: scoresFromDB.technical || 0,
+      }
+    : calculateScores(tools);
 
   const validations = [
     { label: 'اعتبارسنجی قراردادها', icon: FileCheck, status: isAnalyzed ? 'done' : 'pending' },

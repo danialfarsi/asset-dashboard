@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "thresholds": {
+    "manufacturing": {
+      "go_min_score": 70,
+      "go_min_confidence": 60,
+      "no_go_max_score": 50
+    },
+    "service": {
+      "go_min_score": 68,
+      "go_min_confidence": 55,
+      "no_go_max_score": 48
+    },
+    "research": {
+      "go_min_score": 72,
+      "go_min_confidence": 65,
+      "no_go_max_score": 50
+    },
+    "holding": {
+      "go_min_score": 70,
+      "go_min_confidence": 65,
+      "no_go_max_score": 50
+    }
+  }
+}

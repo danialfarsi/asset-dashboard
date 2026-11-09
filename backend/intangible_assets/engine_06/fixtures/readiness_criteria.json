@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "criteria": [
+    {
+      "id": "technical_maturity",
+      "name_fa": "بلوغ فنی دارایی",
+      "name_en": "Technical Maturity",
+      "weight": 15,
+      "required_evidence": true,
+      "description_fa": "میزان آمادگی فنی و اثبات‌شده بودن عملکرد دارایی"
+    },
+    {
+      "id": "market_demand",
+      "name_fa": "تقاضای بازار",
+      "name_en": "Market Demand",
+      "weight": 20,
+      "required_evidence": true,
+      "description_fa": "وجود تقاضای واقعی و مستند در بازار هدف"
+    },
+    {
+      "id": "ownership_clarity",
+      "name_fa": "وضوح مالکیت",
+      "name_en": "Ownership Clarity",
+      "weight": 15,
+      "required_evidence": true,
+      "description_fa": "مستندات حقوقی مالکیت دارایی"
+    },
+    {
+      "id": "estimated_value",
+      "name_fa": "ارزش برآوردی",
+      "name_en": "Estimated Value",
+      "weight": 10,
+      "required_evidence": false,
+      "description_fa": "ارزش‌گذاری معتبر از موتور ۲"
+    },
+    {
+      "id": "competitiveness",
+      "name_fa": "رقابت‌پذیری",
+      "name_en": "Competitiveness",
+      "weight": 15,
+      "required_evidence": true,
+      "description_fa": "مزیت رقابتی نسبت به راه‌حل‌های جایگزین"
+    },
+    {
+      "id": "potential_partner",
+      "name_fa": "وجود شریک بالقوه",
+      "name_en": "Potential Partner Availability",
+      "weight": 15,
+      "required_evidence": true,
+      "description_fa": "وجود حداقل یک شریک واجد شرایط"
+    },
+    {
+      "id": "legal_risk",
+      "name_fa": "ریسک حقوقی",
+      "name_en": "Legal Risk",
+      "weight": 10,
+      "required_evidence": true,
+      "description_fa": "عدم وجود دعاوی یا محدودیت حقوقی"
+    }
+  ],
+  "scoring": {
+    "min_score": 0,
+    "max_score": 100,
+    "evidence_penalty": 15,
+    "confidence_formula": "weighted_avg"
+  },
+  "thresholds": {
+    "go": 75,
+    "develop_further": 50,
+    "no_go": 0
+  }
+}

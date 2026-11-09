@@ -1,0 +1,333 @@
+{
+  "version": "1.0",
+  "criteria": [
+    {
+      "code": "1D-01",
+      "dimension": "1D",
+      "text_fa": "عملکرد دارایی در شرایط واقعی یا نزدیک به واقعی اثبات شده است.",
+      "suggested_evidence": "گزارش آزمون، پایلوت یا نتایج به‌کارگیری",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 1
+    },
+    {
+      "code": "1D-02",
+      "dimension": "1D",
+      "text_fa": "مستندات فنی (مشخصات، دستورالعمل، نسخه) برای استفاده شخص ثالث کامل است.",
+      "suggested_evidence": "بسته مستندات فنی",
+      "is_required_evidence": true,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "1D-03",
+      "dimension": "1D",
+      "text_fa": "نتایج عملکرد با شاخص‌های عددی و تکرارپذیر ثبت شده است.",
+      "suggested_evidence": "گزارش سنجه‌ها، سوابق اجرا",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "1D-04",
+      "dimension": "1D",
+      "text_fa": "فاصله تا آمادگی عرضه کم است و هزینه و زمان تکمیل آن برآورد شده است.",
+      "suggested_evidence": "برآورد هزینه و زمان توسعه",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "2D-01",
+      "dimension": "2D",
+      "text_fa": "گیرندگان یا مشتریان هدف مشخص و بخش‌بندی شده‌اند.",
+      "text_internal_fa": "زیرمجموعه‌ها یا واحدهای بهره‌بردار هدف مشخص شده‌اند.",
+      "suggested_evidence": "سند بخش‌بندی بازار",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 1
+    },
+    {
+      "code": "2D-02",
+      "dimension": "2D",
+      "text_fa": "تقاضای واقعی (درخواست رسمی، مکاتبه، مذاکره یا پیش‌قرارداد) مستند است.",
+      "text_internal_fa": "نیاز داخلی (درخواست واحد، مذاکره بین‌واحدی) مستند است.",
+      "suggested_evidence": "نامه، صورت‌جلسه، تفاهم‌نامه",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 2
+    },
+    {
+      "code": "2D-03",
+      "dimension": "2D",
+      "text_fa": "اندازه و روند رشد بازار هدف با منبع معتبر برآورد شده است.",
+      "suggested_evidence": "گزارش بازار، آمار صنعت",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "2D-04",
+      "dimension": "2D",
+      "text_fa": "مرجع قیمتی (قراردادهای مشابه یا نرخ‌های بازار) برای این دارایی موجود است.",
+      "suggested_evidence": "بنچمارک قیمت، قراردادهای مشابه",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "3D-01",
+      "dimension": "3D",
+      "text_fa": "مالک یا مالکان دارایی به صورت مستند مشخص است.",
+      "suggested_evidence": "سند ثبت، قرارداد، شناسنامه دارایی",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 1
+    },
+    {
+      "code": "3D-02",
+      "dimension": "3D",
+      "text_fa": "حقوق کارکنان، پیمانکاران، مشاوران یا دانشگاه‌های مشارکت‌کننده در خلق دارایی تعیین تکلیف شده است.",
+      "suggested_evidence": "قراردادهای کار و پیمان، واگذاری حقوق",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 2
+    },
+    {
+      "code": "3D-03",
+      "dimension": "3D",
+      "text_fa": "دارایی از نظر حقوقی از سایر دارایی‌ها قابل تفکیک است و مرز آن (دامنه، نسخه، قلمرو) روشن است.",
+      "suggested_evidence": "شناسنامه دارایی، سند تعریف دامنه",
+      "is_required_evidence": true,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "3D-04",
+      "dimension": "3D",
+      "text_fa": "هیچ بار یا حق شخص ثالث (رهن، لایسنس قبلی، تعهد انحصار، سهم تأمین‌کننده مالی) مانع واگذاری یا مجوزدهی نیست.",
+      "suggested_evidence": "استعلام، فهرست قراردادهای قبلی",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "4D-01",
+      "dimension": "4D",
+      "text_fa": "روش و مفروضات گزارش ارزش‌گذاری با نوع دارایی متناسب و شفاف است.",
+      "suggested_evidence": "گزارش ارزش‌گذاری، ارزیابی موتور ۲",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 1
+    },
+    {
+      "code": "4D-02",
+      "dimension": "4D",
+      "text_fa": "ارزش برآوردی در برابر هزینه‌های تجاری‌سازی (حفاظت، توسعه، بازاریابی، حقوقی) توجیه اقتصادی دارد.",
+      "suggested_evidence": "برآورد هزینه-فایده",
+      "is_required_evidence": true,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "4D-03",
+      "dimension": "4D",
+      "text_fa": "پتانسیل درآمد (رویالتی، فروش یا صرفه‌جویی) در سناریوی محتمل برآورد شده است.",
+      "suggested_evidence": "مدل درآمدی اولیه",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "4D-04",
+      "dimension": "4D",
+      "text_fa": "ارزش دارایی نسبت به تغییر مفروضات کلیدی (نرخ تنزیل، حجم بازار، عمر مفید) پایدار است.",
+      "suggested_evidence": "تحلیل حساسیت",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "5D-01",
+      "dimension": "5D",
+      "text_fa": "مزیت متمایز دارایی نسبت به جایگزین‌ها (فناوری، هزینه، کیفیت، دسترسی) مشخص و مستند است.",
+      "suggested_evidence": "مقایسه فنی و اقتصادی",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 1
+    },
+    {
+      "code": "5D-02",
+      "dimension": "5D",
+      "text_fa": "تقلید یا دور زدن دارایی برای رقبا دشوار است (حفاظت، دانش ضمنی، موانع ورود).",
+      "suggested_evidence": "تحلیل موانع ورود",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "5D-03",
+      "dimension": "5D",
+      "text_fa": "پنجره زمانی بازار مناسب است و دارایی در معرض منسوخ شدن سریع نیست.",
+      "suggested_evidence": "گزارش روند فناوری و بازار",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "5D-04",
+      "dimension": "5D",
+      "text_fa": "تحلیل رقبا و جایگزین‌ها انجام شده و به‌روز است.",
+      "suggested_evidence": "گزارش رقبا",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "6D-01",
+      "dimension": "6D",
+      "text_fa": "حداقل سه شریک یا مجوزگیرنده بالقوه با مشخصات مناسب شناسایی شده‌اند.",
+      "text_internal_fa": "حداقل سه واحد یا زیرمجموعه بهره‌بردار بالقوه شناسایی شده‌اند.",
+      "suggested_evidence": "فهرست اولیه شرکا",
+      "is_required_evidence": true,
+      "is_critical": false,
+      "order": 1
+    },
+    {
+      "code": "6D-02",
+      "dimension": "6D",
+      "text_fa": "حداقل یک شریک بالقوه نشانه علاقه رسمی یا غیررسمی مستند داشته است.",
+      "text_internal_fa": "حداقل یک واحد بهره‌بردار علاقه مستند داشته است.",
+      "suggested_evidence": "مکاتبه، صورت‌جلسه",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "6D-03",
+      "dimension": "6D",
+      "text_fa": "شرکای شناسایی شده توان مالی و فنی پذیرش و بهره‌برداری از دارایی را دارند.",
+      "suggested_evidence": "پروفایل شریک",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "6D-04",
+      "dimension": "6D",
+      "text_fa": "در بررسی اولیه، شرکای شناسایی شده تعارض منافع، سابقه نقض قرارداد یا محدودیت تحریمی ندارند.",
+      "suggested_evidence": "استعلام و بررسی اولیه",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "7D-01",
+      "dimension": "7D",
+      "text_fa": "آزادی عمل (FTO) بررسی شده و مانعی از نقض حقوق شخص ثالث مشاهده نشده است.",
+      "suggested_evidence": "گزارش FTO، نظر حقوقی",
+      "is_required_evidence": true,
+      "is_critical": true,
+      "order": 1
+    },
+    {
+      "code": "7D-02",
+      "dimension": "7D",
+      "text_fa": "دارایی مشمول محدودیت صادراتی، تحریم، طبقه‌بندی امنیتی یا مقررات انتقال فناوری نیست، یا مجوزهای لازم اخذ شده یا قابل اخذ است.",
+      "suggested_evidence": "استعلام، نظر حقوقی، مجوز",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "7D-03",
+      "dimension": "7D",
+      "text_fa": "احتمال ابطال یا چالش حقوق دارایی (اعتراض، ادعای مالکیت، ابطال ثبت) پایین ارزیابی شده است.",
+      "suggested_evidence": "گزارش ریسک حقوقی",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "7D-04",
+      "dimension": "7D",
+      "text_fa": "سازوکار اجرای حقوق (حق حسابرسی، پیگیری نقض، حل اختلاف) برای این دارایی قابل اتکاست.",
+      "suggested_evidence": "نظر حقوقی، قالب قرارداد",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "8D-01",
+      "dimension": "8D",
+      "text_fa": "دارایی به صورت مدون (سند، کد، دستورالعمل، نمونه) قابل تحویل به شخص ثالث است، بدون نیاز به حضور دائم افراد کلیدی.",
+      "suggested_evidence": "بسته انتقال فناوری",
+      "is_required_evidence": true,
+      "is_critical": false,
+      "order": 1
+    },
+    {
+      "code": "8D-02",
+      "dimension": "8D",
+      "text_fa": "وابستگی به افراد کلیدی (دانش ضمنی) شناسایی شده و با برنامه انتقال دانش کاهش یافته است.",
+      "suggested_evidence": "برنامه انتقال دانش",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "8D-03",
+      "dimension": "8D",
+      "text_fa": "اجزای لازم برای بهره‌برداری (داده، تجهیز، نرم‌افزار، مواد) مشخص و قابل تأمین است.",
+      "suggested_evidence": "فهرست ملزومات",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "8D-04",
+      "dimension": "8D",
+      "text_fa": "ظرفیت آموزش، پشتیبانی فنی و تضمین کیفیت برای گیرنده فراهم است.",
+      "suggested_evidence": "برنامه پشتیبانی",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    },
+    {
+      "code": "9D-01",
+      "dimension": "9D",
+      "text_fa": "تجاری‌سازی این دارایی با استراتژی کلان سازمان هم‌راستا است.",
+      "suggested_evidence": "سند استراتژی، مصوبه مدیریت",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 1
+    },
+    {
+      "code": "9D-02",
+      "dimension": "9D",
+      "text_fa": "ظرفیت اجرایی (منابع انسانی، مالی، فنی) برای تجاری‌سازی در سازمان وجود دارد.",
+      "suggested_evidence": "تخصیص منابع",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 2
+    },
+    {
+      "code": "9D-03",
+      "dimension": "9D",
+      "text_fa": "منابع مالی برای تجاری‌سازی تأمین شده یا برنامه تأمین وجود دارد.",
+      "suggested_evidence": "بودجه مصوب",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 3
+    },
+    {
+      "code": "9D-04",
+      "dimension": "9D",
+      "text_fa": "تصمیم‌گیران کلیدی سازمان از تجاری‌سازی حمایت می‌کنند.",
+      "suggested_evidence": "مصوبه، حمایت رسمی",
+      "is_required_evidence": false,
+      "is_critical": false,
+      "order": 4
+    }
+  ]
+}

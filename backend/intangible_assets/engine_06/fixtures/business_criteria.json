@@ -1,0 +1,133 @@
+{
+  "version": "1.0",
+  "criteria": [
+    {
+      "code": "P-01",
+      "business_type": "manufacturing",
+      "text_fa": "ظرفیت تولید، کنترل کیفیت و زنجیره تأمین برای پشتیبانی از گیرنده یا تولید مشترک مشخص است.",
+      "suggested_evidence": "طرح ظرفیت",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "P-02",
+      "business_type": "manufacturing",
+      "text_fa": "تجاری‌سازی با تعهدات انحصار تأمین یا حقوق مشتریان فعلی تعارض ندارد.",
+      "suggested_evidence": "بررسی تعارض",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "P-03",
+      "business_type": "manufacturing",
+      "text_fa": "الزامات استاندارد، گواهی محصول و ایمنی برای قلمرو هدف بررسی شده است.",
+      "suggested_evidence": "گواهینامه‌ها",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "P-04",
+      "business_type": "manufacturing",
+      "text_fa": "اثر تجاری‌سازی بر حاشیه سود و سهم بازار محصولات فعلی (رقابت درونی) ارزیابی شده است.",
+      "suggested_evidence": "تحلیل رقابت درونی",
+      "is_required_evidence": true,
+      "order": 4
+    },
+    {
+      "code": "S-01",
+      "business_type": "service",
+      "text_fa": "روش ارائه خدمت استاندارد و تکرارپذیر (Playbook) است و به افراد خاص وابسته نیست.",
+      "suggested_evidence": "Playbook خدمت",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "S-02",
+      "business_type": "service",
+      "text_fa": "سطح خدمت (SLA) و شاخص‌های اثربخشی تعریف و اندازه‌گیری شده است.",
+      "suggested_evidence": "SLA، KPI",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "S-03",
+      "business_type": "service",
+      "text_fa": "ظرفیت آموزش و انتقال دانش به ارائه‌دهنده یا مجوزگیرنده وجود دارد.",
+      "suggested_evidence": "برنامه آموزش",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "S-04",
+      "business_type": "service",
+      "text_fa": "ریسک مسئولیت حرفه‌ای و حفظ اطلاعات مشتریان در مدل تجاری‌سازی بررسی شده است.",
+      "suggested_evidence": "بیمه، سیاست حفظ اطلاعات",
+      "is_required_evidence": true,
+      "order": 4
+    },
+    {
+      "code": "R-01",
+      "business_type": "research",
+      "text_fa": "سیاست مالکیت فکری مصوب (سهم پژوهشگران، مشارکت، حقوق مؤلف) وجود دارد و اجرا شده است.",
+      "suggested_evidence": "سیاست IP",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "R-02",
+      "business_type": "research",
+      "text_fa": "تعهدات منابع تأمین مالی پژوهش (دولتی، صنعتی، بین‌المللی) بر حقوق تجاری‌سازی بررسی شده است.",
+      "suggested_evidence": "قرارداد تأمین مالی",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "R-03",
+      "business_type": "research",
+      "text_fa": "برای عبور از فاصله پژوهش تا بازار (نمونه‌سازی، پایلوت) برنامه و حامی مشخص وجود دارد.",
+      "suggested_evidence": "طرح پایلوت",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "R-04",
+      "business_type": "research",
+      "text_fa": "هماهنگی انتشار علمی و تجاری‌سازی (حفظ تازگی، زمان‌بندی انتشار) انجام شده است.",
+      "suggested_evidence": "سیاست انتشار",
+      "is_required_evidence": true,
+      "order": 4
+    },
+    {
+      "code": "H-01",
+      "business_type": "holding",
+      "text_fa": "مالک حقوقی دارایی در گروه مشخص است و تکلیف انتقال میان شرکت‌های گروه روشن است.",
+      "suggested_evidence": "سند مالکیت گروهی",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "H-02",
+      "business_type": "holding",
+      "text_fa": "مسیر بیرونی یا درون‌گروهی انتخاب شده و ملاحظات قیمت‌گذاری انتقالی و مالیاتی بررسی شده است.",
+      "suggested_evidence": "مصوبه مسیر",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "H-03",
+      "business_type": "holding",
+      "text_fa": "هم‌راستایی با شرکت‌های تابعه (رقابت درون‌گروهی) ارزیابی شده است.",
+      "suggested_evidence": "تحلیل هم‌راستایی",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "H-04",
+      "business_type": "holding",
+      "text_fa": "الزامات حاکمیتی شرکت (تصویب هیئت‌مدیره، معاملات با اشخاص وابسته، افشا) شناسایی شده است.",
+      "suggested_evidence": "صورت‌جلسه، مصوبه",
+      "is_required_evidence": true,
+      "order": 4
+    }
+  ]
+}

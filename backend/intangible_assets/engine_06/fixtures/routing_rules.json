@@ -1,0 +1,41 @@
+{
+  "version": "1.0",
+  "rules": [
+    {
+      "weak_dimension": "1D",
+      "weak_condition": "بلوغ فنی، قابلیت انتقال",
+      "suggested_action_fa": "نمونه‌سازی، مستندسازی، بسته انتقال فناوری",
+      "destination": "موتور ۴ (توسعه و نوآوری)"
+    },
+    {
+      "weak_dimension": "3D",
+      "weak_condition": "مالکیت، ریسک حقوقی",
+      "suggested_action_fa": "تعیین تکلیف مالکیت، FTO، اخذ مجوز",
+      "destination": "کارشناس حقوقی و موتور ۳"
+    },
+    {
+      "weak_dimension": "4D",
+      "weak_condition": "ارزش برآوردی",
+      "suggested_action_fa": "بازنگری یا تمدید ارزش‌گذاری",
+      "destination": "موتور ۲"
+    },
+    {
+      "weak_dimension": "2D",
+      "weak_condition": "تقاضا، رقابت‌پذیری، شریک",
+      "suggested_action_fa": "مطالعه بازار، تحلیل رقبا، شناسایی شریک",
+      "destination": "مدیر BD"
+    },
+    {
+      "weak_dimension": "9D",
+      "weak_condition": "همسویی و آمادگی سازمانی",
+      "suggested_action_fa": "اخذ مصوبه، تخصیص منابع",
+      "destination": "مدیر BD و مدیریت ارشد"
+    },
+    {
+      "weak_dimension": null,
+      "weak_condition": "شواهد ناکافی (اطمینان پایین)",
+      "suggested_action_fa": "بارگذاری یا ارتقای شواهد",
+      "destination": "کارشناس ارزیابی و مالک دارایی"
+    }
+  ]
+}

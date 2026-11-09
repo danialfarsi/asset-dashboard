@@ -38,6 +38,9 @@ import {
   Crown,
   Boxes,
   SlidersHorizontal,
+  Handshake,
+  FileSignature,
+  DollarSign,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -201,9 +204,30 @@ const stage4Children = [
   },
 ]
 
+
+// ============================================================
+// مرحله ۶ — تجاری‌سازی
+// ============================================================
+
+const stage6Children = [
+  {
+    label: 'داشبورد تجاری‌سازی',
+    href: '/dashboard/intangible/commercialization',
+    icon: Share2,
+    id: 'commercialization-dashboard',
+  },
+  {
+    label: 'پایگاه شرکای تجاری',
+    href: '/dashboard/intangible/commercialization/partners',
+    icon: Users,
+    id: 'partners-database',
+  },
+];
+
 // ============================================================
 // مراحل ۱۰ گانه
 // ============================================================
+
 
 const stageNavItems = [
   {
@@ -239,6 +263,13 @@ const stageNavItems = [
     href: '/dashboard/intangible/stage5',
     icon: Lightbulb,
     id: 'stage5',
+  },
+  {
+    label: 'مرحله ۶: تجاری‌سازی',
+    href: '/dashboard/intangible/commercialization',
+    icon: Handshake,
+    children: stage6Children,
+    id: 'stage6',
   },
   // {
   //   label: 'مرحله ۶: تجاری سازی',
@@ -401,6 +432,11 @@ export function AppSidebar() {
     ) {
       setIsStagesOpen(true)
       setOpenStage('stage4')
+    } else if (
+      pathname.includes('/dashboard/intangible/commercialization')
+    ) {
+      setIsStagesOpen(true)
+      setOpenStage('stage6')
     }
   }, [pathname])
 

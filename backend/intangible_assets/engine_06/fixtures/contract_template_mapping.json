@@ -1,0 +1,94 @@
+{
+  "version": "1.0",
+  "templates": {
+    "exclusive_license": {
+      "template_id": "TPL-EXC-LIC-v1",
+      "default_terms": {
+        "duration_years": 5,
+        "territory": "national",
+        "royalty_rate_range": [
+          3,
+          10
+        ],
+        "minimum_guarantee": true,
+        "exclusivity": true
+      }
+    },
+    "non_exclusive_license": {
+      "template_id": "TPL-NEX-LIC-v1",
+      "default_terms": {
+        "duration_years": 3,
+        "territory": "national",
+        "royalty_rate_range": [
+          2,
+          6
+        ],
+        "minimum_guarantee": false,
+        "exclusivity": false
+      }
+    },
+    "full_sale": {
+      "template_id": "TPL-SALE-v1",
+      "default_terms": {
+        "payment_terms": "lump_sum",
+        "warranty_months": 12,
+        "transition_support_months": 6
+      }
+    },
+    "joint_venture": {
+      "template_id": "TPL-JV-v1",
+      "default_terms": {
+        "ownership_split": [
+          50,
+          50
+        ],
+        "governance": "board_of_directors",
+        "duration_years": 10
+      }
+    },
+    "spin_off": {
+      "template_id": "TPL-SPIN-v1",
+      "default_terms": {
+        "equity_retained": 20,
+        "board_seat": true,
+        "duration_years": null
+      }
+    },
+    "franchise": {
+      "template_id": "TPL-FRAN-v1",
+      "default_terms": {
+        "territory": "exclusive",
+        "duration_years": 5,
+        "royalty_rate_range": [
+          4,
+          8
+        ],
+        "training_days": 30
+      }
+    },
+    "knowledge_services": {
+      "template_id": "TPL-SERV-v1",
+      "default_terms": {
+        "contract_type": "time_and_materials",
+        "payment_terms": "monthly",
+        "sla_hours": 48
+      }
+    }
+  },
+  "mandatory_clauses": [
+    "party_capacity",
+    "asset_scope",
+    "exclusivity",
+    "territory",
+    "duration",
+    "financial_structure",
+    "audit_right",
+    "confidentiality",
+    "improvements_ownership",
+    "warranties",
+    "termination",
+    "dispute_resolution",
+    "governing_law",
+    "force_majeure"
+  ]
+}

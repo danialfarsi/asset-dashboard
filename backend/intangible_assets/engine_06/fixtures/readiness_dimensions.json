@@ -1,0 +1,59 @@
+{
+  "version": "1.0",
+  "dimensions": [
+    {
+      "code": "1D",
+      "name_fa": "بلوغ فنی",
+      "name_en": "Technical Maturity",
+      "order": 1
+    },
+    {
+      "code": "2D",
+      "name_fa": "تقاضای بازار",
+      "name_en": "Market Demand",
+      "order": 2
+    },
+    {
+      "code": "3D",
+      "name_fa": "وضوح مالکیت",
+      "name_en": "Ownership Clarity",
+      "order": 3
+    },
+    {
+      "code": "4D",
+      "name_fa": "ارزش برآوردی",
+      "name_en": "Estimated Value",
+      "order": 4
+    },
+    {
+      "code": "5D",
+      "name_fa": "رقابت‌پذیری",
+      "name_en": "Competitiveness",
+      "order": 5
+    },
+    {
+      "code": "6D",
+      "name_fa": "وجود شریک بالقوه",
+      "name_en": "Potential Partner Availability",
+      "order": 6
+    },
+    {
+      "code": "7D",
+      "name_fa": "ریسک حقوقی",
+      "name_en": "Legal Risk",
+      "order": 7
+    },
+    {
+      "code": "8D",
+      "name_fa": "قابلیت انتقال",
+      "name_en": "Transferability",
+      "order": 8
+    },
+    {
+      "code": "9D",
+      "name_fa": "همسویی و آمادگی سازمانی",
+      "name_en": "Organizational Alignment & Readiness",
+      "order": 9
+    }
+  ]
+}

@@ -71,6 +71,7 @@ router.register(r'sensitivity', SensitivityAnalysisViewSet, basename='sensitivit
 router.register(r'graph', GraphViewSet, basename='graph')
 
 urlpatterns = [
+    path("engine/commercialization/", include("intangible_assets.engine_06.urls")),
     path('viam/', include('intangible_assets.viam.urls')),
     path('maturity/', include('intangible_assets.engine_05.maturity_urls')),
     path('external/discovery/', ExternalDiscoveryView.as_view(), name='external-discovery'),

@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "levels": [
+    {
+      "code": "0E",
+      "label_fa": "بدون شاهد",
+      "factor_required": 0.5,
+      "factor_optional": 0.9
+    },
+    {
+      "code": "1E",
+      "label_fa": "اظهار مالک یا متصدی",
+      "factor_required": 0.7,
+      "factor_optional": 0.7
+    },
+    {
+      "code": "2E",
+      "label_fa": "سند، گزارش یا لینک رسمی",
+      "factor_required": 0.9,
+      "factor_optional": 0.9
+    },
+    {
+      "code": "3E",
+      "label_fa": "تأیید مستقل",
+      "factor_required": 1.0,
+      "factor_optional": 1.0
+    }
+  ]
+}

@@ -74,11 +74,9 @@ export default function AssetRadarChart({
     let count = 0;
 
     Object.entries(DIMENSION_COUNTS).forEach(([key, count]) => {
-      const rawValue = data[key as keyof typeof data] || 0;
-      const average = rawValue / count;
-      avg[key] = Math.min(average, maxValue);
-      totalAvg += average;
-      count++;
+      const value = data[key as keyof typeof data] || 0;
+      // داده‌ای که از API میاد میانگین هست، پس تقسیم نمی‌کنیم
+      avg[key] = Math.min(value, maxValue);
     });
 
     setAverages(avg);
@@ -239,7 +237,7 @@ export default function AssetRadarChart({
                   {avgValue.toFixed(2)}
                 </p>
                 <p className="text-[10px] text-gray-400">
-                  مجموع: {rawValue.toFixed(0)} / {count} سوال
+                  {avgValue.toFixed(2)} از {maxValue}
                 </p>
                 <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full mt-1 overflow-hidden">
                   <div

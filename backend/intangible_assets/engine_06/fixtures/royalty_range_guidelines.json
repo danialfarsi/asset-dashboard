@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "guidelines": {
+    "brand": {
+      "min": 2,
+      "max": 8,
+      "typical": 5
+    },
+    "patent": {
+      "min": 3,
+      "max": 10,
+      "typical": 6
+    },
+    "software": {
+      "min": 5,
+      "max": 20,
+      "typical": 12
+    },
+    "trade_secret": {
+      "min": 4,
+      "max": 15,
+      "typical": 8
+    },
+    "process": {
+      "min": 2,
+      "max": 8,
+      "typical": 5
+    },
+    "franchise": {
+      "min": 4,
+      "max": 12,
+      "typical": 7
+    },
+    "default": {
+      "min": 2,
+      "max": 15,
+      "typical": 6
+    }
+  },
+  "absolute_max": 25,
+  "exception_approval_level": {
+    "up_to_15": "committee",
+    "up_to_20": "board",
+    "above_20": "board_and_audit"
+  }
+}

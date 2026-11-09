@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "weights": {
+    "revenue": 0.4,
+    "risk": 0.2,
+    "complexity": 0.2,
+    "horizon": 0.2
+  },
+  "scores": {
+    "revenue_potential": {
+      "very_high": 100,
+      "high": 80,
+      "medium": 60,
+      "low": 40
+    },
+    "risk": {
+      "very_high": 20,
+      "high": 40,
+      "medium": 60,
+      "low": 80
+    },
+    "complexity": {
+      "very_high": 20,
+      "high": 40,
+      "medium": 60,
+      "low": 80
+    }
+  },
+  "horizon": {
+    "max_months": 60,
+    "min_months": 6
+  }
+}

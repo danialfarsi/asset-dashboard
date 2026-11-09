@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "mapping": {
+    "brd": "brand",
+    "pat": "patent",
+    "src": "software",
+    "ts": "trade_secret",
+    "port": "customer_portfolio",
+    "crm": "customer_portfolio",
+    "rep": "goodwill",
+    "sop": "process",
+    "std": "process",
+    "con": "contract",
+    "ads": "data",
+    "dms": "data",
+    "kms": "data",
+    "val": "culture",
+    "eth": "culture",
+    "cul": "culture",
+    "net": "network",
+    "network": "network",
+    "gov": "network",
+    "csr": "network",
+    "stb": "brand",
+    "cou": "network",
+    "esg": "process",
+    "sus": "process"
+  },
+  "default": "default"
+}

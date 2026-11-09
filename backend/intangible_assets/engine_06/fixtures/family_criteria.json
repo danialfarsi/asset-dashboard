@@ -1,0 +1,149 @@
+{
+  "version": "1.0",
+  "criteria": [
+    {
+      "code": "1F-01",
+      "family": "1F",
+      "text_fa": "دانش با سازوکار حفظ محرمانگی (کنترل دسترسی، طبقه‌بندی اطلاعات، NDA) به‌صورت کنترل‌شده قابل انتقال است.",
+      "suggested_evidence": "NDA، سیاست طبقه‌بندی",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "1F-02",
+      "family": "1F",
+      "text_fa": "دانش در قالب بسته فنی قابل آموزش و تحویل مدون شده است.",
+      "suggested_evidence": "بسته فنی، مستندات",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "1F-03",
+      "family": "1F",
+      "text_fa": "چارچوب حفاظت پس از انتقال (محدودیت استفاده، بازگرداندن یا امحای اطلاعات) تعریف شده است.",
+      "suggested_evidence": "قرارداد پس از انتقال",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "2F-01",
+      "family": "2F",
+      "text_fa": "مالکیت داده‌های ورودی و مجوز استفاده از آن‌ها (شامل داده شخص ثالث و اجزای متن‌باز) شفاف است.",
+      "suggested_evidence": "مجوز داده، فهرست منابع",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "2F-02",
+      "family": "2F",
+      "text_fa": "مدل یا نرم‌افزار نسخه‌بندی‌شده، مستندشده و قابل تحویل است و سازوکار پشتیبانی دارد.",
+      "suggested_evidence": "مستندات فنی، نسخه",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "2F-03",
+      "family": "2F",
+      "text_fa": "اعتبارسنجی مدل و محدوده معتبر کاربرد آن مستند شده است.",
+      "suggested_evidence": "گزارش اعتبارسنجی",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "3F-01",
+      "family": "3F",
+      "text_fa": "وضعیت ثبت یا مجوز (قلمرو، اعتبار، تاریخ انقضا، هزینه نگهداری) به‌روز و دارای شاهد رسمی است.",
+      "suggested_evidence": "سند ثبت، مجوز",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "3F-02",
+      "family": "3F",
+      "text_fa": "دامنه ادعاها یا شمول مجوز با محصول یا خدمت قابل تجاری‌سازی تطابق دارد.",
+      "suggested_evidence": "سند ادعا، تطبیق فنی",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "3F-03",
+      "family": "3F",
+      "text_fa": "شرایط واگذاری یا مجوزدهی فرعی طبق مقررات مرجع ثبت یا صدور بررسی شده است.",
+      "suggested_evidence": "مقررات مرجع",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "4F-01",
+      "family": "4F",
+      "text_fa": "ارزش برند یا رابطه مستقل از افراد خاص است و قابل انتقال یا مجوزدهی است.",
+      "suggested_evidence": "مستندات برند",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "4F-02",
+      "family": "4F",
+      "text_fa": "استانداردهای کیفیت و کنترل کاربرد برند برای بهره‌بردار تعریف شده است.",
+      "suggested_evidence": "Brand Guidelines",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "4F-03",
+      "family": "4F",
+      "text_fa": "پایداری روابط (قراردادهای جاری، سابقه همکاری) مستند است.",
+      "suggested_evidence": "قراردادها، سوابق",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "5F-01",
+      "family": "5F",
+      "text_fa": "رویه یا متدولوژی مستقل از زمینه سازمان مالک قابل اجراست (قابلیت تعمیم).",
+      "suggested_evidence": "مستند رویه",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "5F-02",
+      "family": "5F",
+      "text_fa": "نتایج اثبات‌شده (بهبود هزینه، زمان یا کیفیت) با داده قابل ارائه به مشتری است.",
+      "suggested_evidence": "گزارش نتایج",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "5F-03",
+      "family": "5F",
+      "text_fa": "بسته عرضه (آموزش، گواهی، خدمت) برای ارائه بیرون از سازمان طراحی شده است.",
+      "suggested_evidence": "بسته خدمت",
+      "is_required_evidence": true,
+      "order": 3
+    },
+    {
+      "code": "6F-01",
+      "family": "6F",
+      "text_fa": "تجاری‌سازی از طریق دارایی میزبان یا خدمات دانشی انجام می‌شود، نه واگذاری فرد.",
+      "suggested_evidence": "طرح خدمت",
+      "is_required_evidence": true,
+      "order": 1
+    },
+    {
+      "code": "6F-02",
+      "family": "6F",
+      "text_fa": "تعهدات ماندگاری، عدم رقابت و حقوق فرد برای مشارکت در تجاری‌سازی تعیین شده است.",
+      "suggested_evidence": "قرارداد عدم رقابت",
+      "is_required_evidence": true,
+      "order": 2
+    },
+    {
+      "code": "6F-03",
+      "family": "6F",
+      "text_fa": "برنامه جانشین‌پروری یا انتقال دانش برای کاهش وابستگی به فرد وجود دارد.",
+      "suggested_evidence": "برنامه جانشینی",
+      "is_required_evidence": true,
+      "order": 3
+    }
+  ]
+}

@@ -34,13 +34,30 @@ class DiscoveryFormViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        
+
+        # فیلتر بر اساس نقش
         if user.role == 'super_admin':
-            return queryset
+            pass
         elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
+            queryset = queryset.filter(created_by__organization=user.organization)
         else:  # org_user
-            return queryset.filter(created_by=user)
+            queryset = queryset.filter(created_by=user)
+
+        # فیلتر جدید: has_valuation — فقط دارایی‌هایی که ارزش‌گذاری معتبر دارن
+        has_valuation = self.request.query_params.get('has_valuation')
+        if has_valuation == 'true':
+            from intangible_assets.valuation_models import ValuationCase
+            asset_ids = ValuationCase.objects.filter(
+                status__in=['completed', 'approved', 'reviewed']
+            ).values_list('asset_id', flat=True).distinct()
+            queryset = queryset.filter(id__in=asset_ids)
+
+        # فیلتر result (confirmed/conditional)
+        result_param = self.request.query_params.get('result')
+        if result_param:
+            queryset = queryset.filter(result=result_param)
+
+        return queryset
     
     @action(detail=False, methods=['get'])
     def raw_bank(self, request):
@@ -96,13 +113,30 @@ class IdentityAssessmentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        
+
+        # فیلتر بر اساس نقش
         if user.role == 'super_admin':
-            return queryset
+            pass
         elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
+            queryset = queryset.filter(created_by__organization=user.organization)
         else:  # org_user
-            return queryset.filter(created_by=user)
+            queryset = queryset.filter(created_by=user)
+
+        # فیلتر جدید: has_valuation — فقط دارایی‌هایی که ارزش‌گذاری معتبر دارن
+        has_valuation = self.request.query_params.get('has_valuation')
+        if has_valuation == 'true':
+            from intangible_assets.valuation_models import ValuationCase
+            asset_ids = ValuationCase.objects.filter(
+                status__in=['completed', 'approved', 'reviewed']
+            ).values_list('asset_id', flat=True).distinct()
+            queryset = queryset.filter(id__in=asset_ids)
+
+        # فیلتر result (confirmed/conditional)
+        result_param = self.request.query_params.get('result')
+        if result_param:
+            queryset = queryset.filter(result=result_param)
+
+        return queryset
     
     @action(detail=False, methods=['get'])
     def stats(self, request):
@@ -157,13 +191,30 @@ class ScreenedAssetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         queryset = super().get_queryset()
-        
+
+        # فیلتر بر اساس نقش
         if user.role == 'super_admin':
-            return queryset
+            pass
         elif user.role == 'org_admin':
-            return queryset.filter(created_by__organization=user.organization)
+            queryset = queryset.filter(created_by__organization=user.organization)
         else:  # org_user
-            return queryset.filter(created_by=user)
+            queryset = queryset.filter(created_by=user)
+
+        # فیلتر جدید: has_valuation — فقط دارایی‌هایی که ارزش‌گذاری معتبر دارن
+        has_valuation = self.request.query_params.get('has_valuation')
+        if has_valuation == 'true':
+            from intangible_assets.valuation_models import ValuationCase
+            asset_ids = ValuationCase.objects.filter(
+                status__in=['completed', 'approved', 'reviewed']
+            ).values_list('asset_id', flat=True).distinct()
+            queryset = queryset.filter(id__in=asset_ids)
+
+        # فیلتر result (confirmed/conditional)
+        result_param = self.request.query_params.get('result')
+        if result_param:
+            queryset = queryset.filter(result=result_param)
+
+        return queryset
 
     def perform_create(self, serializer):
         user = self.request.user

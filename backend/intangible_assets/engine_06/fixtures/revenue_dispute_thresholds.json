@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "variance_threshold_percent": 15,
+  "variance_threshold_absolute": 100000000,
+  "auto_dispute_on_exceed": true,
+  "escalation_levels": {
+    "level_1": {
+      "variance_percent": [
+        15,
+        30
+      ],
+      "escalation": "finance_expert"
+    },
+    "level_2": {
+      "variance_percent": [
+        30,
+        50
+      ],
+      "escalation": "finance_manager"
+    },
+    "level_3": {
+      "variance_percent": [
+        50,
+        null
+      ],
+      "escalation": "committee"
+    }
+  }
+}

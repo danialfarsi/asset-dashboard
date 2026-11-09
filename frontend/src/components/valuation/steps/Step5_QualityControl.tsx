@@ -146,7 +146,7 @@ export function Step5_QualityControl({
     const inputs = step3Inputs || {};
     
     // 📍 بررسی داده‌های STEP 2
-    const hasAssetProfile = assetDetails && assetDetails.asset_name && assetDetails.asset_uid;
+    const hasAssetProfile = assetDetails && assetDetails.asset_name && assetDetails.category;
     const hasQualityScores = step2Data && step2Data.final_score !== undefined;
     const hasBaseInputs = step2Data && step2Data.tax_rate && step2Data.discount_rate;
     const hasSourceReliability = step2Data && step2Data.source_reliability && step2Data.source_reliability !== 'low';
@@ -296,6 +296,7 @@ export function Step5_QualityControl({
     let earnedWeight = 0;
 
     for (const rule of allRules) {
+      if (rule.id === 'S5-08') continue;  // S5-08 نادیده بگیر (circular logic)
       const weight = priorityWeights[rule.priority] || 5;
       totalWeight += weight;
       

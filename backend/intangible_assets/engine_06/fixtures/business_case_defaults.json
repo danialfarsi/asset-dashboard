@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "default_discount_rate": 18,
+  "default_cash_flows": {
+    "pessimistic": [
+      {
+        "year": 0,
+        "amount": -500000000
+      },
+      {
+        "year": 1,
+        "amount": 100000000
+      },
+      {
+        "year": 2,
+        "amount": 150000000
+      },
+      {
+        "year": 3,
+        "amount": 200000000
+      }
+    ],
+    "base": [
+      {
+        "year": 0,
+        "amount": -500000000
+      },
+      {
+        "year": 1,
+        "amount": 200000000
+      },
+      {
+        "year": 2,
+        "amount": 300000000
+      },
+      {
+        "year": 3,
+        "amount": 400000000
+      },
+      {
+        "year": 4,
+        "amount": 500000000
+      }
+    ],
+    "optimistic": [
+      {
+        "year": 0,
+        "amount": -500000000
+      },
+      {
+        "year": 1,
+        "amount": 300000000
+      },
+      {
+        "year": 2,
+        "amount": 500000000
+      },
+      {
+        "year": 3,
+        "amount": 700000000
+      },
+      {
+        "year": 4,
+        "amount": 900000000
+      },
+      {
+        "year": 5,
+        "amount": 1000000000
+      }
+    ]
+  },
+  "model_display_names": {
+    "exclusive_license": "لایسنس انحصاری",
+    "non_exclusive_license": "لایسنس غیرانحصاری",
+    "full_sale": "فروش کامل",
+    "joint_venture": "سرمایه‌گذاری مشترک (JV)",
+    "spin_off": "اسپین‌آف",
+    "franchise": "فرنچایز",
+    "knowledge_services": "خدمات دانشی"
+  }
+}

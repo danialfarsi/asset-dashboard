@@ -74,6 +74,26 @@ class ScreenedAssetViewSet(OrganizationDepartmentFilterMixin, viewsets.ModelView
     # org_admin: سازمان خودش
     # org_user: واحد خودش + خودش
 
+    def get_queryset(self):
+        # استفاده از Mixin برای فیلتر اولیه
+        qs = super().get_queryset()
+
+        # فیلتر has_valuation: فقط دارایی‌هایی که ارزش‌گذاری معتبر دارن
+        has_valuation = self.request.query_params.get('has_valuation')
+        if has_valuation == 'true':
+            from intangible_assets.valuation_models import ValuationCase
+            asset_ids = ValuationCase.objects.filter(
+                status__in=['completed', 'approved', 'reviewed']
+            ).values_list('asset_id', flat=True).distinct()
+            qs = qs.filter(id__in=asset_ids)
+
+        # فیلتر result
+        result_param = self.request.query_params.get('result')
+        if result_param:
+            qs = qs.filter(result=result_param)
+
+        return qs
+
     def perform_create(self, serializer):
         from accounts.models import Department, Organization
         
