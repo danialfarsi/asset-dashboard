@@ -177,3 +177,36 @@ class RTOScreeningPublicView(APIView):
             'message': 'دارایی با موفقیت ثبت شد.',
             'valuation_url': f'/public/rto-valuation/{asset.id}?token={student.access_token}',
         }, status=201)
+
+
+class RTOStudentLoginView(APIView):
+    """POST: ورود دانشجو با ایمیل و شماره دانشجویی"""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('student_email', '').strip()
+        student_id = request.data.get('student_id', '').strip()
+
+        if not email or not student_id:
+            return Response({'error': 'ایمیل و شماره دانشجویی الزامی است'}, status=400)
+
+        student = RTOStudent.objects.filter(
+            student_email=email,
+            student_id=student_id
+        ).first()
+
+        if not student:
+            return Response({'error': 'اطلاعات ورود نامعتبر است'}, status=401)
+
+        return Response({
+            'message': 'ورود موفق',
+            'access_token': student.access_token,
+            'student': {
+                'id': student.id,
+                'name': student.student_name,
+                'family': student.student_family,
+                'student_id': student.student_id,
+                'phone': student.student_phone,
+                'email': student.student_email,
+            }
+        })

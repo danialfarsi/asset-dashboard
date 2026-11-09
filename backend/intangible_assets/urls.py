@@ -29,7 +29,7 @@ from .views_dashboard import DashboardPortfolioView
 
 # STEP 4 - Protection
 from .protection_views import ProtectionViewSet
-from .views_public_screening import RTOScreeningPublicView, RTOStudentAuthView, RTOStudentDashboardView
+from .views_public_screening import RTOScreeningPublicView, RTOStudentAuthView, RTOStudentDashboardView, RTOStudentLoginView
 from .views_public_valuation import PublicValuationQuestionsView, PublicValuationSubmitView
 from .views_admin_rto import AdminRTOStudentsListView
 
@@ -79,6 +79,7 @@ urlpatterns = [
 
     # 🌐 Public RTO Screening (بدون لاگین)
     path("public/rto-auth/", RTOStudentAuthView.as_view(), name="rto-auth"),
+    path("public/rto-login/", RTOStudentLoginView.as_view(), name="rto-login"),
     path("public/rto-dashboard/", RTOStudentDashboardView.as_view(), name="rto-dashboard"),
     path("public/rto-screening/", RTOScreeningPublicView.as_view(), name="rto-public-screening"),
     path("public/rto-valuation/<int:asset_id>/questions/", PublicValuationQuestionsView.as_view(), name="rto-valuation-questions"),
